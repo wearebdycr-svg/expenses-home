@@ -1,0 +1,49 @@
+<section class="filters-card">
+  <div class="filters-row">
+    <app-select
+      label="Año"
+      labelStyle="caption"
+      [options]="yearOptions"
+      [value]="incomesService.year()"
+      (valueChange)="incomesService.setYear($event)"
+    />
+    <app-select
+      label="Mes"
+      labelStyle="caption"
+      [options]="monthOptions"
+      [value]="incomesService.month()"
+      (valueChange)="incomesService.setMonth($event)"
+    />
+    <app-select
+      label="Día"
+      labelStyle="caption"
+      [options]="dayOptions"
+      [value]="incomesService.day()"
+      (valueChange)="incomesService.setDay($event)"
+    />
+    <app-select
+      label="Persona"
+      labelStyle="caption"
+      [options]="personOptions"
+      [value]="incomesService.person()"
+      (valueChange)="incomesService.setPerson($event)"
+    />
+  </div>
+
+  <div class="totals-row">
+    <div class="total-item">
+      <span class="total-label" [style.color]="personColors.Ana">Ana</span>
+      <span class="total-value" [style.color]="personColors.Ana">{{ formatCOP(incomesService.totals().ana) }}</span>
+    </div>
+    <div class="total-item">
+      <span class="total-label" [style.color]="personColors.Carlos">Carlos</span>
+      <span class="total-value" [style.color]="personColors.Carlos">{{
+        formatCOP(incomesService.totals().carlos)
+      }}</span>
+    </div>
+    <div class="total-item">
+      <span class="total-label" [style.color]="totalColor">Total</span>
+      <span class="total-value" [style.color]="totalColor">{{ formatCOP(incomesService.totals().total) }}</span>
+    </div>
+  </div>
+</section>

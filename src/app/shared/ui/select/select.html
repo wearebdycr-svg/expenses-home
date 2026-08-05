@@ -1,0 +1,10 @@
+<label class="field">
+  @if (label()) {
+    <span class="field-label" [class.field-label--caption]="labelStyle() === 'caption'">{{ label() }}</span>
+  }
+  <select class="field-control" [value]="selectedIndex()" (change)="onChange($event)">
+    @for (option of options(); track $index) {
+      <option [value]="$index" [selected]="$index === selectedIndex()">{{ option.label }}</option>
+    }
+  </select>
+</label>

@@ -1,0 +1,42 @@
+<app-modal [title]="modalTitle()" (close)="cancel.emit()">
+  <form class="income-form" (submit)="$event.preventDefault(); onSubmit()">
+    <div class="form-row">
+      <label class="field">
+        <span class="field-label">Fecha</span>
+        <input class="field-control" type="date" [value]="date()" (input)="date.set($any($event.target).value)" />
+      </label>
+
+      <app-select label="Persona" [options]="personOptions" [value]="person()" (valueChange)="person.set($event)" />
+    </div>
+
+    <app-select label="Fuente" [options]="sourceOptions" [value]="source()" (valueChange)="source.set($event)" />
+
+    <label class="field">
+      <span class="field-label">Descripción</span>
+      <input
+        class="field-control"
+        type="text"
+        placeholder="Ej: Salario enero"
+        [value]="description()"
+        (input)="description.set($any($event.target).value)"
+      />
+    </label>
+
+    <label class="field">
+      <span class="field-label">Monto (COP)</span>
+      <input
+        class="field-control"
+        type="text"
+        inputmode="numeric"
+        placeholder="3500000"
+        [value]="amount()"
+        (input)="onAmountInput($event)"
+      />
+    </label>
+
+    <div class="form-actions">
+      <button type="button" class="btn btn-secondary" (click)="cancel.emit()">Cancelar</button>
+      <button type="submit" class="btn btn-primary">{{ submitLabel() }}</button>
+    </div>
+  </form>
+</app-modal>

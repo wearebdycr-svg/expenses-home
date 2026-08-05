@@ -1,6 +1,13 @@
 <div class="app-shell">
   <app-sidebar [currentPage]="currentPage()" (navigate)="onNavigate($event)" />
   <main class="app-content">
-    <router-outlet />
+    @switch (currentPage()) {
+      @case ('ingresos') {
+        <app-ingresos-page />
+      }
+      @default {
+        <div class="page-placeholder">Próximamente</div>
+      }
+    }
   </main>
 </div>
