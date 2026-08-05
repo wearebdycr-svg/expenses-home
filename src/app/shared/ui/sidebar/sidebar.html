@@ -1,0 +1,66 @@
+<button
+  type="button"
+  class="mobile-menu-btn"
+  [class.is-hidden]="mobileOpen()"
+  (click)="openMobileMenu()"
+  aria-label="Abrir menú de navegación"
+>
+  <app-icon name="menu" [size]="20" />
+</button>
+
+<div
+  class="sidebar-overlay"
+  [class.visible]="mobileOpen()"
+  (click)="closeMobileMenu()"
+></div>
+
+<aside class="sidebar" [class.is-open]="mobileOpen()">
+  <button
+    type="button"
+    class="mobile-close-btn"
+    (click)="closeMobileMenu()"
+    aria-label="Cerrar menú de navegación"
+  >
+    <app-icon name="x" [size]="18" />
+  </button>
+
+  <div class="sidebar-header">
+    <div class="logo-circle">
+      <app-icon name="home" [size]="16" />
+    </div>
+    <div class="header-text">
+      <p class="app-name">FinanzasHogar</p>
+      <p class="app-subtitle">Control familiar · 2026</p>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    @for (item of navItems; track item.id) {
+      <button
+        type="button"
+        class="nav-item"
+        [class.is-active]="currentPage() === item.id"
+        [attr.aria-current]="currentPage() === item.id ? 'page' : null"
+        (click)="onNavItemClick(item.id)"
+      >
+        <app-icon [name]="item.icon" [size]="18" class="nav-icon" />
+        <span class="nav-text">
+          <span class="nav-label">{{ item.label }}</span>
+          <span class="nav-description">{{ item.description }}</span>
+        </span>
+      </button>
+    }
+  </nav>
+
+  <div class="sidebar-people">
+    <p class="people-header">Personas</p>
+    <div class="people-list">
+      @for (person of people; track person.name) {
+        <div class="person">
+          <span class="person-dot" [style.background-color]="person.color"></span>
+          <span class="person-name">{{ person.name }}</span>
+        </div>
+      }
+    </div>
+  </div>
+</aside>

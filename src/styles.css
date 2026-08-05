@@ -1,0 +1,30 @@
+/* You can add global styles to this file, and also import other style files */
+
+:root {
+  --sidebar: #1b2a4a;
+  --sidebar-foreground: #e2e8f0;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-primary: #ffffff;
+  --sidebar-accent: rgba(255, 255, 255, 0.08);
+  --sidebar-accent-foreground: #ffffff;
+  --accent: #f97316;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+}
+
