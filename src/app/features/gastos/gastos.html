@@ -1,0 +1,33 @@
+<div class="gastos-page">
+  <header class="page-header">
+    <div>
+      <h1 class="page-title">Gastos Diarios</h1>
+      <p class="page-subtitle">Registro de egresos del hogar</p>
+    </div>
+    <button type="button" class="btn btn-primary" (click)="openCreateModal()">
+      <app-icon name="plus" [size]="16" />
+      Nuevo Gasto
+    </button>
+  </header>
+
+  <app-expense-filters />
+
+  <div class="charts-grid">
+    <div class="chart-daily-col">
+      <app-expense-daily-chart />
+    </div>
+    <div class="chart-category-col">
+      <app-expense-category-chart />
+    </div>
+  </div>
+
+  <app-expense-table (edit)="openEditModal($event)" />
+
+  @if (isModalOpen()) {
+    <app-expense-form-modal
+      [expense]="editingExpense()"
+      (save)="onSave($event)"
+      (cancel)="closeModal()"
+    />
+  }
+</div>

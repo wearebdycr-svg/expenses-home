@@ -1,7 +1,7 @@
 -- ==============================================================================
 -- Esquema de Base de Datos para Expenses Home (Supabase / PostgreSQL)
--- Totalmente desde 0: Tablas limpias sin ingresos de prueba
--- Personas: Benny y Charlie
+-- Totalmente desde 0: Tablas limpias
+-- Personas: Benny, Charlie y Compartido
 -- ==============================================================================
 
 -- 1. Tabla de Personas
@@ -22,10 +22,11 @@ TO anon, authenticated
 USING (true)
 WITH CHECK (true);
 
--- Insertar las personas iniciales: Benny y Charlie
+-- Insertar las personas iniciales: Benny, Charlie y Compartido
 INSERT INTO public.persons (id, name, color) VALUES
   ('benny', 'Benny', '#3B82F6'),
-  ('charlie', 'Charlie', '#F59E0B')
+  ('charlie', 'Charlie', '#F59E0B'),
+  ('compartido', 'Compartido', '#10B981')
 ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name,
   color = EXCLUDED.color;
@@ -51,6 +52,31 @@ TO anon, authenticated
 USING (true)
 WITH CHECK (true);
 
--- 3. Habilitar Replicación en Tiempo Real (Realtime)
+-- 3. Tabla de Gastos Diarios (Limpia desde 0 - HU03)
+CREATE TABLE IF NOT EXISTS public.expenses (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    date DATE NOT NULL,
+    person TEXT NOT NULL REFERENCES public.persons(name) ON UPDATE CASCADE,
+    category TEXT NOT NULL CHECK (category IN (
+        'Alimentación', 'Transporte', 'Salud', 'Entretenimiento', 'Educación',
+        'Ropa', 'Tecnología', 'Restaurantes', 'Cuidado Personal', 'Hogar', 'Servicios', 'Otros'
+    )),
+    description VARCHAR(100) NOT NULL,
+    amount NUMERIC NOT NULL CHECK (amount > 0),
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+-- Habilitar Seguridad a Nivel de Fila (RLS) para expenses
+ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Permitir acceso completo a gastos"
+ON public.expenses
+FOR ALL
+TO anon, authenticated
+USING (true)
+WITH CHECK (true);
+
+-- 4. Habilitar Replicación en Tiempo Real (Realtime)
 ALTER PUBLICATION supabase_realtime ADD TABLE public.persons;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.incomes;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.expenses;

@@ -1,0 +1,23 @@
+<div class="category-card">
+  <h2 class="card-title">Por categoría</h2>
+
+  <div class="donut-container">
+    <canvas baseChart [data]="data()" [options]="options" type="doughnut"></canvas>
+  </div>
+
+  @if (hasData()) {
+    <div class="legend-list">
+      @for (item of breakdown(); track item.category) {
+        <div class="legend-row">
+          <div class="legend-info">
+            <span class="legend-dot" [style.background-color]="item.color"></span>
+            <span class="legend-label">{{ item.category }}</span>
+          </div>
+          <span class="legend-percentage">{{ item.percentage.toFixed(1) }}%</span>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="no-data-msg">No hay gastos para este período</div>
+  }
+</div>

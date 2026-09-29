@@ -2,6 +2,9 @@
   <app-sidebar [currentPage]="currentPage()" (navigate)="onNavigate($event)" />
   <main class="app-content">
     @switch (currentPage()) {
+      @case ('gastos') {
+        <app-gastos-page />
+      }
       @case ('ingresos') {
         <app-ingresos-page />
       }

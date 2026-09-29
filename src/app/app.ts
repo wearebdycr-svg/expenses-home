@@ -1,10 +1,11 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { GastosPage } from './features/gastos/gastos';
 import { IngresosPage } from './features/ingresos/ingresos';
 import { Sidebar, type SidebarPageId } from './shared/ui/sidebar/sidebar';
 
 @Component({
   selector: 'app-root',
-  imports: [Sidebar, IngresosPage],
+  imports: [Sidebar, GastosPage, IngresosPage],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app.html',
   styleUrl: './app.css',
