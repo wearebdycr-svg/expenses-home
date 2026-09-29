@@ -1,41 +1,48 @@
-import { Injectable, computed, signal } from '@angular/core';
-import type { Income, IncomeDraft, PersonFilter } from './income.model';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { SupabaseService } from '../../../core/services/supabase.service';
+import type { Income, IncomeDraft, IncomeSource, Person, PersonFilter } from './income.model';
 import { generateId } from './income.model';
-import { INCOME_SEED } from './incomes.seed';
 
 export type MonthFilter = 'Todos' | number;
 export type DayFilter = 'Todos' | number;
 
 export interface IncomeTotals {
-  ana: number;
-  carlos: number;
+  benny: number;
+  charlie: number;
   total: number;
 }
 
 export interface MonthlySeries {
-  ana: number[];
-  carlos: number[];
+  benny: number[];
+  charlie: number[];
   total: number[];
 }
 
 function emptyMonthlySeries(): MonthlySeries {
-  return { ana: Array(12).fill(0), carlos: Array(12).fill(0), total: Array(12).fill(0) };
+  return { benny: Array(12).fill(0), charlie: Array(12).fill(0), total: Array(12).fill(0) };
 }
 
 /**
- * Fuente de datos en memoria para Ingresos. Expone la misma forma de datos
- * que tendría un backend real (lista de Income + operaciones CRUD), para que
- * cambiar esta implementación por llamadas HttpClient no requiera tocar los
- * componentes que consumen el servicio.
+ * Servicio reactivo para Ingresos conectado a Supabase con sincronización en tiempo real
+ * y actualización optimista local inmediata para máxima fluidez en la interfaz.
  */
 @Injectable({ providedIn: 'root' })
 export class IncomesService {
-  private readonly incomes = signal<Income[]>([...INCOME_SEED]);
+  private readonly supabase = inject(SupabaseService);
+
+  private readonly incomes = signal<Income[]>([]);
+  readonly loading = signal<boolean>(false);
+  readonly error = signal<string | null>(null);
 
   readonly year = signal<number>(2026);
   readonly month = signal<MonthFilter>('Todos');
   readonly day = signal<DayFilter>('Todos');
   readonly person = signal<PersonFilter>('Todos');
+
+  constructor() {
+    this.loadIncomes();
+    this.setupRealtime();
+  }
 
   /** Ingresos del año + persona seleccionados, sin filtrar por mes/día (para las gráficas). */
   readonly yearlyIncomes = computed(() => {
@@ -71,10 +78,10 @@ export class IncomesService {
     const series = emptyMonthlySeries();
     for (const income of this.yearlyIncomes()) {
       const monthIndex = Number(income.date.slice(5, 7)) - 1;
-      if (income.person === 'Ana') {
-        series.ana[monthIndex] += income.amount;
+      if (income.person === 'Benny') {
+        series.benny[monthIndex] += income.amount;
       } else {
-        series.carlos[monthIndex] += income.amount;
+        series.charlie[monthIndex] += income.amount;
       }
       series.total[monthIndex] += income.amount;
     }
@@ -97,28 +104,155 @@ export class IncomesService {
     this.person.set(person);
   }
 
-  addIncome(draft: IncomeDraft): void {
-    this.incomes.update((list) => [...list, { ...draft, id: generateId() }]);
+  async loadIncomes(): Promise<void> {
+    this.loading.set(true);
+    try {
+      const { data, error } = await this.supabase.client
+        .from('incomes')
+        .select('*')
+        .order('date', { ascending: false });
+
+      if (error) {
+        console.warn(
+          'Supabase: No se pudieron cargar los ingresos (verifica si la tabla existe en Supabase):',
+          error.message
+        );
+        this.error.set(error.message);
+        return;
+      }
+
+      if (data) {
+        const mapped: Income[] = data.map((item: any) => ({
+          id: String(item.id),
+          date: String(item.date),
+          person: item.person as Person,
+          source: item.source as IncomeSource,
+          description: String(item.description),
+          amount: Number(item.amount),
+        }));
+        this.incomes.set(mapped);
+        this.error.set(null);
+      }
+    } catch (err: any) {
+      console.warn('Error conectando a Supabase:', err);
+      this.error.set(err?.message ?? 'Error inesperado de conexión');
+    } finally {
+      this.loading.set(false);
+    }
   }
 
-  updateIncome(id: string, draft: IncomeDraft): void {
-    this.incomes.update((list) => list.map((income) => (income.id === id ? { ...draft, id } : income)));
+  async addIncome(draft: IncomeDraft): Promise<void> {
+    const tempId = generateId();
+    const optimisticIncome: Income = { ...draft, id: tempId };
+
+    // Actualización optimista local inmediata
+    this.incomes.update((list) => [optimisticIncome, ...list]);
+
+    try {
+      const { data, error } = await this.supabase.client
+        .from('incomes')
+        .insert([
+          {
+            date: draft.date,
+            person: draft.person,
+            source: draft.source,
+            description: draft.description,
+            amount: draft.amount,
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error insertando en Supabase:', error);
+        this.error.set(error.message);
+        return;
+      }
+
+      if (data) {
+        // Reemplazar el ID temporal con el asignado por Supabase
+        this.incomes.update((list) =>
+          list.map((inc) => (inc.id === tempId ? { ...inc, id: String(data.id) } : inc))
+        );
+      }
+    } catch (err: any) {
+      console.error('Error de red insertando en Supabase:', err);
+    }
   }
 
-  deleteIncome(id: string): void {
+  async updateIncome(id: string, draft: IncomeDraft): Promise<void> {
+    // Actualización optimista local inmediata
+    this.incomes.update((list) =>
+      list.map((income) => (income.id === id ? { ...draft, id } : income))
+    );
+
+    try {
+      const { error } = await this.supabase.client
+        .from('incomes')
+        .update({
+          date: draft.date,
+          person: draft.person,
+          source: draft.source,
+          description: draft.description,
+          amount: draft.amount,
+        })
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error actualizando en Supabase:', error);
+        this.error.set(error.message);
+      }
+    } catch (err: any) {
+      console.error('Error de red actualizando en Supabase:', err);
+    }
+  }
+
+  async deleteIncome(id: string): Promise<void> {
+    // Actualización optimista local inmediata
     this.incomes.update((list) => list.filter((income) => income.id !== id));
+
+    try {
+      const { error } = await this.supabase.client
+        .from('incomes')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error eliminando en Supabase:', error);
+        this.error.set(error.message);
+      }
+    } catch (err: any) {
+      console.error('Error de red eliminando en Supabase:', err);
+    }
+  }
+
+  private setupRealtime(): void {
+    try {
+      this.supabase.client
+        .channel('public:incomes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'incomes' },
+          () => {
+            this.loadIncomes();
+          }
+        )
+        .subscribe();
+    } catch (err) {
+      console.warn('Realtime subscription no disponible:', err);
+    }
   }
 
   private sumByPerson(incomes: readonly Income[]): IncomeTotals {
-    let ana = 0;
-    let carlos = 0;
+    let benny = 0;
+    let charlie = 0;
     for (const income of incomes) {
-      if (income.person === 'Ana') {
-        ana += income.amount;
+      if (income.person === 'Benny') {
+        benny += income.amount;
       } else {
-        carlos += income.amount;
+        charlie += income.amount;
       }
     }
-    return { ana, carlos, total: ana + carlos };
+    return { benny, charlie, total: benny + charlie };
   }
 }

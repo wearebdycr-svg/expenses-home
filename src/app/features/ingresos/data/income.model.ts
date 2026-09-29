@@ -1,5 +1,5 @@
-export type PersonFilter = 'Todos' | 'Ana' | 'Carlos';
-export type Person = 'Ana' | 'Carlos';
+export type PersonFilter = 'Todos' | 'Benny' | 'Charlie';
+export type Person = 'Benny' | 'Charlie';
 
 export type IncomeSource = 'Salario' | 'Freelance' | 'Arriendo' | 'Inversiones' | 'Bono' | 'Otros';
 
@@ -47,7 +47,7 @@ export const MONTH_ABBREVIATIONS: readonly string[] = [
   'Dic',
 ];
 
-export const PERSONS: readonly Person[] = ['Ana', 'Carlos'];
+export const PERSONS: readonly Person[] = ['Benny', 'Charlie'];
 
 export const INCOME_SOURCES: readonly IncomeSource[] = [
   'Salario',
@@ -59,8 +59,8 @@ export const INCOME_SOURCES: readonly IncomeSource[] = [
 ];
 
 export const PERSON_COLORS: Record<Person, string> = {
-  Ana: '#3B82F6',
-  Carlos: '#F59E0B',
+  Benny: '#3B82F6',
+  Charlie: '#F59E0B',
 };
 
 export const TOTAL_COLOR = '#10B981';

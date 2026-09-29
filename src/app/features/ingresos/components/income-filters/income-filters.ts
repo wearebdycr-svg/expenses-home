@@ -44,7 +44,7 @@ export class IncomeFilters {
 
   protected readonly personOptions: readonly SelectOption<PersonFilter>[] = [
     { value: 'Todos', label: 'Todos' },
-    { value: 'Ana', label: 'Ana' },
-    { value: 'Carlos', label: 'Carlos' },
+    { value: 'Benny', label: 'Benny' },
+    { value: 'Charlie', label: 'Charlie' },
   ];
 }

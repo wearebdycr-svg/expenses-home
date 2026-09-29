@@ -37,10 +37,10 @@ describe('IncomeFilters', () => {
     personSelect.value = '1';
     personSelect.dispatchEvent(new Event('change'));
 
-    expect(service.person()).toBe('Ana');
+    expect(service.person()).toBe('Benny');
   });
 
-  it('renders totals for Ana, Carlos and Total', () => {
+  it('renders totals for Benny, Charlie and Total', () => {
     const totalValues = fixture.nativeElement.querySelectorAll('.total-value');
     expect(totalValues.length).toBe(3);
   });

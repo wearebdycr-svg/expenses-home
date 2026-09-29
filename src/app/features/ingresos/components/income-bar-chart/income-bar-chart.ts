@@ -24,16 +24,16 @@ export class IncomeBarChart {
       labels: [...MONTH_ABBREVIATIONS],
       datasets: [
         {
-          label: 'Ana',
-          data: series.ana,
-          backgroundColor: PERSON_COLORS.Ana,
+          label: 'Benny',
+          data: series.benny,
+          backgroundColor: PERSON_COLORS.Benny,
           borderRadius: 4,
           maxBarThickness: 22,
         },
         {
-          label: 'Carlos',
-          data: series.carlos,
-          backgroundColor: PERSON_COLORS.Carlos,
+          label: 'Charlie',
+          data: series.charlie,
+          backgroundColor: PERSON_COLORS.Charlie,
           borderRadius: 4,
           maxBarThickness: 22,
         },

@@ -37,8 +37,8 @@ export class Sidebar {
   ];
 
   protected readonly people: readonly SidebarPerson[] = [
-    { name: 'Ana', color: '#3B82F6' },
-    { name: 'Carlos', color: '#F59E0B' },
+    { name: 'Benny', color: '#3B82F6' },
+    { name: 'Charlie', color: '#F59E0B' },
     { name: 'Compartido', color: '#10B981' },
   ];
 

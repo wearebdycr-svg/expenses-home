@@ -13,11 +13,11 @@ describe('IncomeFormModal', () => {
     component = fixture.componentInstance;
   });
 
-  it('defaults to "Nuevo Ingreso" with today, Ana and Salario preselected', () => {
+  it('defaults to "Nuevo Ingreso" with today, Benny and Salario preselected', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('.modal-title').textContent).toContain('Nuevo Ingreso');
-    expect(component['person']()).toBe('Ana');
+    expect(component['person']()).toBe('Benny');
     expect(component['source']()).toBe('Salario');
     expect(component['description']()).toBe('');
     expect(component['amount']()).toBe('');
@@ -27,7 +27,7 @@ describe('IncomeFormModal', () => {
     const existing: Income = {
       id: 'inc-100',
       date: '2026-07-22',
-      person: 'Ana',
+      person: 'Benny',
       source: 'Freelance',
       description: 'Proyecto diseño / consultoría',
       amount: 358_668,
@@ -85,7 +85,7 @@ describe('IncomeFormModal', () => {
 
     expect(spy).toHaveBeenCalledWith({
       date: component['date'](),
-      person: 'Ana',
+      person: 'Benny',
       source: 'Salario',
       description: 'Proyecto diseño / consultoría',
       amount: 358_668,

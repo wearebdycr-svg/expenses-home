@@ -34,7 +34,7 @@ export class IncomeFormModal {
   protected readonly submitLabel = computed(() => (this.isEditMode() ? 'Guardar cambios' : 'Agregar ingreso'));
 
   protected readonly date = signal(todayIso());
-  protected readonly person = signal<Person>('Ana');
+  protected readonly person = signal<Person>('Benny');
   protected readonly source = signal<IncomeSource>('Salario');
   protected readonly description = signal('');
   protected readonly amount = signal('');
@@ -53,7 +53,7 @@ export class IncomeFormModal {
     effect(() => {
       const existing = this.income();
       this.date.set(existing?.date ?? todayIso());
-      this.person.set(existing?.person ?? 'Ana');
+      this.person.set(existing?.person ?? 'Benny');
       this.source.set(existing?.source ?? 'Salario');
       this.description.set(existing?.description ?? '');
       this.amount.set(existing ? String(existing.amount) : '');

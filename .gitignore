@@ -43,3 +43,10 @@ __screenshots__/
 .DS_Store
 Thumbs.db
 .claude/scheduled_tasks.lock
+.npm/
+
+# Environment and secrets
+.env
+.env*.local
+src/environments/environment.ts
+src/environments/environment.development.ts
