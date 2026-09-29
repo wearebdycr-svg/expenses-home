@@ -7,46 +7,48 @@
   @if (incomes().length === 0) {
     <p class="empty-state">No hay ingresos registrados para el período seleccionado.</p>
   } @else {
-    <table class="income-table">
-      <thead>
-        <tr>
-          <th>Fecha</th>
-          <th>Persona</th>
-          <th>Fuente</th>
-          <th>Descripción</th>
-          <th class="col-amount">Monto</th>
-          <th class="col-actions" aria-hidden="true"></th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (income of incomes(); track income.id) {
-          <tr class="income-row">
-            <td>{{ formatDisplayDate(income.date) }}</td>
-            <td><app-badge [color]="personColors[income.person]">{{ income.person }}</app-badge></td>
-            <td><app-badge [color]="sourceColors[income.source]">{{ income.source }}</app-badge></td>
-            <td>{{ income.description }}</td>
-            <td class="col-amount amount-value">{{ formatCOP(income.amount) }}</td>
-            <td class="col-actions">
-              <button
-                type="button"
-                class="icon-btn icon-btn--edit"
-                (click)="onEdit(income)"
-                aria-label="Editar ingreso"
-              >
-                <app-icon name="pencil" [size]="16" />
-              </button>
-              <button
-                type="button"
-                class="icon-btn icon-btn--delete"
-                (click)="onDelete(income)"
-                aria-label="Eliminar ingreso"
-              >
-                <app-icon name="trash-2" [size]="16" />
-              </button>
-            </td>
+    <div class="table-responsive">
+      <table class="income-table">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Persona</th>
+            <th>Fuente</th>
+            <th>Descripción</th>
+            <th class="col-amount">Monto</th>
+            <th class="col-actions" aria-hidden="true"></th>
           </tr>
-        }
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          @for (income of incomes(); track income.id) {
+            <tr class="income-row">
+              <td>{{ formatDisplayDate(income.date) }}</td>
+              <td><app-badge [color]="personColors[income.person]">{{ income.person }}</app-badge></td>
+              <td><app-badge [color]="sourceColors[income.source]">{{ income.source }}</app-badge></td>
+              <td>{{ income.description }}</td>
+              <td class="col-amount amount-value">{{ formatCOP(income.amount) }}</td>
+              <td class="col-actions">
+                <button
+                  type="button"
+                  class="icon-btn icon-btn--edit"
+                  (click)="onEdit(income)"
+                  aria-label="Editar ingreso"
+                >
+                  <app-icon name="pencil" [size]="16" />
+                </button>
+                <button
+                  type="button"
+                  class="icon-btn icon-btn--delete"
+                  (click)="onDelete(income)"
+                  aria-label="Eliminar ingreso"
+                >
+                  <app-icon name="trash-2" [size]="16" />
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
   }
 </section>

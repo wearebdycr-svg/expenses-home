@@ -5,6 +5,8 @@
   min-height: 100%;
   padding: 2rem;
   background: #f7f6f3;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .page-header {
@@ -67,5 +69,16 @@
 @media (max-width: 960px) {
   .charts-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .ingresos-page {
+    padding: 1rem 0.75rem;
+    gap: 1rem;
+  }
+
+  .page-title {
+    font-size: 1.35rem;
   }
 }

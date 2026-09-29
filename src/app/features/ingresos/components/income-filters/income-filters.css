@@ -48,3 +48,49 @@
   font-size: 1.05rem;
   font-weight: 600;
 }
+
+@media (max-width: 768px) {
+  .filters-card {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .filters-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    gap: 0.65rem;
+  }
+
+  .filters-row app-select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .totals-row {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.4rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid #f1f5f9;
+  }
+
+  .total-item {
+    align-items: flex-start;
+    min-width: 0;
+  }
+
+  .total-item:last-child {
+    align-items: flex-end;
+  }
+
+  .total-label {
+    font-size: 0.65rem;
+  }
+
+  .total-value {
+    font-size: 0.82rem;
+    white-space: nowrap;
+  }
+}

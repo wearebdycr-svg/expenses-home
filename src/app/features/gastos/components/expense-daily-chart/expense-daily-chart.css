@@ -87,3 +87,9 @@
 :host ::ng-deep .daily-tooltip-total .daily-tooltip-val {
   font-weight: 700;
 }
+
+@media (max-width: 768px) {
+  :host ::ng-deep .daily-tooltip {
+    display: none !important;
+  }
+}

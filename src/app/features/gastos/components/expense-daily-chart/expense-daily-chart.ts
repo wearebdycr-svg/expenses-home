@@ -121,6 +121,14 @@ export class ExpenseDailyChart {
       container.appendChild(tooltipEl);
     }
 
+    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+      tooltipEl.style.opacity = '0';
+      tooltipEl.style.display = 'none';
+      return;
+    }
+
+    tooltipEl.style.display = 'block';
+
     if (tooltip.opacity === 0) {
       tooltipEl.style.opacity = '0';
       return;

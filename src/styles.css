@@ -18,6 +18,7 @@ html,
 body {
   height: 100%;
   margin: 0;
+  overflow-x: hidden;
   font-family:
     -apple-system,
     BlinkMacSystemFont,
@@ -129,5 +130,17 @@ body {
 
 .btn-secondary:hover {
   background: #f1f5f9;
+}
+
+/* Ocultar tooltips en modo mobile / touch */
+@media (max-width: 768px) {
+  .chartjs-tooltip,
+  .daily-tooltip,
+  .donut-tooltip {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
 }
 

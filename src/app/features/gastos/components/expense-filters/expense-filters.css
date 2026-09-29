@@ -59,3 +59,43 @@
 .kpi-value--count {
   color: #1e293b;
 }
+
+@media (max-width: 768px) {
+  .filters-card {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .filters-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    gap: 0.65rem;
+  }
+
+  .filters-row app-select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .kpi-group {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid #f1f5f9;
+  }
+
+  .kpi-item {
+    align-items: flex-start;
+  }
+
+  .kpi-item:last-child {
+    align-items: flex-end;
+  }
+
+  .kpi-value {
+    font-size: 1.15rem;
+  }
+}

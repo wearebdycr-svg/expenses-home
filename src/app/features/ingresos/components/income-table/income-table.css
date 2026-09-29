@@ -7,6 +7,14 @@
   background: #ffffff;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
   overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .table-header {
@@ -37,6 +45,7 @@
 
 .income-table {
   width: 100%;
+  min-width: 600px;
   border-collapse: collapse;
 }
 

@@ -7,48 +7,50 @@
   @if (expenses().length === 0) {
     <p class="empty-state">No hay gastos registrados para el período seleccionado.</p>
   } @else {
-    <table class="expense-table">
-      <thead>
-        <tr>
-          <th>Fecha</th>
-          <th>Persona</th>
-          <th>Categoría</th>
-          <th>Descripción</th>
-          <th class="col-amount">Monto</th>
-          <th class="col-actions" aria-hidden="true"></th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (expense of expenses(); track expense.id) {
-          <tr class="expense-row">
-            <td>{{ formatDisplayDate(expense.date) }}</td>
-            <td>
-              <app-badge [color]="personColors[expense.person]">{{ expense.person }}</app-badge>
-            </td>
-            <td>{{ expense.category }}</td>
-            <td>{{ expense.description }}</td>
-            <td class="col-amount amount-value">{{ formatCOP(expense.amount) }}</td>
-            <td class="col-actions">
-              <button
-                type="button"
-                class="icon-btn icon-btn--edit"
-                (click)="onEdit(expense)"
-                aria-label="Editar gasto"
-              >
-                <app-icon name="pencil" [size]="16" />
-              </button>
-              <button
-                type="button"
-                class="icon-btn icon-btn--delete"
-                (click)="onDelete(expense)"
-                aria-label="Eliminar gasto"
-              >
-                <app-icon name="trash-2" [size]="16" />
-              </button>
-            </td>
+    <div class="table-responsive">
+      <table class="expense-table">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Persona</th>
+            <th>Categoría</th>
+            <th>Descripción</th>
+            <th class="col-amount">Monto</th>
+            <th class="col-actions" aria-hidden="true"></th>
           </tr>
-        }
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          @for (expense of expenses(); track expense.id) {
+            <tr class="expense-row">
+              <td>{{ formatDisplayDate(expense.date) }}</td>
+              <td>
+                <app-badge [color]="personColors[expense.person]">{{ expense.person }}</app-badge>
+              </td>
+              <td>{{ expense.category }}</td>
+              <td>{{ expense.description }}</td>
+              <td class="col-amount amount-value">{{ formatCOP(expense.amount) }}</td>
+              <td class="col-actions">
+                <button
+                  type="button"
+                  class="icon-btn icon-btn--edit"
+                  (click)="onEdit(expense)"
+                  aria-label="Editar gasto"
+                >
+                  <app-icon name="pencil" [size]="16" />
+                </button>
+                <button
+                  type="button"
+                  class="icon-btn icon-btn--delete"
+                  (click)="onDelete(expense)"
+                  aria-label="Eliminar gasto"
+                >
+                  <app-icon name="trash-2" [size]="16" />
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
   }
 </section>

@@ -97,3 +97,9 @@
   font-weight: 600;
   color: #0f172a;
 }
+
+@media (max-width: 768px) {
+  :host ::ng-deep .donut-tooltip {
+    display: none !important;
+  }
+}
