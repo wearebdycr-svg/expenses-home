@@ -9,12 +9,12 @@ export interface TooltipRow {
 export interface TooltipContent {
   title: string;
   rows: readonly TooltipRow[];
+  total?: string;
 }
 
 /**
  * Builds a Chart.js `plugins.tooltip.external` callback that renders a plain
- * HTML tooltip (styled via the global `.chartjs-tooltip` rules in styles.css)
- * instead of the canvas-drawn default, matching the design's custom tooltip card.
+ * HTML tooltip card matching the design in HU03-Gastos-3.png and HU02.
  */
 export function externalTooltipHandler(buildContent: (tooltip: TooltipModel<any>) => TooltipContent) {
   return (context: { chart: Chart; tooltip: TooltipModel<any> }): void => {
@@ -37,24 +37,37 @@ export function externalTooltipHandler(buildContent: (tooltip: TooltipModel<any>
     }
 
     if (tooltip.dataPoints?.length) {
-      const { title, rows } = buildContent(tooltip);
+      const { title, rows, total } = buildContent(tooltip);
+      const rowsHtml = rows
+        .map(
+          (row) => `
+            <div class="chartjs-tooltip-row">
+              <span class="chartjs-tooltip-label" style="color:${row.color}">${row.label}</span>
+              <span class="chartjs-tooltip-value">${row.value}</span>
+            </div>
+          `,
+        )
+        .join('');
+
       tooltipEl.innerHTML = `
         <div class="chartjs-tooltip-title">${title}</div>
-        ${rows
-          .map(
-            (row) => `
-              <div class="chartjs-tooltip-row">
-                <span class="chartjs-tooltip-label" style="color:${row.color}">${row.label}</span>
-                <span class="chartjs-tooltip-value">${row.value}</span>
-              </div>
-            `,
-          )
-          .join('')}
+        ${rowsHtml}
+        ${
+          total
+            ? `
+          <div class="chartjs-tooltip-divider"></div>
+          <div class="chartjs-tooltip-row chartjs-tooltip-total">
+            <span class="chartjs-tooltip-label">Total</span>
+            <span class="chartjs-tooltip-value">${total}</span>
+          </div>
+        `
+            : ''
+        }
       `;
     }
 
     tooltipEl.style.opacity = '1';
     tooltipEl.style.left = `${chart.canvas.offsetLeft + tooltip.caretX}px`;
-    tooltipEl.style.top = `${chart.canvas.offsetTop + tooltip.caretY}px`;
+    tooltipEl.style.top = `${chart.canvas.offsetTop + tooltip.caretY - 10}px`;
   };
 }

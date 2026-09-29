@@ -3,7 +3,7 @@ import type { ChartConfiguration } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 import { externalTooltipHandler } from '../../charts/chart-tooltip';
 import { formatAxisCurrency } from '../../charts/chart-utils';
-import { MONTH_ABBREVIATIONS, PERSON_COLORS, formatCOP } from '../../data/income.model';
+import { MONTHS, MONTH_ABBREVIATIONS, PERSON_COLORS, formatCOP } from '../../data/income.model';
 import { IncomesService } from '../../data/incomes.service';
 
 @Component({
@@ -62,14 +62,26 @@ export class IncomeBarChart {
       },
       tooltip: {
         enabled: false,
-        external: externalTooltipHandler((tooltip) => ({
-          title: tooltip.title[0] ?? '',
-          rows: tooltip.dataPoints.map((point) => ({
-            label: point.dataset.label ?? '',
-            color: (point.dataset as { backgroundColor?: string }).backgroundColor ?? '#000',
-            value: formatCOP(point.parsed.y),
-          })),
-        })),
+        external: externalTooltipHandler((tooltip) => {
+          const rawTitle = tooltip.title[0] ?? '';
+          const monthIndex = MONTH_ABBREVIATIONS.indexOf(rawTitle as any);
+          const fullMonthName = monthIndex >= 0 ? MONTHS[monthIndex] : rawTitle;
+          let total = 0;
+          const rows = tooltip.dataPoints.map((point) => {
+            const val = point.parsed.y ?? 0;
+            total += val;
+            return {
+              label: point.dataset.label ?? '',
+              color: (point.dataset as { backgroundColor?: string }).backgroundColor ?? '#000',
+              value: formatCOP(val),
+            };
+          });
+          return {
+            title: fullMonthName,
+            rows,
+            total: formatCOP(total),
+          };
+        }),
       },
     },
   };

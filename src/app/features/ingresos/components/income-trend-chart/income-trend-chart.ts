@@ -4,7 +4,7 @@ import { BaseChartDirective } from 'ng2-charts';
 import { hexToRgba } from '../../../../shared/utils/color';
 import { externalTooltipHandler } from '../../charts/chart-tooltip';
 import { formatAxisCurrency } from '../../charts/chart-utils';
-import { MONTH_ABBREVIATIONS, TOTAL_COLOR, formatCOP } from '../../data/income.model';
+import { MONTHS, MONTH_ABBREVIATIONS, TOTAL_COLOR, formatCOP } from '../../data/income.model';
 import { IncomesService } from '../../data/incomes.service';
 
 @Component({
@@ -53,14 +53,23 @@ export class IncomeTrendChart {
       legend: { display: false },
       tooltip: {
         enabled: false,
-        external: externalTooltipHandler((tooltip) => ({
-          title: tooltip.title[0] ?? '',
-          rows: tooltip.dataPoints.map((point) => ({
-            label: point.dataset.label ?? '',
-            color: TOTAL_COLOR,
-            value: formatCOP(point.parsed.y),
-          })),
-        })),
+        external: externalTooltipHandler((tooltip) => {
+          const rawTitle = tooltip.title[0] ?? '';
+          const monthIndex = MONTH_ABBREVIATIONS.indexOf(rawTitle as any);
+          const fullMonthName = monthIndex >= 0 ? MONTHS[monthIndex] : rawTitle;
+          const point = tooltip.dataPoints[0];
+          const val = point?.parsed?.y ?? 0;
+          return {
+            title: fullMonthName,
+            rows: [
+              {
+                label: 'Total ingresos',
+                color: TOTAL_COLOR,
+                value: formatCOP(val),
+              },
+            ],
+          };
+        }),
       },
     },
   };

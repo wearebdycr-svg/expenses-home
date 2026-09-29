@@ -28,35 +28,36 @@ body {
     sans-serif;
 }
 
-/* Tooltip HTML personalizado para las gráficas de Ingresos (ver income/charts/chart-tooltip.ts). */
+/* Tooltip HTML personalizado para las gráficas (idéntico al de Gastos Diarios) */
 .chartjs-tooltip {
   position: absolute;
-  z-index: 10;
-  min-width: 140px;
-  padding: 0.65rem 0.85rem;
-  border-radius: 10px;
+  z-index: 20;
+  min-width: 150px;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
   background: #ffffff;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15), 0 8px 10px -6px rgba(15, 23, 42, 0.1);
+  border: 1px solid #f1f5f9;
   pointer-events: none;
   opacity: 0;
-  transform: translate(-50%, calc(-100% - 12px));
+  transform: translate(-50%, -100%);
   transition: opacity 0.1s ease;
 }
 
 .chartjs-tooltip-title {
-  margin-bottom: 0.35rem;
-  font-size: 0.8rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
   font-weight: 700;
-  color: #475569;
+  color: #334155;
 }
 
 .chartjs-tooltip-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 1rem;
   font-size: 0.8rem;
-  padding: 0.1rem 0;
+  margin-bottom: 0.3rem;
 }
 
 .chartjs-tooltip-label {
@@ -65,37 +66,65 @@ body {
 
 .chartjs-tooltip-value {
   font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-weight: 600;
   color: #1e293b;
 }
 
-/* Botones compartidos entre páginas de features (ej. "Nuevo Ingreso", acciones de modal). */
+.chartjs-tooltip-divider {
+  height: 1px;
+  background-color: #f1f5f9;
+  margin: 0.4rem 0;
+}
+
+.chartjs-tooltip-total {
+  margin-top: 0.35rem;
+  font-weight: 700;
+}
+
+.chartjs-tooltip-total .chartjs-tooltip-label {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.chartjs-tooltip-total .chartjs-tooltip-value {
+  font-weight: 700;
+}
+
+/* Botones compartidos entre páginas de features (ej. "Nuevo Ingreso", "Nuevo Gasto", acciones de modal). */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
-  padding: 0.6rem 1.1rem;
-  border: 1px solid transparent;
+  gap: 0.5rem;
+  padding: 0.625rem 1.15rem;
+  border: none;
   border-radius: 8px;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.15s ease, background-color 0.15s ease;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+  transition: all 0.15s ease;
 }
 
 .btn-primary {
-  background: var(--sidebar);
+  background-color: #1e293b;
   color: #ffffff;
 }
 
 .btn-primary:hover {
-  opacity: 0.9;
+  background-color: #0f172a;
+  box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.2);
+}
+
+.btn-primary:active {
+  transform: translateY(1px);
 }
 
 .btn-secondary {
   background: #ffffff;
-  border-color: #e2e8f0;
+  border: 1px solid #e2e8f0;
   color: #334155;
+  box-shadow: none;
 }
 
 .btn-secondary:hover {

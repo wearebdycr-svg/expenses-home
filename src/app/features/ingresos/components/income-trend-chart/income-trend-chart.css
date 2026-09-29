@@ -21,3 +21,65 @@
   position: relative;
   height: 320px;
 }
+
+/* Tooltip card idéntico al de Gastos Diarios */
+:host ::ng-deep .chartjs-tooltip {
+  position: absolute;
+  z-index: 20;
+  min-width: 150px;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15), 0 8px 10px -6px rgba(15, 23, 42, 0.1);
+  border: 1px solid #f1f5f9;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -100%);
+  transition: opacity 0.1s ease;
+}
+
+:host ::ng-deep .chartjs-tooltip-title {
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+:host ::ng-deep .chartjs-tooltip-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.8rem;
+  margin-bottom: 0.3rem;
+}
+
+:host ::ng-deep .chartjs-tooltip-label {
+  font-weight: 600;
+}
+
+:host ::ng-deep .chartjs-tooltip-value {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+:host ::ng-deep .chartjs-tooltip-divider {
+  height: 1px;
+  background-color: #f1f5f9;
+  margin: 0.4rem 0;
+}
+
+:host ::ng-deep .chartjs-tooltip-total {
+  margin-top: 0.35rem;
+  font-weight: 700;
+}
+
+:host ::ng-deep .chartjs-tooltip-total .chartjs-tooltip-label {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+:host ::ng-deep .chartjs-tooltip-total .chartjs-tooltip-value {
+  font-weight: 700;
+}
