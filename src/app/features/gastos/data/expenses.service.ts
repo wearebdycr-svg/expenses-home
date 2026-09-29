@@ -46,6 +46,7 @@ export class ExpensesService {
   private readonly supabase = inject(SupabaseService);
 
   private readonly expenses = signal<Expense[]>([]);
+  readonly allExpenses = this.expenses.asReadonly();
   readonly loading = signal<boolean>(false);
   readonly error = signal<string | null>(null);
 

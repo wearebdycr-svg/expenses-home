@@ -1,0 +1,63 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.chart-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1.25rem 1.5rem;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+.chart-title {
+  margin: 0 0 1rem 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.chart-canvas-container {
+  position: relative;
+  flex: 1;
+  min-height: 280px;
+}
+
+/* Tooltip card idéntico a HU04-resumen-mensual-3.png */
+:host ::ng-deep .line-tooltip {
+  position: absolute;
+  z-index: 20;
+  min-width: 170px;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15), 0 8px 10px -6px rgba(15, 23, 42, 0.1);
+  border: 1px solid #f1f5f9;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -100%);
+  transition: opacity 0.1s ease;
+  white-space: nowrap;
+}
+
+:host ::ng-deep .line-tooltip-title {
+  margin-bottom: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+:host ::ng-deep .line-tooltip-text {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #8b5cf6;
+}
+
+@media (max-width: 768px) {
+  :host ::ng-deep .line-tooltip {
+    display: none !important;
+  }
+}

@@ -1,0 +1,181 @@
+:host {
+  display: block;
+}
+
+.table-card {
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+}
+
+.table-header {
+  padding: 1.25rem 1.5rem;
+}
+
+.table-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.resumen-table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+}
+
+.resumen-table thead th {
+  padding: 0.75rem 1rem;
+  background: #f8fafc;
+  border-top: 1px solid #eef2f7;
+  border-bottom: 1px solid #eef2f7;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.resumen-table thead th.col-month {
+  text-align: left;
+  padding-left: 1.5rem;
+}
+
+.resumen-table thead th.col-currency,
+.resumen-table thead th.col-savings {
+  text-align: right;
+}
+
+.resumen-table thead th.col-savings {
+  padding-right: 1.5rem;
+}
+
+.resumen-table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.resumen-table td.col-month {
+  text-align: left;
+  padding-left: 1.5rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.resumen-table td.col-currency {
+  text-align: right;
+  font-family: inherit;
+}
+
+.resumen-table td.col-savings {
+  text-align: right;
+  padding-right: 1.5rem;
+}
+
+/* Colores de columnas con datos */
+.resumen-row:not(.no-data) .col-benny {
+  color: #2563eb;
+  font-weight: 500;
+}
+
+.resumen-row:not(.no-data) .col-charlie {
+  color: #d97706;
+  font-weight: 500;
+}
+
+.resumen-row:not(.no-data) .col-income-total {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.resumen-row:not(.no-data) .col-compartido {
+  color: #059669;
+  font-weight: 500;
+}
+
+.resumen-row:not(.no-data) .col-expense-total {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.resumen-row:not(.no-data) .col-balance.col-balance-pos {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.resumen-row:not(.no-data) .col-balance.col-balance-neg {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+/* Hover de filas */
+.resumen-row:hover:not(.no-data) {
+  background: #f8fafc;
+}
+
+/* Meses sin datos / futuros */
+.resumen-row.no-data td.col-month {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.muted-dash {
+  font-weight: 600;
+  opacity: 0.65;
+}
+
+.dash-benny {
+  color: #60a5fa;
+}
+
+.dash-charlie {
+  color: #fbbf24;
+}
+
+.dash-income {
+  color: #34d399;
+}
+
+.dash-compartido {
+  color: #34d399;
+}
+
+.dash-expense {
+  color: #f87171;
+}
+
+.dash-balance {
+  color: #34d399;
+}
+
+/* Badge de Ahorro */
+.savings-badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #ecfdf5;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.savings-badge.negative {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}

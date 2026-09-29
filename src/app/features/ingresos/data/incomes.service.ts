@@ -31,6 +31,7 @@ export class IncomesService {
   private readonly supabase = inject(SupabaseService);
 
   private readonly incomes = signal<Income[]>([]);
+  readonly allIncomes = this.incomes.asReadonly();
   readonly loading = signal<boolean>(false);
   readonly error = signal<string | null>(null);
 

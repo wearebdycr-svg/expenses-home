@@ -1,0 +1,110 @@
+<div class="table-card">
+  <div class="table-header">
+    <h2 class="table-title">Resumen por mes — {{ year() }}</h2>
+  </div>
+
+  <div class="table-responsive">
+    <table class="resumen-table">
+      <thead>
+        <tr>
+          <th class="col-month">MES</th>
+          <th class="col-currency col-benny">ING. BENNY</th>
+          <th class="col-currency col-charlie">ING. CHARLIE</th>
+          <th class="col-currency col-income-total">TOTAL INGRESOS</th>
+          <th class="col-currency col-benny">GST. BENNY</th>
+          <th class="col-currency col-charlie">GST. CHARLIE</th>
+          <th class="col-currency col-compartido">COMPARTIDO</th>
+          <th class="col-currency col-expense-total">TOTAL GASTOS</th>
+          <th class="col-currency col-balance">BALANCE</th>
+          <th class="col-savings">AHORRO %</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.month) {
+          <tr class="resumen-row" [class.no-data]="!row.hasData">
+            <td class="col-month">{{ row.monthName }}</td>
+
+            <td class="col-currency col-benny">
+              @if (row.hasData) {
+                {{ formatCOP(row.incomeBenny) }}
+              } @else {
+                <span class="muted-dash dash-benny">-</span>
+              }
+            </td>
+
+            <td class="col-currency col-charlie">
+              @if (row.hasData) {
+                {{ formatCOP(row.incomeCharlie) }}
+              } @else {
+                <span class="muted-dash dash-charlie">-</span>
+              }
+            </td>
+
+            <td class="col-currency col-income-total">
+              @if (row.hasData) {
+                {{ formatCOP(row.monthTotalIncome) }}
+              } @else {
+                <span class="muted-dash dash-income">-</span>
+              }
+            </td>
+
+            <td class="col-currency col-benny">
+              @if (row.hasData) {
+                {{ formatCOP(row.expenseBenny) }}
+              } @else {
+                <span class="muted-dash dash-benny">-</span>
+              }
+            </td>
+
+            <td class="col-currency col-charlie">
+              @if (row.hasData) {
+                {{ formatCOP(row.expenseCharlie) }}
+              } @else {
+                <span class="muted-dash dash-charlie">-</span>
+              }
+            </td>
+
+            <td class="col-currency col-compartido">
+              @if (row.hasData) {
+                {{ formatCOP(row.expenseCompartido) }}
+              } @else {
+                <span class="muted-dash dash-compartido">-</span>
+              }
+            </td>
+
+            <td class="col-currency col-expense-total">
+              @if (row.hasData) {
+                {{ formatCOP(row.monthTotalExpense) }}
+              } @else {
+                <span class="muted-dash dash-expense">-</span>
+              }
+            </td>
+
+            <td
+              class="col-currency col-balance"
+              [class.col-balance-pos]="row.hasData && row.monthBalance >= 0"
+              [class.col-balance-neg]="row.hasData && row.monthBalance < 0"
+            >
+              @if (row.hasData) {
+                {{ formatCOP(row.monthBalance) }}
+              } @else {
+                <span class="muted-dash dash-balance">-</span>
+              }
+            </td>
+
+            <td class="col-savings">
+              @if (row.hasData) {
+                <span
+                  class="savings-badge"
+                  [class.negative]="row.monthSavingsRate < 0"
+                >
+                  {{ row.monthSavingsRate | number: '1.1-1' }}%
+                </span>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

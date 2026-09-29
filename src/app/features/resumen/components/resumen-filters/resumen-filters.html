@@ -1,0 +1,43 @@
+<section class="filters-card">
+  <div class="filters-row">
+    <app-select
+      label="AÑO"
+      labelStyle="caption"
+      [options]="yearOptions"
+      [value]="resumenService.year()"
+      (valueChange)="resumenService.setYear($event)"
+    />
+    <app-select
+      label="PERSONA"
+      labelStyle="caption"
+      [options]="personOptions"
+      [value]="resumenService.person()"
+      (valueChange)="resumenService.setPerson($event)"
+    />
+  </div>
+
+  <div class="kpi-group">
+    <div class="kpi-item">
+      <span class="kpi-label">TOTAL INGRESOS</span>
+      <span class="kpi-value kpi-value--income">
+        {{ formatCOP(resumenService.kpis().totalIncomeYTD) }}
+      </span>
+    </div>
+    <div class="kpi-item">
+      <span class="kpi-label">TOTAL GASTOS</span>
+      <span class="kpi-value kpi-value--expense">
+        {{ formatCOP(resumenService.kpis().totalExpenseYTD) }}
+      </span>
+    </div>
+    <div class="kpi-item">
+      <span class="kpi-label">BALANCE YTD</span>
+      <span
+        class="kpi-value"
+        [class.kpi-value--positive]="resumenService.kpis().balanceYTD >= 0"
+        [class.kpi-value--negative]="resumenService.kpis().balanceYTD < 0"
+      >
+        {{ formatCOP(resumenService.kpis().balanceYTD) }}
+      </span>
+    </div>
+  </div>
+</section>

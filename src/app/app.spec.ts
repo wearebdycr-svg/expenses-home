@@ -32,4 +32,17 @@ describe('App', () => {
 
     expect(app['currentPage']()).toBe('ingresos');
   });
+
+  it('navigates to resumen page and renders app-resumen-page', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const app = fixture.componentInstance;
+
+    const resumenButton = fixture.nativeElement.querySelectorAll('.nav-item')[2] as HTMLButtonElement;
+    resumenButton.click();
+    fixture.detectChanges();
+
+    expect(app['currentPage']()).toBe('resumen');
+    expect(fixture.nativeElement.querySelector('app-resumen-page')).toBeTruthy();
+  });
 });

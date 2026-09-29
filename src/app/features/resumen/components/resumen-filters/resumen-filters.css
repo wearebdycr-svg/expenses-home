@@ -1,0 +1,109 @@
+:host {
+  display: block;
+}
+
+.filters-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  flex-wrap: wrap;
+  padding: 1.25rem 1.5rem;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+.filters-row {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.filters-row app-select {
+  min-width: 140px;
+}
+
+.kpi-group {
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+}
+
+.kpi-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.kpi-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
+
+.kpi-value {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.kpi-value--income,
+.kpi-value--positive {
+  color: #10b981; /* Verde dinámico como en HU04-resumen-mensual-1.png */
+}
+
+.kpi-value--expense,
+.kpi-value--negative {
+  color: #ef4444; /* Rojo destacado */
+}
+
+@media (max-width: 768px) {
+  .filters-card {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .filters-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    gap: 0.65rem;
+  }
+
+  .filters-row app-select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .kpi-group {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.4rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid #f1f5f9;
+  }
+
+  .kpi-item {
+    align-items: flex-start;
+    min-width: 0;
+  }
+
+  .kpi-item:last-child {
+    align-items: flex-end;
+  }
+
+  .kpi-label {
+    font-size: 0.65rem;
+  }
+
+  .kpi-value {
+    font-size: 0.82rem;
+    white-space: nowrap;
+  }
+}

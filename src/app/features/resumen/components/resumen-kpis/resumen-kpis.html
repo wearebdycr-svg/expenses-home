@@ -1,0 +1,25 @@
+<section class="kpi-cards-grid">
+  <article class="kpi-card">
+    <span class="kpi-title">PROMEDIO INGRESOS/MES</span>
+    <div class="kpi-metric kpi-metric--income">
+      <span class="kpi-symbol">↑</span>
+      <span class="kpi-val">{{ formatCOP(resumenService.kpis().averageIncomeMonthly) }}</span>
+    </div>
+  </article>
+
+  <article class="kpi-card">
+    <span class="kpi-title">PROMEDIO GASTOS/MES</span>
+    <div class="kpi-metric kpi-metric--expense">
+      <span class="kpi-symbol">↓</span>
+      <span class="kpi-val">{{ formatCOP(resumenService.kpis().averageExpenseMonthly) }}</span>
+    </div>
+  </article>
+
+  <article class="kpi-card">
+    <span class="kpi-title">TASA DE AHORRO</span>
+    <div class="kpi-metric kpi-metric--savings">
+      <span class="kpi-symbol">⦿</span>
+      <span class="kpi-val">{{ formatPercentage(resumenService.kpis().savingsRateYTD) }}</span>
+    </div>
+  </article>
+</section>
