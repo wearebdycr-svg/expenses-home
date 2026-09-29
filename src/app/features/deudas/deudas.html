@@ -1,0 +1,67 @@
+<div class="deudas-page">
+  <header class="page-header">
+    <div>
+      <h1 class="page-title">Proyección de Deudas</h1>
+      <p class="page-subtitle">Seguimiento y proyección de pagos</p>
+    </div>
+    <div class="header-actions">
+      <button
+        type="button"
+        class="btn btn-prepayment"
+        (click)="openPrepaymentModal()"
+        [disabled]="debtsService.debts().length === 0"
+      >
+        <app-icon name="plus" [size]="16" />
+        Pago a Capital
+      </button>
+      <button
+        type="button"
+        class="btn btn-primary"
+        (click)="openCreateModal()"
+      >
+        <app-icon name="plus" [size]="16" />
+        Nueva Deuda
+      </button>
+    </div>
+  </header>
+
+  <app-debt-filters />
+
+  <app-debt-cards
+    (prepayment)="openPrepaymentModal($event.id)"
+    (createDebt)="openCreateModal()"
+  />
+
+  @if (debtsService.filteredDebts().length > 0) {
+    <div class="charts-grid">
+      <div class="chart-col-projection">
+        <app-debt-projection-chart />
+      </div>
+      <div class="chart-col-payments">
+        <app-debt-payments-chart />
+      </div>
+    </div>
+
+    <app-debt-table
+      (edit)="openEditModal($event)"
+      (delete)="onDeleteDebt($event)"
+    />
+  }
+
+  @if (isFormModalOpen()) {
+    <app-debt-form-modal
+      [debt]="editingDebt()"
+      (save)="onSaveDebt($event)"
+      (cancel)="closeFormModal()"
+    />
+  }
+
+  @if (isPrepaymentModalOpen()) {
+    <app-debt-prepayment-modal
+      [debts]="debtsService.debts()"
+      [initialDebtId]="initialPrepaymentDebtId()"
+      (save)="onSavePrepayment($event)"
+      (cancel)="closePrepaymentModal()"
+    />
+  }
+</div>

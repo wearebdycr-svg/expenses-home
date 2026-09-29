@@ -1,0 +1,198 @@
+:host {
+  display: block;
+}
+
+.table-card {
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+}
+
+.table-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+}
+
+.table-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.table-count {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.empty-state {
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.debt-table {
+  width: 100%;
+  min-width: 960px;
+  border-collapse: collapse;
+}
+
+.debt-table thead th {
+  padding: 0.75rem 1rem;
+  background: #f8fafc;
+  border-top: 1px solid #eef2f7;
+  border-bottom: 1px solid #eef2f7;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.debt-table thead th.col-name {
+  text-align: left;
+  padding-left: 1.5rem;
+}
+
+.debt-table thead th.col-person {
+  text-align: left;
+}
+
+.debt-table thead th.col-currency {
+  text-align: right;
+}
+
+.debt-table thead th.col-rate,
+.debt-table thead th.col-months,
+.debt-table thead th.col-end {
+  text-align: center;
+}
+
+.debt-table thead th.col-actions {
+  width: 80px;
+  padding-right: 1.5rem;
+}
+
+.debt-table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.debt-table td.col-name {
+  text-align: left;
+  padding-left: 1.5rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.debt-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 0.6rem;
+  vertical-align: middle;
+}
+
+.debt-table td.col-person {
+  text-align: left;
+}
+
+.debt-table td.col-currency {
+  text-align: right;
+  font-weight: 500;
+  color: #334155;
+}
+
+.debt-table td.col-balance {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.debt-table td.col-rate,
+.debt-table td.col-months,
+.debt-table td.col-end {
+  text-align: center;
+  color: #334155;
+}
+
+.debt-table td.col-actions {
+  padding-right: 1.5rem;
+}
+
+.rate-badge {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.rate-low {
+  background: #ecfdf5;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.rate-mid {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.rate-high {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.col-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.icon-btn--edit:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.icon-btn--delete:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.debt-row:hover {
+  background: #f8fafc;
+}

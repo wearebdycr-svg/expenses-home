@@ -1,0 +1,92 @@
+<div class="table-card">
+  <div class="table-header">
+    <h2 class="table-title">Detalle de deudas</h2>
+    <span class="table-count">{{ debts().length }} registros</span>
+  </div>
+
+  @if (debts().length === 0) {
+    <p class="empty-state">No hay deudas registradas para el filtro seleccionado.</p>
+  } @else {
+    <div class="table-responsive">
+      <table class="debt-table">
+        <thead>
+          <tr>
+            <th class="col-name">DEUDA</th>
+            <th class="col-person">PERSONA</th>
+            <th class="col-currency col-balance">SALDO ACTUAL</th>
+            <th class="col-currency">MONTO ORIGINAL</th>
+            <th class="col-currency">CUOTA/MES</th>
+            <th class="col-rate">TASA ANUAL</th>
+            <th class="col-months">MESES RESTANTES</th>
+            <th class="col-end">FIN PROYECTADO</th>
+            <th class="col-actions" aria-hidden="true"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (debt of debts(); track debt.id) {
+            @let amort = getAmortization(debt);
+
+            <tr class="debt-row">
+              <td class="col-name">
+                <span class="debt-dot" [style.background-color]="debt.color"></span>
+                <span class="debt-name-text">{{ debt.name }}</span>
+              </td>
+
+              <td class="col-person">
+                <app-badge [color]="personColors[debt.person]">{{ debt.person }}</app-badge>
+              </td>
+
+              <td class="col-currency col-balance">
+                {{ formatCOP(debt.currentBalance) }}
+              </td>
+
+              <td class="col-currency">
+                {{ formatCOP(debt.originalAmount) }}
+              </td>
+
+              <td class="col-currency col-payment">
+                {{ formatCOP(debt.monthlyPayment) }}
+              </td>
+
+              <td class="col-rate">
+                <span
+                  class="rate-badge"
+                  [ngClass]="getRateColorClass(debt.annualInterestRate)"
+                >
+                  {{ debt.annualInterestRate | number: '1.1-1' }}%
+                </span>
+              </td>
+
+              <td class="col-months">
+                {{ amort.remainingMonths }}
+              </td>
+
+              <td class="col-end">
+                {{ amort.projectedDateFormatted }}
+              </td>
+
+              <td class="col-actions">
+                <button
+                  type="button"
+                  class="icon-btn icon-btn--edit"
+                  (click)="onEdit(debt)"
+                  aria-label="Editar deuda"
+                >
+                  <app-icon name="pencil" [size]="15" />
+                </button>
+                <button
+                  type="button"
+                  class="icon-btn icon-btn--delete"
+                  (click)="onDelete(debt)"
+                  aria-label="Eliminar deuda"
+                >
+                  <app-icon name="trash-2" [size]="15" />
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

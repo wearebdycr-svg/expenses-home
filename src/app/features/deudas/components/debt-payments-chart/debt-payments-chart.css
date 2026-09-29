@@ -1,0 +1,75 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.chart-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1.25rem 1.5rem;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+.chart-title {
+  margin: 0 0 1rem 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.chart-canvas-container {
+  position: relative;
+  flex: 1;
+  min-height: 300px;
+}
+
+/* Tooltip idéntico a HU06-deudas-5.png */
+:host ::ng-deep .payments-tooltip {
+  position: absolute;
+  z-index: 20;
+  min-width: 180px;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15), 0 8px 10px -6px rgba(15, 23, 42, 0.1);
+  border: 1px solid #f1f5f9;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -100%);
+  transition: opacity 0.1s ease;
+}
+
+:host ::ng-deep .payments-tooltip-title {
+  margin-bottom: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+:host ::ng-deep .payments-tooltip-row {
+  font-size: 0.82rem;
+  color: #1e293b;
+  font-weight: 600;
+}
+
+:host ::ng-deep .payments-tooltip-text {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 768px) {
+  :host ::ng-deep .payments-tooltip {
+    display: none !important;
+  }
+}

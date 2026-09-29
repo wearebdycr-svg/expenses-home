@@ -1,0 +1,26 @@
+<section class="filters-card">
+  <div class="filters-row">
+    <app-select
+      label="PERSONA"
+      labelStyle="caption"
+      [options]="personOptions"
+      [value]="debtsService.selectedPerson()"
+      (valueChange)="debtsService.setPerson($event)"
+    />
+  </div>
+
+  <div class="kpi-group">
+    <div class="kpi-item">
+      <span class="kpi-label">DEUDA TOTAL</span>
+      <span class="kpi-value kpi-value--total">{{ formatCOP(kpis().totalDebt) }}</span>
+    </div>
+    <div class="kpi-item">
+      <span class="kpi-label">CUOTAS/MES</span>
+      <span class="kpi-value kpi-value--payment">{{ formatCOP(kpis().monthlyPayment) }}</span>
+    </div>
+    <div class="kpi-item">
+      <span class="kpi-label">% PAGADO</span>
+      <span class="kpi-value kpi-value--paid">{{ kpis().paidPercentage | number: '1.1-1' }}%</span>
+    </div>
+  </div>
+</section>

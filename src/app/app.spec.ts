@@ -58,4 +58,18 @@ describe('App', () => {
     expect(app['currentPage']()).toBe('categoria');
     expect(fixture.nativeElement.querySelector('app-categoria-page')).toBeTruthy();
   });
+
+  it('navigates to deudas page and renders app-deudas-page', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const app = fixture.componentInstance;
+
+    const deudasButton = fixture.nativeElement.querySelectorAll('.nav-item')[4] as HTMLButtonElement;
+    deudasButton.click();
+    fixture.detectChanges();
+
+    expect(app['currentPage']()).toBe('deudas');
+    expect(fixture.nativeElement.querySelector('app-deudas-page')).toBeTruthy();
+  });
 });
+

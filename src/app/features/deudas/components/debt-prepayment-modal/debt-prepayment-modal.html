@@ -1,0 +1,52 @@
+<app-modal title="Pago Adicional a Capital" (close)="cancel.emit()">
+  <form class="prepayment-form" (submit)="$event.preventDefault(); onSubmit()">
+    <p class="prepayment-intro">
+      El monto ingresado se descontará directamente del saldo de capital. La proyección se actualizará automáticamente.
+    </p>
+
+    <div class="debt-select-container">
+      <app-select
+        label="Deuda a abonar"
+        [options]="debtOptions()"
+        [value]="selectedDebtId()"
+        (valueChange)="selectedDebtId.set($event)"
+      />
+
+      <div class="balance-preview" *ngIf="selectedDebt()">
+        <span class="balance-label">Saldo actual:</span>
+        <span class="balance-value">{{ currentBalanceFormatted() }}</span>
+      </div>
+    </div>
+
+    <label class="field">
+      <span class="field-label">Monto del abono (COP)</span>
+      <input
+        class="field-control"
+        type="text"
+        inputmode="numeric"
+        placeholder="500000"
+        [value]="amount()"
+        (input)="onAmountInput($event)"
+      />
+    </label>
+
+    <label class="field">
+      <span class="field-label">Fecha del pago</span>
+      <input
+        class="field-control"
+        type="date"
+        [value]="date()"
+        (input)="date.set($any($event.target).value)"
+      />
+    </label>
+
+    <div class="form-actions">
+      <button type="button" class="btn btn-secondary" (click)="cancel.emit()">
+        Cancelar
+      </button>
+      <button type="submit" class="btn btn-apply">
+        Aplicar abono
+      </button>
+    </div>
+  </form>
+</app-modal>

@@ -1,0 +1,16 @@
+<div class="chart-card">
+  <h2 class="chart-title">Cuotas mensuales</h2>
+
+  @if (debts().length === 0) {
+    <div class="empty-state">No hay deudas registradas.</div>
+  } @else {
+    <div class="chart-canvas-container">
+      <canvas
+        baseChart
+        [data]="data()"
+        [options]="options"
+        type="bar"
+      ></canvas>
+    </div>
+  }
+</div>

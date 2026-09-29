@@ -1,0 +1,95 @@
+<app-modal [title]="modalTitle()" (close)="cancel.emit()">
+  <form class="debt-form" (submit)="$event.preventDefault(); onSubmit()">
+    <div class="form-row">
+      <app-select
+        label="Persona"
+        [options]="personOptions"
+        [value]="person()"
+        (valueChange)="person.set($event)"
+      />
+
+      <label class="field">
+        <span class="field-label">Fecha inicio</span>
+        <input
+          class="field-control"
+          type="date"
+          [value]="startDate()"
+          (input)="startDate.set($any($event.target).value)"
+        />
+      </label>
+    </div>
+
+    <label class="field">
+      <span class="field-label">Nombre de la deuda</span>
+      <input
+        class="field-control"
+        type="text"
+        placeholder="Ej: Hipoteca, Tarjeta crédito..."
+        maxlength="100"
+        [value]="name()"
+        (input)="name.set($any($event.target).value)"
+      />
+    </label>
+
+    <div class="form-row">
+      <label class="field">
+        <span class="field-label">Monto original (COP)</span>
+        <input
+          class="field-control"
+          type="text"
+          inputmode="numeric"
+          placeholder="64500000"
+          [value]="originalAmount()"
+          (input)="onNumberInput(originalAmount, $event)"
+        />
+      </label>
+
+      <label class="field">
+        <span class="field-label">Saldo actual (COP)</span>
+        <input
+          class="field-control"
+          type="text"
+          inputmode="numeric"
+          placeholder="64500000"
+          [value]="currentBalance()"
+          (input)="onNumberInput(currentBalance, $event)"
+        />
+      </label>
+    </div>
+
+    <div class="form-row">
+      <label class="field">
+        <span class="field-label">Cuota mensual (COP)</span>
+        <input
+          class="field-control"
+          type="text"
+          inputmode="numeric"
+          placeholder="700000"
+          [value]="monthlyPayment()"
+          (input)="onNumberInput(monthlyPayment, $event)"
+        />
+      </label>
+
+      <label class="field">
+        <span class="field-label">Tasa anual (%)</span>
+        <input
+          class="field-control"
+          type="text"
+          inputmode="decimal"
+          placeholder="8.5"
+          [value]="annualInterestRate()"
+          (input)="onRateInput($event)"
+        />
+      </label>
+    </div>
+
+    <div class="form-actions">
+      <button type="button" class="btn btn-secondary" (click)="cancel.emit()">
+        Cancelar
+      </button>
+      <button type="submit" class="btn btn-primary">
+        {{ submitLabel() }}
+      </button>
+    </div>
+  </form>
+</app-modal>

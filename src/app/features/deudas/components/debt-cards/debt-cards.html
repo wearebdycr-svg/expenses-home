@@ -1,0 +1,59 @@
+@if (debts().length === 0) {
+  <div class="empty-state-card">
+    <div class="empty-icon-wrap">🎉</div>
+    <h3 class="empty-title">¡Felicitaciones! No tienes deudas en este momento.</h3>
+    <p class="empty-subtitle">
+      Mantén unas finanzas saludables o registra una nueva deuda para proyectar su amortización.
+    </p>
+    <button type="button" class="btn-new-empty" (click)="onCreate()">
+      <app-icon name="plus" [size]="16" />
+      Registrar Deuda
+    </button>
+  </div>
+} @else {
+  <div class="cards-grid">
+    @for (debt of debts(); track debt.id) {
+      @let amort = getAmortization(debt);
+      @let pct = getPercentPaid(debt);
+
+      <div class="debt-card">
+        <div class="card-header">
+          <div class="card-title-wrap">
+            <h3 class="debt-name">{{ debt.name }}</h3>
+            <app-badge [color]="personColors[debt.person]">{{ debt.person }}</app-badge>
+          </div>
+          <span class="debt-dot" [style.background-color]="debt.color"></span>
+        </div>
+
+        <div class="card-amounts">
+          <div class="balance-val">{{ formatCOP(debt.currentBalance) }}</div>
+          <div class="original-val">de {{ formatCOP(debt.originalAmount) }}</div>
+        </div>
+
+        <div class="progress-wrap">
+          <div class="progress-bar">
+            <div
+              class="progress-fill"
+              [style.width.%]="pct"
+              [style.background-color]="debt.color"
+            ></div>
+          </div>
+        </div>
+
+        <div class="stats-row">
+          <span class="stat-pct">{{ pct | number: '1.1-1' }}% pagado</span>
+          <span class="stat-months">{{ amort.remainingMonths }} meses</span>
+        </div>
+
+        <div class="projected-date">
+          Fin: {{ amort.projectedDateFormatted }}
+        </div>
+
+        <button type="button" class="btn-prepay" (click)="onPrepayment(debt)">
+          <app-icon name="plus" [size]="14" />
+          Pago a Capital
+        </button>
+      </div>
+    }
+  </div>
+}
