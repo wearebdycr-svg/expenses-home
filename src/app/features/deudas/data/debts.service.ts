@@ -14,7 +14,7 @@ import {
   generateDebtId,
 } from './debt.model';
 
-const STORAGE_KEY = 'expenses_home_debts_v1';
+const STORAGE_KEY = 'expenses_home_debts_v2';
 
 export const DEFAULT_DEBTS: Debt[] = [
   {
@@ -68,7 +68,7 @@ export class DebtsService {
   private readonly supabase = inject(SupabaseService);
   private readonly expensesService = inject(ExpensesService);
 
-  readonly debts = signal<Debt[]>(DEFAULT_DEBTS);
+  readonly debts = signal<Debt[]>([]);
   readonly allDebts = this.debts.asReadonly();
 
   readonly selectedPerson = signal<DebtPersonFilter>('Todos');
@@ -196,7 +196,7 @@ export class DebtsService {
         return;
       }
 
-      if (data && data.length > 0) {
+      if (data) {
         const mapped: Debt[] = data.map((item: any, idx: number) => ({
           id: String(item.id),
           name: String(item.name),

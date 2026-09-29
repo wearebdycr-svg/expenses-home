@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
+import { environment } from '../../../../environments/environment';
 import { Icon, type IconName } from '../icon/icon';
 
 export type SidebarPageId = 'gastos' | 'ingresos' | 'resumen' | 'categoria' | 'deudas';
@@ -26,6 +27,7 @@ export class Sidebar {
   currentPage = input<SidebarPageId>('gastos');
   navigate = output<SidebarPageId>();
 
+  protected readonly isProduction = environment.production;
   protected readonly mobileOpen = signal(false);
   protected readonly currentYear = new Date().getFullYear();
 

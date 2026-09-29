@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { DeudasPage } from './deudas';
-import { DebtsService } from './data/debts.service';
+import { DebtsService, DEFAULT_DEBTS } from './data/debts.service';
 
 describe('DeudasPage', () => {
   let component: DeudasPage;
@@ -16,6 +16,7 @@ describe('DeudasPage', () => {
     fixture = TestBed.createComponent(DeudasPage);
     component = fixture.componentInstance;
     debtsService = TestBed.inject(DebtsService);
+    debtsService.debts.set(DEFAULT_DEBTS);
     fixture.detectChanges();
   });
 
@@ -84,6 +85,7 @@ describe('DeudasPage', () => {
   });
 
   it('handles prepayment save correctly', () => {
+    debtsService.debts.set(DEFAULT_DEBTS);
     const initialBalance = debtsService.debts()[0].currentBalance;
     component['onSavePrepayment']({
       debtId: debtsService.debts()[0].id,

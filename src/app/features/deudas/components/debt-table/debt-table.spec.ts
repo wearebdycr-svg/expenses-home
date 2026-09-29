@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { DebtTable } from './debt-table';
-import { DebtsService } from '../../data/debts.service';
+import { DebtsService, DEFAULT_DEBTS } from '../../data/debts.service';
 
 describe('DebtTable', () => {
   let component: DebtTable;
@@ -23,6 +23,8 @@ describe('DebtTable', () => {
   });
 
   it('should render table rows when debts exist', () => {
+    debtsService.debts.set(DEFAULT_DEBTS);
+    fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelectorAll('.debt-row').length).toBeGreaterThan(0);
   });

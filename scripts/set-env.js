@@ -50,7 +50,11 @@ export const environment = {
 `;
 
 // 4. Escribir archivos
-fs.writeFileSync(path.join(targetDir, 'environment.ts'), envFileContent(true), 'utf8');
+const isProd = process.env.VERCEL_ENV
+  ? process.env.VERCEL_ENV === 'production'
+  : process.env.NODE_ENV === 'production';
+
+fs.writeFileSync(path.join(targetDir, 'environment.ts'), envFileContent(isProd), 'utf8');
 fs.writeFileSync(path.join(targetDir, 'environment.development.ts'), envFileContent(false), 'utf8');
 
 console.log('\x1b[32m%s\x1b[0m', '✅ Archivos de entorno generados dinámicamente con éxito.');
