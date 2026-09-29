@@ -1,0 +1,174 @@
+:host {
+  display: block;
+}
+
+.table-card {
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+}
+
+.table-header {
+  padding: 1.25rem 1.5rem;
+}
+
+.table-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.empty-state {
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.categoria-table {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+}
+
+.categoria-table thead th {
+  padding: 0.75rem 1.25rem;
+  background: #f8fafc;
+  border-top: 1px solid #eef2f7;
+  border-bottom: 1px solid #eef2f7;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.categoria-table thead th.col-category {
+  text-align: left;
+  padding-left: 1.5rem;
+}
+
+.categoria-table thead th.col-currency,
+.categoria-table thead th.col-pct,
+.categoria-table thead th.col-tx {
+  text-align: right;
+}
+
+.categoria-table thead th.col-tx {
+  padding-right: 1.5rem;
+}
+
+.categoria-table td {
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.categoria-table td.col-category {
+  text-align: left;
+  padding-left: 1.5rem;
+  font-weight: 600;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+}
+
+.cat-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 0.6rem;
+  flex-shrink: 0;
+}
+
+.cat-name {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.categoria-table td.col-currency {
+  text-align: right;
+}
+
+.col-benny {
+  color: #2563eb;
+  font-weight: 500;
+}
+
+.col-charlie {
+  color: #d97706;
+  font-weight: 500;
+}
+
+.col-compartido {
+  color: #059669;
+  font-weight: 500;
+}
+
+.col-total {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.muted-dash {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.categoria-table td.col-pct {
+  text-align: right;
+}
+
+.pct-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.progress-track {
+  width: 48px;
+  height: 6px;
+  border-radius: 9999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+}
+
+.pct-text {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 0.82rem;
+  min-width: 44px;
+  text-align: right;
+}
+
+.categoria-table td.col-tx {
+  text-align: right;
+  padding-right: 1.5rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.categoria-row:hover {
+  background: #f8fafc;
+}

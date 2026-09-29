@@ -1,0 +1,16 @@
+<div class="chart-card">
+  <h2 class="chart-title">Monto por categoría y persona</h2>
+
+  @if (rows().length === 0) {
+    <div class="empty-state">No hay gastos para el período seleccionado.</div>
+  } @else {
+    <div class="chart-canvas-container">
+      <canvas
+        baseChart
+        [data]="data()"
+        [options]="options"
+        type="bar"
+      ></canvas>
+    </div>
+  }
+</div>

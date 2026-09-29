@@ -1,0 +1,31 @@
+<div class="chart-card">
+  <h2 class="chart-title">Distribución porcentual</h2>
+
+  @if (legendItems().length === 0) {
+    <div class="empty-state">No hay gastos para el período seleccionado.</div>
+  } @else {
+    <div class="chart-canvas-container">
+      <canvas
+        baseChart
+        [data]="data()"
+        [options]="options"
+        type="doughnut"
+      ></canvas>
+    </div>
+
+    <div class="donut-legend">
+      @for (item of legendItems(); track item.category) {
+        <div class="legend-row">
+          <div class="legend-left">
+            <span class="legend-dot" [style.background-color]="item.color"></span>
+            <span class="legend-label">{{ item.category }}</span>
+          </div>
+          <div class="legend-right">
+            <span class="legend-pct">{{ item.percentage | number: '1.1-1' }}%</span>
+            <span class="legend-amount">{{ formatCOP(item.amount) }}</span>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

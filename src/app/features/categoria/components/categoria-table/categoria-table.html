@@ -1,0 +1,80 @@
+<div class="table-card">
+  <div class="table-header">
+    <h2 class="table-title">Detalle por categoría</h2>
+  </div>
+
+  @if (rows().length === 0) {
+    <p class="empty-state">No hay gastos registrados para el período seleccionado.</p>
+  } @else {
+    <div class="table-responsive">
+      <table class="categoria-table">
+        <thead>
+          <tr>
+            <th class="col-category">CATEGORÍA</th>
+            <th class="col-currency col-benny">BENNY</th>
+            <th class="col-currency col-charlie">CHARLIE</th>
+            <th class="col-currency col-compartido">COMPARTIDO</th>
+            <th class="col-currency col-total">TOTAL</th>
+            <th class="col-pct">% DEL TOTAL</th>
+            <th class="col-tx">TRANSACCIONES</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.category) {
+            <tr class="categoria-row">
+              <td class="col-category">
+                <span class="cat-dot" [style.background-color]="row.color"></span>
+                <span class="cat-name">{{ row.category }}</span>
+              </td>
+
+              <td class="col-currency col-benny">
+                @if (row.benny > 0) {
+                  {{ formatCOP(row.benny) }}
+                } @else {
+                  <span class="muted-dash">-</span>
+                }
+              </td>
+
+              <td class="col-currency col-charlie">
+                @if (row.charlie > 0) {
+                  {{ formatCOP(row.charlie) }}
+                } @else {
+                  <span class="muted-dash">-</span>
+                }
+              </td>
+
+              <td class="col-currency col-compartido">
+                @if (row.compartido > 0) {
+                  {{ formatCOP(row.compartido) }}
+                } @else {
+                  <span class="muted-dash">-</span>
+                }
+              </td>
+
+              <td class="col-currency col-total">
+                {{ formatCOP(row.total) }}
+              </td>
+
+              <td class="col-pct">
+                <div class="pct-cell">
+                  <div class="progress-track">
+                    <div
+                      class="progress-fill"
+                      [style.background-color]="row.color"
+                      [style.width.%]="row.percentage"
+                    ></div>
+                  </div>
+                  <span class="pct-text">{{ row.percentage | number: '1.1-1' }}%</span>
+                </div>
+              </td>
+
+              <td class="col-tx">
+                {{ row.transactionCount }}
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

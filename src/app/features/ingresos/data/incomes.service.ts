@@ -228,6 +228,11 @@ export class IncomesService {
   }
 
   private setupRealtime(): void {
+    const proc = (globalThis as any).process;
+    if (proc?.env?.['NODE_ENV'] === 'test' || proc?.env?.['VITEST']) {
+      return;
+    }
+
     try {
       this.supabase.client
         .channel('public:incomes')

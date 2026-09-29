@@ -45,4 +45,17 @@ describe('App', () => {
     expect(app['currentPage']()).toBe('resumen');
     expect(fixture.nativeElement.querySelector('app-resumen-page')).toBeTruthy();
   });
+
+  it('navigates to categoria page and renders app-categoria-page', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const app = fixture.componentInstance;
+
+    const categoriaButton = fixture.nativeElement.querySelectorAll('.nav-item')[3] as HTMLButtonElement;
+    categoriaButton.click();
+    fixture.detectChanges();
+
+    expect(app['currentPage']()).toBe('categoria');
+    expect(fixture.nativeElement.querySelector('app-categoria-page')).toBeTruthy();
+  });
 });

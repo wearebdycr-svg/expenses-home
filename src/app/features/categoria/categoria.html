@@ -1,0 +1,21 @@
+<div class="categoria-page">
+  <header class="page-header">
+    <div>
+      <h1 class="page-title">Gastos por Categoría</h1>
+      <p class="page-subtitle">Análisis de distribución de gastos</p>
+    </div>
+  </header>
+
+  <app-categoria-filters />
+
+  <div class="charts-grid">
+    <div class="chart-col">
+      <app-categoria-donut-chart />
+    </div>
+    <div class="chart-col">
+      <app-categoria-bar-chart />
+    </div>
+  </div>
+
+  <app-categoria-table />
+</div>

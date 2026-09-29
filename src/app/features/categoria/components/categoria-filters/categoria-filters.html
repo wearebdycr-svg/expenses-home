@@ -1,0 +1,43 @@
+<section class="filters-card">
+  <div class="filters-row">
+    <app-select
+      label="AÑO"
+      labelStyle="caption"
+      [options]="yearOptions"
+      [value]="categoriaService.year()"
+      (valueChange)="categoriaService.setYear($event)"
+    />
+    <app-select
+      label="MES"
+      labelStyle="caption"
+      [options]="monthOptions"
+      [value]="categoriaService.month()"
+      (valueChange)="categoriaService.setMonth($event)"
+    />
+    <app-select
+      label="DÍA"
+      labelStyle="caption"
+      [options]="dayOptions"
+      [value]="categoriaService.day()"
+      (valueChange)="categoriaService.setDay($event)"
+    />
+    <app-select
+      label="PERSONA"
+      labelStyle="caption"
+      [options]="personOptions"
+      [value]="categoriaService.person()"
+      (valueChange)="categoriaService.setPerson($event)"
+    />
+  </div>
+
+  <div class="kpi-group">
+    <div class="kpi-item">
+      <span class="kpi-label">TOTAL PERÍODO</span>
+      <span class="kpi-value kpi-value--total">{{ formatCOP(categoriaService.totalPeriod()) }}</span>
+    </div>
+    <div class="kpi-item">
+      <span class="kpi-label">CATEGORÍAS</span>
+      <span class="kpi-value kpi-value--count">{{ categoriaService.categoriesCount() }}</span>
+    </div>
+  </div>
+</section>
