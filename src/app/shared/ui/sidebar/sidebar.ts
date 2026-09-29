@@ -27,6 +27,7 @@ export class Sidebar {
   navigate = output<SidebarPageId>();
 
   protected readonly mobileOpen = signal(false);
+  protected readonly currentYear = new Date().getFullYear();
 
   protected readonly navItems: readonly SidebarNavItem[] = [
     { id: 'gastos', label: 'Gastos Diarios', description: 'Registro de egresos', icon: 'receipt' },

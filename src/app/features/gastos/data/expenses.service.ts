@@ -49,8 +49,8 @@ export class ExpensesService {
   readonly loading = signal<boolean>(false);
   readonly error = signal<string | null>(null);
 
-  readonly year = signal<number>(2026);
-  readonly month = signal<MonthFilter>(7); // Julio por defecto según el diseño HU03
+  readonly year = signal<number>(new Date().getFullYear());
+  readonly month = signal<MonthFilter>(new Date().getMonth() + 1);
   readonly day = signal<DayFilter>('Todos');
   readonly person = signal<ExpensePersonFilter>('Todos');
 

@@ -13,9 +13,10 @@ describe('ExpenseFilters', () => {
     fixture.detectChanges();
   });
 
-  it('shows 2026 as the default year and Julio (7) as default month', () => {
-    expect(service.year()).toBe(2026);
-    expect(service.month()).toBe(7);
+  it('shows current year and current month as default', () => {
+    const now = new Date();
+    expect(service.year()).toBe(now.getFullYear());
+    expect(service.month()).toBe(now.getMonth() + 1);
     expect(service.day()).toBe('Todos');
     expect(service.person()).toBe('Todos');
   });

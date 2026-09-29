@@ -9,7 +9,19 @@ describe('ExpensesService', () => {
     service = TestBed.inject(ExpensesService);
   });
 
-  it('starts with an empty list of expenses (0 records)', () => {
+  it('defaults to current year and current month', () => {
+    const now = new Date();
+    expect(service.year()).toBe(now.getFullYear());
+    expect(service.month()).toBe(now.getMonth() + 1);
+  });
+
+  describe('with July 2026 filter', () => {
+    beforeEach(() => {
+      service.setYear(2026);
+      service.setMonth(7);
+    });
+
+    it('starts with an empty list of expenses (0 records)', () => {
     expect(service.filteredExpenses().length).toBe(0);
     expect(service.totalPeriod()).toBe(0);
     expect(service.transactionCount()).toBe(0);
@@ -87,4 +99,5 @@ describe('ExpensesService', () => {
     service.deleteExpense(created.id);
     expect(service.filteredExpenses().length).toBe(0);
   });
+});
 });

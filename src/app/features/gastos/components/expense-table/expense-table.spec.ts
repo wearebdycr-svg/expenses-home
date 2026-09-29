@@ -13,6 +13,8 @@ describe('ExpenseTable', () => {
     fixture = TestBed.createComponent(ExpenseTable);
     component = fixture.componentInstance;
     service = TestBed.inject(ExpensesService);
+    service.setYear(2026);
+    service.setMonth(7);
     fixture.detectChanges();
   });
 

@@ -27,7 +27,13 @@ export interface Expense {
 
 export type ExpenseDraft = Omit<Expense, 'id'>;
 
-export const YEARS: readonly number[] = [2025, 2026];
+const currentYear = new Date().getFullYear();
+const startYear = Math.min(2025, currentYear - 1);
+const endYear = Math.max(2026, currentYear + 1);
+export const YEARS: readonly number[] = Array.from(
+  { length: endYear - startYear + 1 },
+  (_, i) => startYear + i
+);
 
 export const MONTHS: readonly string[] = [
   'Enero',
