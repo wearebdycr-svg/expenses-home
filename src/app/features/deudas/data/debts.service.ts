@@ -69,6 +69,7 @@ export const DEFAULT_DEBTS: Debt[] = [
 export class DebtsService {
   private readonly supabase = inject(SupabaseService);
   private readonly expensesService = inject(ExpensesService);
+  private lastLocalMutationTime = 0;
 
   readonly debts = signal<Debt[]>([]);
 
@@ -122,14 +123,7 @@ export class DebtsService {
           paidInstallmentsCount += 1;
         }
       }
-
-      // Si no hay gastos registrados pero la deuda tiene fecha de inicio en el pasado,
-      // estimar cuotas transcurridas para coherencia de proyección
-      if (matchingExpenses.length === 0 && d.startDate) {
-        paidInstallmentsCount = differenceInMonths(d.startDate, new Date());
-      }
-
-      const isSettled = balance <= 0 || d.status === 'saldada';
+      const isSettled = balance <= 100 || d.status === 'saldada';
       const status = isSettled ? ('saldada' as const) : ('activa' as const);
 
       return {
@@ -272,7 +266,7 @@ export class DebtsService {
         .order('created_at', { ascending: true });
 
       if (error) {
-        // La tabla puede no haber sido creada aún en Supabase
+        console.warn('Supabase: No se pudieron cargar las deudas:', error.message);
         return;
       }
 
@@ -296,15 +290,22 @@ export class DebtsService {
           color: item.color || DEBT_PALETTE[idx % DEBT_PALETTE.length],
           status: item.status || 'activa',
         }));
-        this.debts.set(mapped);
-        this.persistLocal(mapped);
+
+        // Preservar deudas locales que aún no se hayan sincronizado con Supabase para evitar borrarlas al refrescar
+        const serverIds = new Set(mapped.map((d) => d.id));
+        const localPending = this.debts().filter((d) => !serverIds.has(d.id));
+
+        const finalDebts = [...mapped, ...localPending];
+        this.debts.set(finalDebts);
+        this.persistLocal(finalDebts);
       }
-    } catch {
-      // Manejar desconexión o entorno offline
+    } catch (err: any) {
+      console.warn('Error conectando a Supabase para deudas:', err);
     }
   }
 
   async addDebt(draft: DebtDraft): Promise<void> {
+    this.lastLocalMutationTime = Date.now();
     const current = this.debts();
     const color = DEBT_PALETTE[current.length % DEBT_PALETTE.length];
     const newDebt: Debt = {
@@ -319,27 +320,39 @@ export class DebtsService {
     this.persistLocal(updated);
 
     try {
-      await this.supabase.client.from('debts').insert([
-        {
-          id: newDebt.id,
-          name: newDebt.name,
-          person: newDebt.person,
-          start_date: newDebt.startDate,
-          original_amount: newDebt.originalAmount,
-          current_balance: newDebt.currentBalance,
-          monthly_payment: newDebt.monthlyPayment,
-          annual_interest_rate: newDebt.annualInterestRate,
-          total_months: newDebt.totalMonths || null,
-          color: newDebt.color,
-          status: newDebt.status,
-        },
-      ]);
-    } catch {
-      // Persistido localmente
+      const { data, error } = await this.supabase.client
+        .from('debts')
+        .insert([
+          {
+            id: newDebt.id,
+            name: newDebt.name,
+            person: newDebt.person,
+            start_date: newDebt.startDate,
+            original_amount: newDebt.originalAmount,
+            current_balance: newDebt.currentBalance,
+            monthly_payment: newDebt.monthlyPayment,
+            annual_interest_rate: newDebt.annualInterestRate,
+            total_months: newDebt.totalMonths || null,
+            color: newDebt.color,
+            status: newDebt.status,
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error insertando deuda en Supabase:', error.message);
+      } else if (data && data.id) {
+        newDebt.id = String(data.id);
+        this.persistLocal(this.debts());
+      }
+    } catch (err: any) {
+      console.error('Error de red insertando deuda en Supabase:', err);
     }
   }
 
   async updateDebt(id: string, draft: DebtDraft): Promise<void> {
+    this.lastLocalMutationTime = Date.now();
     const current = this.debts();
     const oldDebt = current.find((d) => d.id === id);
     const oldName = oldDebt?.name;
@@ -350,7 +363,7 @@ export class DebtsService {
     this.persistLocal(updated);
 
     try {
-      await this.supabase.client
+      const { error } = await this.supabase.client
         .from('debts')
         .update({
           name: draft.name,
@@ -365,12 +378,16 @@ export class DebtsService {
         })
         .eq('id', id);
 
+      if (error) {
+        console.error('Error actualizando deuda en Supabase:', error.message);
+      }
+
       // Cascada: Si el nombre cambió, actualizar todos los gastos asociados
       if (oldName && oldName !== newName) {
         await this.expensesService.renameCategory(oldName, newName);
       }
-    } catch {
-      // Persistido localmente
+    } catch (err: any) {
+      console.error('Error de red actualizando deuda en Supabase:', err);
       if (oldName && oldName !== newName) {
         await this.expensesService.renameCategory(oldName, newName);
       }
@@ -378,15 +395,19 @@ export class DebtsService {
   }
 
   async deleteDebt(id: string): Promise<void> {
+    this.lastLocalMutationTime = Date.now();
     const current = this.debts();
     const updated = current.filter((d) => d.id !== id);
     this.debts.set(updated);
     this.persistLocal(updated);
 
     try {
-      await this.supabase.client.from('debts').delete().eq('id', id);
-    } catch {
-      // Persistido localmente
+      const { error } = await this.supabase.client.from('debts').delete().eq('id', id);
+      if (error) {
+        console.error('Error eliminando deuda en Supabase:', error.message);
+      }
+    } catch (err: any) {
+      console.error('Error de red eliminando deuda en Supabase:', err);
     }
   }
 
@@ -432,6 +453,9 @@ export class DebtsService {
           'postgres_changes',
           { event: '*', schema: 'public', table: 'debts' },
           () => {
+            if (Date.now() - this.lastLocalMutationTime < 2500) {
+              return;
+            }
             this.loadDebts();
           },
         )

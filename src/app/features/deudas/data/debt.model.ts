@@ -142,9 +142,20 @@ export function differenceInMonths(startDateStr: string, currentDate: Date = new
 }
 
 /**
+ * Redondeo preciso de meses que neutraliza artefactos de punto flotante
+ * (ej: 11.0000048 -> 11) respetando cuotas fraccionarias reales (ej: 11.2 -> 12).
+ */
+function cleanMonths(raw: number): number {
+  if (Math.abs(raw - Math.round(raw)) < 0.02) {
+    return Math.round(raw);
+  }
+  return Math.ceil(raw);
+}
+
+/**
  * Algoritmo de Cálculo de Cuotas Pagadas y Meses Restantes (n_restantes):
  * Dada la cuota fija C, saldo actual S y tasa periódica i_m:
- * n_restantes = ceil( -ln(1 - (S * i_m) / C) / ln(1 + i_m) )
+ * n_restantes = cleanMonths( -ln(1 - (S * i_m) / C) / ln(1 + i_m) )
  */
 export function calculateRemainingMonths(
   balance: number,
@@ -154,7 +165,7 @@ export function calculateRemainingMonths(
   paidInstallmentsCount: number = 0,
   isNominal: boolean = false,
 ): number {
-  if (balance <= 0) return 0;
+  if (balance <= 100) return 0;
   const im = calculateMonthlyRate(annualInterestRate, isNominal);
   let nRestantes: number;
 
@@ -163,7 +174,7 @@ export function calculateRemainingMonths(
   }
 
   if (im <= 0) {
-    nRestantes = Math.ceil(balance / monthlyPayment);
+    nRestantes = cleanMonths(balance / monthlyPayment);
   } else {
     const ratio = (balance * im) / monthlyPayment;
     if (ratio >= 1) {
@@ -171,9 +182,7 @@ export function calculateRemainingMonths(
       nRestantes = totalMonths ?? 600;
     } else {
       const raw = -Math.log(1 - ratio) / Math.log(1 + im);
-      // Redondear a 6 decimales para evitar problemas de precisión en Math.ceil (ej. 59.000000000002)
-      const rounded = Math.round(raw * 1e6) / 1e6;
-      nRestantes = Math.ceil(rounded);
+      nRestantes = cleanMonths(raw);
     }
   }
 
@@ -199,7 +208,7 @@ export function calculateAmortization(
   },
   baseDate: Date = new Date(),
 ): AmortizationResult {
-  if (debt.currentBalance <= 0) {
+  if (debt.currentBalance <= 100) {
     return {
       remainingMonths: 0,
       projectedEndDate: baseDate,
@@ -233,7 +242,7 @@ export function calculateAmortization(
       const interest = s * im;
       const amort = debt.monthlyPayment > 0 ? Math.max(0, debt.monthlyPayment - interest) : 0;
       s = Math.max(0, s - amort);
-      if (k === remainingMonths || s < 1) {
+      if (k === remainingMonths || s < 100) {
         s = 0;
       }
     }
@@ -249,5 +258,12 @@ export function calculateAmortization(
 }
 
 export function generateDebtId(): string {
-  return `debt_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
 }

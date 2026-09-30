@@ -5,6 +5,7 @@ import {
   calculateAmortization,
   calculateMonthlyPayment,
   calculateMonthlyRate,
+  generateDebtId,
 } from './debt.model';
 
 describe('DebtsService', () => {
@@ -349,5 +350,49 @@ describe('DebtsService', () => {
     const debt = service.allDebts().find((d) => d.id === 'debt-rename-test')!;
     expect(debt.name).toBe('Préstamo Nuevo');
     expect(debt.currentBalance).toBe(700_000);
+  });
+
+  it('generates a valid RFC 4122 UUID for new debts', () => {
+    const id = generateDebtId();
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    expect(uuidRegex.test(id)).toBe(true);
+  });
+
+  it('keeps remaining months consistent without jumping when debt has past start date and payment is recorded', async () => {
+    // Deuda creada con fecha en el pasado (ej: hace 2 meses)
+    service['debts'].set([
+      {
+        id: 'debt-past-start-test',
+        name: 'Crédito Consumo',
+        person: 'Benny',
+        startDate: '2026-07-01',
+        originalAmount: 12_000_000,
+        currentBalance: 12_000_000,
+        monthlyPayment: 1_000_000,
+        annualInterestRate: 0,
+        totalMonths: 12,
+        color: '#3b82f6',
+        status: 'activa',
+      },
+    ]);
+
+    // Inicialmente (sin pagos registrados aún): 12 meses restantes
+    const initialLiveDebt = service.allDebts().find((d) => d.id === 'debt-past-start-test')!;
+    const initialAmort = calculateAmortization(initialLiveDebt);
+    expect(initialAmort.remainingMonths).toBe(12);
+
+    // Tras registrar el primer pago en Gastos: debe bajar exactamente a 11 meses (sin saltar a 11 desde 10 o similar)
+    await expensesService.addExpense({
+      date: '2026-09-30',
+      person: 'Benny',
+      category: 'Crédito Consumo',
+      description: 'Pago cuota 1',
+      amount: 1_000_000,
+    });
+
+    const afterPaymentLiveDebt = service.allDebts().find((d) => d.id === 'debt-past-start-test')!;
+    const afterPaymentAmort = calculateAmortization(afterPaymentLiveDebt);
+    expect(afterPaymentLiveDebt.currentBalance).toBe(11_000_000);
+    expect(afterPaymentAmort.remainingMonths).toBe(11);
   });
 });
