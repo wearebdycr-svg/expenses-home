@@ -62,7 +62,7 @@ export class Sidebar {
     this.closeMobileMenu();
   }
 
-  protected onSubscribePush(person: ExpensePerson): void {
-    this.pushService.requestSubscription(person);
+  protected onSubscribePush(): void {
+    this.pushService.requestSubscription('Hogar');
   }
 }

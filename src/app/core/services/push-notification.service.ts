@@ -35,7 +35,7 @@ export class PushNotificationService {
   readonly permission = signal<NotificationPermission>('default');
   readonly isSubscribed = signal<boolean>(false);
   readonly currentToken = signal<string | null>(null);
-  readonly registeredPerson = signal<ExpensePerson>('Charlie');
+  readonly registeredPerson = signal<string>('Hogar');
 
   constructor() {
     this.init();
@@ -53,7 +53,7 @@ export class PushNotificationService {
 
     // Recuperar suscripción previa de localStorage
     const savedToken = localStorage.getItem(FCM_TOKEN_STORAGE_KEY);
-    const savedPerson = (localStorage.getItem(FCM_PERSON_STORAGE_KEY) as ExpensePerson) || 'Charlie';
+    const savedPerson = localStorage.getItem(FCM_PERSON_STORAGE_KEY) || 'Hogar';
     if (savedToken) {
       this.currentToken.set(savedToken);
       this.isSubscribed.set(true);
@@ -102,7 +102,7 @@ export class PushNotificationService {
   /**
    * Criterio 2.1 & 2.2: Solicita permiso y registra el Token FCM en el backend
    */
-  async requestSubscription(person: ExpensePerson = 'Charlie'): Promise<string | null> {
+  async requestSubscription(person: string = 'Hogar'): Promise<string | null> {
     if (!this.isSupported()) {
       this.toastService.error('Las notificaciones Push no están soportadas en este navegador.');
       return null;
@@ -148,7 +148,7 @@ export class PushNotificationService {
       // 3. Criterio 2.2: Registrar token en Supabase / Backend API
       await this.registerTokenInBackend(token, person);
 
-      this.toastService.success(`Notificaciones Push activadas para ${person}`);
+      this.toastService.success('Notificaciones Push activadas en este dispositivo');
       return token;
     } catch (err: any) {
       console.error('[PushNotificationService] Error al suscribirse a notificaciones:', err);
@@ -160,7 +160,7 @@ export class PushNotificationService {
   /**
    * Registra el token en la tabla fcm_tokens de Supabase y mediante el endpoint /api/fcm-token
    */
-  async registerTokenInBackend(token: string, person: ExpensePerson): Promise<void> {
+  async registerTokenInBackend(token: string, person: string = 'Hogar'): Promise<void> {
     try {
       await this.supabase.client.from('fcm_tokens').upsert(
         {
@@ -208,10 +208,9 @@ export class PushNotificationService {
 
     // 1. Criterio 4.1: Notificación de Gasto Compartido Registrado
     if (newExpense.person === 'Compartido') {
-      const creator = this.registeredPerson() || 'Benny/Charlie';
       const sharedMessage: PushNotificationMessage = {
         title: '💸 Nuevo Gasto Compartido',
-        body: `${creator} ingresó un gasto de ${formatCOP(newExpense.amount)} en ${newExpense.category}.`,
+        body: `Se registró un gasto de ${formatCOP(newExpense.amount)} en ${newExpense.category}.`,
         icon: '/favicon.svg',
         data: {
           url: '/#gastos',

@@ -247,7 +247,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  padding: 0.3rem 0.5rem;
+  padding: 0.35rem 0.5rem;
   background: rgba(16, 185, 129, 0.12);
   border: 1px solid rgba(16, 185, 129, 0.25);
   border-radius: 6px;
@@ -261,20 +261,13 @@
 .push-active-text {
   font-size: 0.72rem;
   color: var(--sidebar-text);
+  font-weight: 500;
 }
-.push-sub-hint {
-  font-size: 0.68rem;
-  opacity: 0.55;
-}
-.push-btn-group {
-  display: flex;
-  gap: 0.4rem;
-}
-.btn-sub-push {
-  flex: 1;
-  padding: 0.3rem 0.4rem;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--sidebar-border);
+.btn-sub-push-full {
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.35);
   border-radius: 6px;
   color: var(--sidebar-text);
   font-size: 0.72rem;
@@ -283,9 +276,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 0.35rem;
+  transition: background-color 0.15s ease;
 }
-.btn-sub-push:hover {
-  background: rgba(255, 255, 255, 0.15);
+.btn-sub-push-full:hover {
+  background: rgba(59, 130, 246, 0.25);
 }
 
 @media (min-width: 768px) {

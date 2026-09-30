@@ -68,35 +68,22 @@
   </div>
 
   <div class="sidebar-push">
-    <p class="push-header">Alertas Push en Vivo</p>
+    <p class="push-header">Alertas del Hogar</p>
     <div class="push-box">
       @if (pushService.isSubscribed()) {
         <div class="push-status-active">
           <span class="push-dot-active" aria-hidden="true"></span>
-          <span class="push-active-text">
-            Activo: <strong>{{ pushService.registeredPerson() }}</strong>
-          </span>
+          <span class="push-active-text">Alertas activadas</span>
         </div>
       } @else {
-        <span class="push-sub-hint">Activar alertas en este equipo:</span>
-        <div class="push-btn-group">
-          <button
-            type="button"
-            class="btn-sub-push"
-            (click)="onSubscribePush('Charlie')"
-            title="Activar alertas push para Charlie"
-          >
-            🔔 Charlie
-          </button>
-          <button
-            type="button"
-            class="btn-sub-push"
-            (click)="onSubscribePush('Benny')"
-            title="Activar alertas push para Benny"
-          >
-            🔔 Benny
-          </button>
-        </div>
+        <button
+          type="button"
+          class="btn-sub-push-full"
+          (click)="onSubscribePush()"
+          title="Activar notificaciones en este dispositivo"
+        >
+          🔔 Activar Notificaciones
+        </button>
       }
     </div>
   </div>
