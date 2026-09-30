@@ -4,31 +4,71 @@
 importScripts('https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging-compat.js');
 
-// Escuchar mensaje del hilo principal con la configuración de Firebase
+// 1. Inicialización inmediata al arrancar el Service Worker desde los parámetros de URL
+try {
+  const urlParams = new URLSearchParams(self.location.search);
+  const apiKey = urlParams.get('apiKey');
+  const projectId = urlParams.get('projectId');
+  const messagingSenderId = urlParams.get('messagingSenderId');
+  const appId = urlParams.get('appId');
+
+  if (apiKey && projectId) {
+    if (!firebase.apps.length) {
+      firebase.initializeApp({
+        apiKey,
+        authDomain: `${projectId}.firebaseapp.com`,
+        projectId,
+        storageBucket: `${projectId}.firebasestorage.app`,
+        messagingSenderId,
+        appId,
+      });
+    }
+
+    const messaging = firebase.messaging();
+    messaging.onBackgroundMessage((payload) => {
+      console.log('[firebase-messaging-sw] Mensaje en segundo plano recibido desde Firebase:', payload);
+      const title = payload.notification?.title || payload.data?.title || 'FinanzasHogar';
+      const options = {
+        body: payload.notification?.body || payload.data?.body || '',
+        icon: payload.notification?.icon || payload.data?.icon || '/favicon.svg',
+        badge: '/favicon.svg',
+        data: payload.data || {},
+        vibrate: [200, 100, 200],
+        tag: payload.data?.category_id ? `budget-${payload.data.category_id}` : 'finanzas-hogar',
+      };
+
+      return self.registration.showNotification(title, options);
+    });
+  }
+} catch (e) {
+  console.warn('[firebase-messaging-sw] Inicialización por URL params falló:', e);
+}
+
+// 2. Escuchar mensaje del hilo principal con la configuración de Firebase como respaldo
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'INIT_FIREBASE_MESSAGING') {
     try {
-      if (!firebase.apps.length) {
+      if (!firebase.apps.length && event.data.config) {
         firebase.initializeApp(event.data.config);
+        const messaging = firebase.messaging();
+
+        messaging.onBackgroundMessage((payload) => {
+          console.log('[firebase-messaging-sw] Mensaje en segundo plano recibido:', payload);
+          const title = payload.notification?.title || payload.data?.title || 'FinanzasHogar';
+          const options = {
+            body: payload.notification?.body || payload.data?.body || '',
+            icon: payload.notification?.icon || payload.data?.icon || '/favicon.svg',
+            badge: '/favicon.svg',
+            data: payload.data || {},
+            vibrate: [200, 100, 200],
+            tag: payload.data?.category_id ? `budget-${payload.data.category_id}` : 'finanzas-hogar',
+          };
+
+          return self.registration.showNotification(title, options);
+        });
       }
-      const messaging = firebase.messaging();
-
-      messaging.onBackgroundMessage((payload) => {
-        console.log('[firebase-messaging-sw] Mensaje en segundo plano recibido:', payload);
-        const title = payload.notification?.title || payload.data?.title || 'FinanzasHogar';
-        const options = {
-          body: payload.notification?.body || payload.data?.body || '',
-          icon: payload.notification?.icon || payload.data?.icon || '/favicon.svg',
-          badge: '/favicon.svg',
-          data: payload.data || {},
-          vibrate: [200, 100, 200],
-          tag: payload.data?.category_id ? `budget-${payload.data.category_id}` : 'finanzas-hogar',
-        };
-
-        return self.registration.showNotification(title, options);
-      });
     } catch (e) {
-      console.warn('[firebase-messaging-sw] Error al inicializar messaging en SW:', e);
+      console.warn('[firebase-messaging-sw] Error al inicializar messaging en SW por postMessage:', e);
     }
   }
 });

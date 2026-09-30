@@ -1,10 +1,52 @@
 import { createClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
 
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
 
+/**
+ * Obtiene un token de acceso OAuth2 para la API de FCM v1 usando la cuenta de servicio de Google
+ */
+async function getGoogleAccessToken(serviceAccount) {
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: 'RS256', typ: 'JWT' };
+  const claimSet = {
+    iss: serviceAccount.client_email,
+    scope: 'https://www.googleapis.com/auth/firebase.messaging',
+    aud: 'https://oauth2.googleapis.com/token',
+    exp: now + 3600,
+    iat: now,
+  };
+
+  const base64Url = (obj) =>
+    Buffer.from(JSON.stringify(obj))
+      .toString('base64')
+      .replace(/=/g, '')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_');
+
+  const signInput = `${base64Url(header)}.${base64Url(claimSet)}`;
+  const signer = crypto.createSign('RSA-SHA256');
+  signer.update(signInput);
+  const signature = signer
+    .sign(serviceAccount.private_key, 'base64')
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+
+  const jwt = `${signInput}.${signature}`;
+
+  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
+  });
+
+  const tokenData = await tokenRes.json();
+  return tokenData.access_token;
+}
+
 export default async function handler(req, res) {
-  // Manejo de CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -43,11 +85,73 @@ export default async function handler(req, res) {
 
     console.log(`[Push Notification] Despachando a ${tokens.length} dispositivos: "${title}" - "${body}"`);
 
-    // 2. Si hay claves de Firebase Server / Service Account configuradas en el entorno, despachar a FCM
-    const fcmServerKey = process.env.FIREBASE_SERVER_KEY || process.env.FCM_SERVER_KEY;
     let sentCount = 0;
 
-    if (fcmServerKey && tokens.length > 0) {
+    // 2. Si hay Cuenta de Servicio (FCM v1 moderna) configurada
+    let serviceAccount = null;
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      try {
+        const raw = process.env.FIREBASE_SERVICE_ACCOUNT.trim();
+        serviceAccount = JSON.parse(raw.startsWith('{') ? raw : Buffer.from(raw, 'base64').toString('utf8'));
+      } catch (e) {
+        console.warn('Error al parsear FIREBASE_SERVICE_ACCOUNT:', e);
+      }
+    }
+
+    if (serviceAccount && tokens.length > 0) {
+      try {
+        const accessToken = await getGoogleAccessToken(serviceAccount);
+        const projectId = serviceAccount.project_id || process.env.FIREBASE_PROJECT_ID;
+
+        for (const token of tokens) {
+          try {
+            const resp = await fetch(
+              `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${accessToken}`,
+                },
+                body: JSON.stringify({
+                  message: {
+                    token,
+                    notification: { title, body },
+                    webpush: {
+                      notification: {
+                        title,
+                        body,
+                        icon: icon || '/favicon.svg',
+                        badge: '/favicon.svg',
+                      },
+                      fcm_options: {
+                        link: data?.url || '/#gastos',
+                      },
+                    },
+                    data: data ? Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v)])) : {},
+                  },
+                }),
+              }
+            );
+
+            if (resp.ok) {
+              sentCount++;
+            } else {
+              const errBody = await resp.text();
+              console.warn('[FCM v1] Error enviando a token:', errBody);
+            }
+          } catch (e) {
+            console.warn('[FCM v1] Fallo de red:', e);
+          }
+        }
+      } catch (err) {
+        console.warn('[FCM v1] Error obteniendo token OAuth2:', err);
+      }
+    }
+
+    // 3. Respaldo: Si hay clave de servidor heredada (FCM legacy)
+    const fcmServerKey = process.env.FIREBASE_SERVER_KEY || process.env.FCM_SERVER_KEY;
+    if (!sentCount && fcmServerKey && tokens.length > 0) {
       for (const token of tokens) {
         try {
           const response = await fetch('https://fcm.googleapis.com/fcm/send', {
@@ -70,7 +174,7 @@ export default async function handler(req, res) {
             sentCount++;
           }
         } catch (e) {
-          console.warn('Error enviando mensaje a token FCM:', e);
+          console.warn('Error enviando mensaje legacy a token FCM:', e);
         }
       }
     }
