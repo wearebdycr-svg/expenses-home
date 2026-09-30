@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseService } from '../../../core/services/supabase.service';
+import { PushNotificationService } from '../../../core/services/push-notification.service';
 import { ToastService } from '../../../core/services/toast.service';
 import type {
   Expense,
@@ -47,6 +48,7 @@ function emptyDailySeries(daysInMonth: number = 31): DailyExpenseSeries {
 export class ExpensesService {
   private readonly supabase = inject(SupabaseService);
   private readonly toastService = inject(ToastService);
+  private readonly pushNotificationService = inject(PushNotificationService);
 
   private readonly expenses = signal<Expense[]>([]);
   private lastLocalMutationTime = 0;
@@ -256,6 +258,7 @@ export class ExpensesService {
         }
       }
       this.toastService.success('Gasto registrado exitosamente');
+      this.pushNotificationService.handleExpenseCreated(draft, this.expenses());
     } catch (err: any) {
       console.error('Error de red al insertar gasto:', err);
     }
