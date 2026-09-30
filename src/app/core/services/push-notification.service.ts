@@ -35,8 +35,7 @@ export class PushNotificationService {
   readonly permission = signal<NotificationPermission>('default');
   readonly isSubscribed = signal<boolean>(false);
   readonly currentToken = signal<string | null>(null);
-  readonly activePerson = signal<ExpensePerson>('Charlie');
-  readonly registeredPerson = this.activePerson.asReadonly();
+  readonly registeredPerson = signal<string>('Hogar');
 
   constructor() {
     this.init();
@@ -52,11 +51,8 @@ export class PushNotificationService {
 
     this.permission.set(Notification.permission);
 
-    // Recuperar suscripción previa y persona activa de localStorage
+    // Recuperar suscripción previa de localStorage
     const savedToken = localStorage.getItem(FCM_TOKEN_STORAGE_KEY);
-    const savedPerson = (localStorage.getItem(FCM_PERSON_STORAGE_KEY) as ExpensePerson) || 'Charlie';
-    this.activePerson.set(savedPerson);
-
     if (savedToken) {
       this.currentToken.set(savedToken);
       this.isSubscribed.set(true);
@@ -101,28 +97,14 @@ export class PushNotificationService {
     }
   }
 
-  setActivePerson(person: ExpensePerson): void {
-    this.activePerson.set(person);
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(FCM_PERSON_STORAGE_KEY, person);
-    }
-    const token = this.currentToken();
-    if (token) {
-      this.registerTokenInBackend(token, person);
-    }
-  }
-
   /**
-   * Criterio 2.1 & 2.2: Solicita permiso y registra el Token FCM en el backend
+   * Criterio 2.1 & 2.2: Solicita permiso y registra el Token FCM del dispositivo en el backend
    */
-  async requestSubscription(person?: ExpensePerson): Promise<string | null> {
+  async requestSubscription(): Promise<string | null> {
     if (!this.isSupported()) {
       this.toastService.error('Las notificaciones Push no están soportadas en este navegador.');
       return null;
     }
-
-    const selectedPerson = person || this.activePerson();
-    this.setActivePerson(selectedPerson);
 
     try {
       const permissionResult = await Notification.requestPermission();
@@ -150,7 +132,7 @@ export class PushNotificationService {
 
       // Si no hay token de FCM (modo dev / offline), generar identificador único de dispositivo
       if (!token) {
-        token = `fcm-dev-${selectedPerson.toLowerCase()}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        token = `fcm-dev-hogar-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
       }
 
       // 2. Guardar en localStorage
@@ -160,9 +142,9 @@ export class PushNotificationService {
       this.isSubscribed.set(true);
 
       // 3. Criterio 2.2: Registrar token en Supabase / Backend API
-      await this.registerTokenInBackend(token, selectedPerson);
+      await this.registerTokenInBackend(token, 'Hogar');
 
-      this.toastService.success(`Notificaciones activadas para ${selectedPerson}`);
+      this.toastService.success('Notificaciones del hogar activadas en este equipo');
       return token;
     } catch (err: any) {
       console.error('[PushNotificationService] Error al suscribirse a notificaciones:', err);
@@ -275,15 +257,15 @@ export class PushNotificationService {
   /**
    * Despacha la notificación Push vía backend serverless para los demás dispositivos del hogar
    */
-  async dispatchPushNotification(message: PushNotificationMessage, senderPerson?: string): Promise<void> {
-    const sender = senderPerson || this.activePerson();
+  async dispatchPushNotification(message: PushNotificationMessage): Promise<void> {
+    const senderToken = this.currentToken();
     try {
       await fetch('/api/notify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...message,
-          senderPerson: sender,
+          senderToken,
         }),
       });
     } catch {
@@ -292,16 +274,10 @@ export class PushNotificationService {
   }
 
   /**
-   * Dispara una alerta nativa y toast cuando otro miembro del hogar registra un gasto
+   * Dispara una alerta nativa y toast cuando otro dispositivo registra un gasto
    */
   notifyIncomingExpense(expense: { person?: string; amount: number; category: string; description?: string }): void {
-    const currentDevicePerson = this.activePerson();
-    // No notificar al propio usuario que acaba de registrar el gasto
-    if (expense.person && expense.person === currentDevicePerson) {
-      return;
-    }
-
-    const creator = expense.person || 'Tu pareja';
+    const creator = expense.person || 'Alguien';
     const title = creator === 'Compartido' 
       ? '💸 Nuevo Gasto Compartido' 
       : `💸 ${creator} registró un gasto`;
@@ -315,12 +291,7 @@ export class PushNotificationService {
    * Dispara una alerta cuando se usa la Tarjeta Compartida desde otro dispositivo
    */
   notifyIncomingTcExpense(expense: { person?: string; amount: number; description?: string; category?: string }): void {
-    const currentDevicePerson = this.activePerson();
-    if (expense.person && expense.person === currentDevicePerson) {
-      return;
-    }
-
-    const creator = expense.person || 'Tu pareja';
+    const creator = expense.person || 'Alguien';
     const title = `💳 ${creator} usó la TC Compartida`;
     const desc = expense.description || expense.category || 'Consumo';
     const body = `${formatCOP(expense.amount)} - ${desc}`;

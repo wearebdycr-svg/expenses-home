@@ -213,35 +213,6 @@
   flex-direction: column;
   gap: 0.35rem;
 }
-.device-user-selector {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.device-user-label {
-  font-size: 0.68rem;
-  color: var(--sidebar-text);
-  opacity: 0.6;
-}
-.device-user-pills {
-  display: flex;
-  gap: 0.25rem;
-}
-.pill-user {
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  border: 1px solid var(--sidebar-border);
-  background: transparent;
-  color: var(--sidebar-text);
-  font-size: 0.68rem;
-  cursor: pointer;
-}
-.pill-user.is-active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-  font-weight: 600;
-}
 .push-status-active {
   display: inline-flex;
   align-items: center;

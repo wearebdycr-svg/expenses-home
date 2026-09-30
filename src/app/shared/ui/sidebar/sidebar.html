@@ -70,32 +70,10 @@
   <div class="sidebar-push">
     <p class="push-header">Alertas en Tiempo Real</p>
     <div class="push-box">
-      <div class="device-user-selector">
-        <span class="device-user-label">Este equipo es de:</span>
-        <div class="device-user-pills">
-          <button
-            type="button"
-            class="pill-user"
-            [class.is-active]="pushService.activePerson() === 'Charlie'"
-            (click)="selectUser('Charlie')"
-          >
-            Charlie
-          </button>
-          <button
-            type="button"
-            class="pill-user"
-            [class.is-active]="pushService.activePerson() === 'Benny'"
-            (click)="selectUser('Benny')"
-          >
-            Benny
-          </button>
-        </div>
-      </div>
-
       @if (pushService.isSubscribed()) {
         <div class="push-status-active">
           <span class="push-dot-active" aria-hidden="true"></span>
-          <span class="push-active-text">Alertas activas para {{ pushService.activePerson() }}</span>
+          <span class="push-active-text">Notificaciones Activas en este equipo</span>
         </div>
       } @else {
         <button
@@ -104,7 +82,7 @@
           (click)="onSubscribePush()"
           title="Activar notificaciones en este dispositivo"
         >
-          🔔 Activar Notificaciones
+          🔔 Activar Notificaciones en este equipo
         </button>
       }
     </div>

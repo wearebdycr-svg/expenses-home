@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Método no permitido' });
   }
 
-  const { title, body, icon, data, targetPerson, senderPerson } = req.body || {};
+  const { title, body, icon, data, senderToken } = req.body || {};
 
   if (!title || !body) {
     return res.status(400).json({ error: 'Título y cuerpo son requeridos' });
@@ -26,16 +26,13 @@ export default async function handler(req, res) {
   try {
     let tokens = [];
 
-    // 1. Obtener tokens de Supabase
+    // 1. Obtener tokens de Supabase (excluyendo el dispositivo emisor)
     if (supabaseUrl && supabaseAnonKey) {
       const supabase = createClient(supabaseUrl, supabaseAnonKey);
-      let query = supabase.from('fcm_tokens').select('token, person');
+      let query = supabase.from('fcm_tokens').select('token');
 
-      if (targetPerson && targetPerson !== 'all') {
-        query = query.eq('person', targetPerson);
-      } else if (senderPerson) {
-        // Excluir dispositivos del emisor para que la alerta llegue a la otra persona
-        query = query.neq('person', senderPerson);
+      if (senderToken) {
+        query = query.neq('token', senderToken);
       }
 
       const { data: dbTokens, error } = await query;

@@ -23,7 +23,7 @@ describe('PushNotificationService', () => {
 
   it('should initialize with default states', () => {
     expect(service).toBeTruthy();
-    expect(service.registeredPerson()).toBe('Charlie');
+    expect(service.registeredPerson()).toBe('Hogar');
   });
 
   it('triggers shared expense push when person is Compartido (Criterio 4.1)', async () => {

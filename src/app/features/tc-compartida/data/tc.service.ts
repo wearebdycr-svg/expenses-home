@@ -24,6 +24,7 @@ export class TcService {
   readonly allTcExpenses = this.tcExpenses.asReadonly();
   readonly loading = signal<boolean>(false);
   readonly error = signal<string | null>(null);
+  private lastLocalMutationTime = 0;
 
   // Filtros de fecha y responsable
   readonly year = signal<number>(new Date().getFullYear());
@@ -245,6 +246,7 @@ export class TcService {
   }
 
   async addTcExpense(draft: TcExpenseDraft): Promise<void> {
+    this.lastLocalMutationTime = Date.now();
     const tempId = generateTcExpenseId();
     const optimisticItem: TcExpense = { ...draft, id: tempId };
 
@@ -398,6 +400,9 @@ export class TcService {
           'postgres_changes',
           { event: '*', schema: 'public', table: 'tc_expenses' },
           (payload: any) => {
+            if (Date.now() - this.lastLocalMutationTime < 2500) {
+              return;
+            }
             this.loadTcExpenses();
             if (payload?.eventType === 'INSERT' && payload?.new) {
               this.pushNotificationService.notifyIncomingTcExpense(payload.new);
