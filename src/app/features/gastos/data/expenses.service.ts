@@ -288,6 +288,34 @@ export class ExpensesService {
     }
   }
 
+  /**
+   * Actualización en cascada: Cuando se renombra una deuda,
+   * se actualizan todos los gastos asociados que tengan esa categoría.
+   */
+  async renameCategory(oldName: string, newName: string): Promise<void> {
+    const current = this.expenses();
+    const hasMatches = current.some((e) => e.category === oldName);
+    if (!hasMatches) return;
+
+    const updated = current.map((e) =>
+      e.category === oldName ? { ...e, category: newName } : e,
+    );
+    this.expenses.set(updated);
+
+    try {
+      const { error } = await this.supabase.client
+        .from('expenses')
+        .update({ category: newName })
+        .eq('category', oldName);
+
+      if (error) {
+        console.warn('Error al actualizar categoría en cascada en Supabase:', error.message);
+      }
+    } catch (err: any) {
+      console.warn('Error de red al actualizar categoría en cascada:', err);
+    }
+  }
+
   private setupRealtime(): void {
     const proc = (globalThis as any).process;
     if (proc?.env?.['NODE_ENV'] === 'test' || proc?.env?.['VITEST']) {

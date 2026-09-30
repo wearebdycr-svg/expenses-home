@@ -21,6 +21,9 @@
           <div class="card-title-wrap">
             <h3 class="debt-name">{{ debt.name }}</h3>
             <app-badge [color]="personColors[debt.person]">{{ debt.person }}</app-badge>
+            @if (debt.status === 'saldada' || debt.currentBalance <= 0) {
+              <app-badge color="#10b981">Saldada 🎉</app-badge>
+            }
           </div>
           <span class="debt-dot" [style.background-color]="debt.color"></span>
         </div>
@@ -35,24 +38,34 @@
             <div
               class="progress-fill"
               [style.width.%]="pct"
-              [style.background-color]="debt.color"
+              [style.background-color]="debt.currentBalance <= 0 ? '#10b981' : debt.color"
             ></div>
           </div>
         </div>
 
         <div class="stats-row">
           <span class="stat-pct">{{ pct | number: '1.1-1' }}% pagado</span>
-          <span class="stat-months">{{ amort.remainingMonths }} meses</span>
+          @if (debt.currentBalance <= 0) {
+            <span class="stat-months" style="color: #10b981; font-weight: 600;">Liquidada</span>
+          } @else {
+            <span class="stat-months">{{ amort.remainingMonths }} meses</span>
+          }
         </div>
 
         <div class="projected-date">
-          Fin: {{ amort.projectedDateFormatted }}
+          @if (debt.currentBalance <= 0) {
+            Estado: 100% Amortizada
+          } @else {
+            Fin: {{ amort.projectedDateFormatted }}
+          }
         </div>
 
-        <button type="button" class="btn-prepay" (click)="onPrepayment(debt)">
-          <app-icon name="plus" [size]="14" />
-          Pago a Capital
-        </button>
+        @if (debt.currentBalance > 0) {
+          <button type="button" class="btn-prepay" (click)="onPrepayment(debt)">
+            <app-icon name="plus" [size]="14" />
+            Pago a Capital
+          </button>
+        }
       </div>
     }
   </div>

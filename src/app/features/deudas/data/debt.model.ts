@@ -2,6 +2,7 @@ import type { ExpensePerson } from '../../gastos/data/expense.model';
 
 export type DebtPerson = ExpensePerson;
 export type DebtPersonFilter = 'Todos' | ExpensePerson;
+export type DebtStatus = 'activa' | 'saldada';
 
 export interface Debt {
   id: string;
@@ -13,6 +14,8 @@ export interface Debt {
   monthlyPayment: number;
   annualInterestRate: number; // e.g. 8.5, 10.2, 24.0
   color: string;
+  status?: DebtStatus;
+  totalAmortized?: number;
 }
 
 export type DebtDraft = Omit<Debt, 'id' | 'color'>;

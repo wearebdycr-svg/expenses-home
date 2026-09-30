@@ -86,13 +86,13 @@ describe('DeudasPage', () => {
 
   it('handles prepayment save correctly', () => {
     debtsService.debts.set(DEFAULT_DEBTS);
-    const initialBalance = debtsService.debts()[0].currentBalance;
+    const initialBalance = debtsService.allDebts()[0].currentBalance;
     component['onSavePrepayment']({
       debtId: debtsService.debts()[0].id,
       amount: 500_000,
       date: '2026-07-29',
     });
 
-    expect(debtsService.debts()[0].currentBalance).toBe(initialBalance - 500_000);
+    expect(debtsService.allDebts()[0].currentBalance).toBe(initialBalance - 500_000);
   });
 });

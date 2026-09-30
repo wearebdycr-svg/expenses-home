@@ -11,10 +11,34 @@
 
     <app-select
       label="Categoría"
-      [options]="categoryOptions"
+      [options]="categoryOptions()"
       [value]="category()"
       (valueChange)="category.set($event)"
     />
+
+    @if (selectedDebt(); as debt) {
+      <div class="debt-amortization-info" [class.overdraft]="isOverdraft()">
+        <div class="info-header">
+          <span class="info-title">💳 Amortización de Deuda</span>
+          <span class="info-badge">{{ debt.person }}</span>
+        </div>
+        <div class="info-body">
+          <div class="info-detail-row">
+            <span class="info-label">Deuda:</span>
+            <span class="info-val font-semibold">{{ debt.name }}</span>
+          </div>
+          <div class="info-detail-row">
+            <span class="info-label">Saldo pendiente:</span>
+            <span class="info-val info-balance">{{ formatCOP(debt.currentBalance) }}</span>
+          </div>
+        </div>
+        @if (isOverdraft()) {
+          <div class="overdraft-warning">
+            ⚠️ El monto ingresado ({{ formatCOP(Number(amount()) || 0) }}) supera el saldo pendiente de esta deuda. Quedará totalmente liquidada.
+          </div>
+        }
+      </div>
+    }
 
     <label class="field">
       <span class="field-label">Descripción</span>

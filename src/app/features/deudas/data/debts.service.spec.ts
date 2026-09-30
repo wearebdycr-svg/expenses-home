@@ -97,7 +97,7 @@ describe('DebtsService', () => {
       expect.objectContaining({
         description: 'Abono a capital: Tarjeta Visa',
         amount: 500_000,
-        category: 'Otros',
+        category: 'Tarjeta Visa',
         person: 'Charlie',
         date: '2026-09-29',
       }),
@@ -148,5 +148,101 @@ describe('DebtsService', () => {
     expect(filtered.some((d) => d.name === 'Hipoteca')).toBe(true);
     expect(filtered.some((d) => d.name === 'Carro Benny')).toBe(true);
     expect(filtered.some((d) => d.name === 'Préstamo Charlie')).toBe(false);
+  });
+
+  it('calculates live balance and auto-settles debt when amortized amount reaches balance', async () => {
+    service['debts'].set([
+      {
+        id: 'debt-auto-settle',
+        name: 'Crédito Estudio',
+        person: 'Benny',
+        startDate: '2026-01-01',
+        originalAmount: 2_000_000,
+        currentBalance: 2_000_000,
+        monthlyPayment: 200_000,
+        annualInterestRate: 0,
+        color: '#3b82f6',
+        status: 'activa',
+      },
+    ]);
+
+    // Initial check: active with full balance
+    let debt = service.allDebts().find((d) => d.id === 'debt-auto-settle')!;
+    expect(debt.currentBalance).toBe(2_000_000);
+    expect(debt.status).toBe('activa');
+    expect(service.activeDebts().some((d) => d.id === 'debt-auto-settle')).toBe(true);
+
+    // Add partial expense
+    await expensesService.addExpense({
+      date: '2026-09-29',
+      person: 'Benny',
+      category: 'Crédito Estudio',
+      description: 'Pago cuota 1',
+      amount: 1_200_000,
+    });
+
+    debt = service.allDebts().find((d) => d.id === 'debt-auto-settle')!;
+    expect(debt.currentBalance).toBe(800_000);
+    expect(debt.status).toBe('activa');
+
+    // Add remaining expense to pay off debt completely
+    await expensesService.addExpense({
+      date: '2026-09-30',
+      person: 'Benny',
+      category: 'Crédito Estudio',
+      description: 'Pago cuota 2 saldo total',
+      amount: 800_000,
+    });
+
+    debt = service.allDebts().find((d) => d.id === 'debt-auto-settle')!;
+    expect(debt.currentBalance).toBe(0);
+    expect(debt.status).toBe('saldada');
+    // Once settled, it should no longer be in activeDebts()
+    expect(service.activeDebts().some((d) => d.id === 'debt-auto-settle')).toBe(false);
+  });
+
+  it('renames expenses in cascade when debt name is updated', async () => {
+    service['debts'].set([
+      {
+        id: 'debt-rename-test',
+        name: 'Préstamo Antiguo',
+        person: 'Charlie',
+        startDate: '2026-01-01',
+        originalAmount: 1_000_000,
+        currentBalance: 1_000_000,
+        monthlyPayment: 100_000,
+        annualInterestRate: 5,
+        color: '#10b981',
+        status: 'activa',
+      },
+    ]);
+
+    await expensesService.addExpense({
+      date: '2026-09-29',
+      person: 'Charlie',
+      category: 'Préstamo Antiguo',
+      description: 'Abono inicial',
+      amount: 300_000,
+    });
+
+    // Rename debt
+    await service.updateDebt('debt-rename-test', {
+      name: 'Préstamo Nuevo',
+      person: 'Charlie',
+      startDate: '2026-01-01',
+      originalAmount: 1_000_000,
+      currentBalance: 1_000_000,
+      monthlyPayment: 100_000,
+      annualInterestRate: 5,
+    });
+
+    // Check that expense category was updated in cascade
+    const expense = expensesService.allExpenses().find((e) => e.description === 'Abono inicial')!;
+    expect(expense.category).toBe('Préstamo Nuevo');
+
+    // Live balance should now track with the new name
+    const debt = service.allDebts().find((d) => d.id === 'debt-rename-test')!;
+    expect(debt.name).toBe('Préstamo Nuevo');
+    expect(debt.currentBalance).toBe(700_000);
   });
 });

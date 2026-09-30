@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
 import type { Expense } from '../../data/expense.model';
 import { ExpenseFormModal } from './expense-form-modal';
+import { DebtsService } from '../../../deudas/data/debts.service';
 
 describe('ExpenseFormModal', () => {
   let fixture: ComponentFixture<ExpenseFormModal>;
@@ -73,5 +74,40 @@ describe('ExpenseFormModal', () => {
       description: 'Supermercado',
       amount: 161_657,
     });
+  });
+
+  it('includes active debts dynamically in category options and detects overdraft', () => {
+    const debtsService = TestBed.inject(DebtsService);
+    debtsService.debts.set([
+      {
+        id: 'debt-test',
+        name: 'Préstamo Auto',
+        person: 'Benny',
+        startDate: '2026-09-01',
+        originalAmount: 10_000_000,
+        currentBalance: 5_000_000,
+        monthlyPayment: 500_000,
+        annualInterestRate: 10,
+        color: '#3b82f6',
+        status: 'activa',
+      },
+    ]);
+
+    const options = component['categoryOptions']();
+    const debtOption = options.find((o) => o.value === 'Préstamo Auto');
+    expect(debtOption).toBeDefined();
+    expect(debtOption?.label).toBe('Deuda: Préstamo Auto');
+
+    // Select the debt
+    component['category'].set('Préstamo Auto');
+    expect(component['selectedDebt']()?.name).toBe('Préstamo Auto');
+
+    // Amount below balance: no overdraft
+    component['amount'].set('3000000');
+    expect(component['isOverdraft']()).toBe(false);
+
+    // Amount above balance: overdraft detected
+    component['amount'].set('6000000');
+    expect(component['isOverdraft']()).toBe(true);
   });
 });

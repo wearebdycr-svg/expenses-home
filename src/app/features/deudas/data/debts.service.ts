@@ -69,7 +69,46 @@ export class DebtsService {
   private readonly expensesService = inject(ExpensesService);
 
   readonly debts = signal<Debt[]>([]);
-  readonly allDebts = this.debts.asReadonly();
+
+  /**
+   * Deudas con saldo pendiente y estado calculados en tiempo real:
+   * Saldo Pendiente = Monto Total Inicial - ∑(Monto de Gastos donde categoría = nombre_deuda)
+   * Si Saldo Pendiente <= 0, estado = 'saldada'.
+   */
+  readonly debtsWithLiveBalance = computed<Debt[]>(() => {
+    const rawDebts = this.debts();
+    const allExpenses = this.expensesService.allExpenses();
+
+    return rawDebts.map((d) => {
+      // 1. Amortización acumulada: Gastos registrados con la categoría exacta de esta deuda
+      const amortizedAmount = allExpenses
+        .filter((e) => e.category === d.name)
+        .reduce((sum, e) => sum + e.amount, 0);
+
+      // 2. Base de cálculo inicial: Saldo base de apertura o Monto Total Inicial
+      const startingBase = d.currentBalance ?? d.originalAmount;
+
+      const liveBalance = Math.max(0, startingBase - amortizedAmount);
+      const isSettled = liveBalance <= 0 || d.status === 'saldada';
+      const status = isSettled ? ('saldada' as const) : ('activa' as const);
+
+      return {
+        ...d,
+        currentBalance: liveBalance,
+        status,
+        totalAmortized: amortizedAmount,
+      };
+    });
+  });
+
+  readonly allDebts = this.debtsWithLiveBalance;
+
+  /**
+   * Deudas activas disponibles para amortizar en el selector de Gastos
+   */
+  readonly activeDebts = computed<Debt[]>(() => {
+    return this.debtsWithLiveBalance().filter((d) => d.status === 'activa' && d.currentBalance > 0);
+  });
 
   readonly selectedPerson = signal<DebtPersonFilter>('Todos');
 
@@ -87,7 +126,7 @@ export class DebtsService {
    */
   readonly filteredDebts = computed(() => {
     const person = this.selectedPerson();
-    const list = this.debts();
+    const list = this.debtsWithLiveBalance();
 
     if (person === 'Todos') {
       return list;
@@ -209,6 +248,7 @@ export class DebtsService {
             item.annual_interest_rate || item.annualInterestRate,
           ),
           color: item.color || DEBT_PALETTE[idx % DEBT_PALETTE.length],
+          status: item.status || 'activa',
         }));
         this.debts.set(mapped);
         this.persistLocal(mapped);
@@ -225,6 +265,7 @@ export class DebtsService {
       ...draft,
       id: generateDebtId(),
       color,
+      status: draft.status || 'activa',
     };
 
     const updated = [...current, newDebt];
@@ -243,6 +284,7 @@ export class DebtsService {
           monthly_payment: newDebt.monthlyPayment,
           annual_interest_rate: newDebt.annualInterestRate,
           color: newDebt.color,
+          status: newDebt.status,
         },
       ]);
     } catch {
@@ -252,6 +294,10 @@ export class DebtsService {
 
   async updateDebt(id: string, draft: DebtDraft): Promise<void> {
     const current = this.debts();
+    const oldDebt = current.find((d) => d.id === id);
+    const oldName = oldDebt?.name;
+    const newName = draft.name;
+
     const updated = current.map((d) => (d.id === id ? { ...d, ...draft } : d));
     this.debts.set(updated);
     this.persistLocal(updated);
@@ -267,10 +313,19 @@ export class DebtsService {
           current_balance: draft.currentBalance,
           monthly_payment: draft.monthlyPayment,
           annual_interest_rate: draft.annualInterestRate,
+          status: draft.status || 'activa',
         })
         .eq('id', id);
+
+      // Cascada: Si el nombre cambió, actualizar todos los gastos asociados
+      if (oldName && oldName !== newName) {
+        await this.expensesService.renameCategory(oldName, newName);
+      }
     } catch {
       // Persistido localmente
+      if (oldName && oldName !== newName) {
+        await this.expensesService.renameCategory(oldName, newName);
+      }
     }
   }
 
@@ -289,24 +344,18 @@ export class DebtsService {
 
   /**
    * Criterio 48 / 82:
-   * Aplica un abono adicional a capital, reduce el saldo de la deuda,
-   * recalcula proyecciones y registra automáticamente el egreso en Gastos Diarios.
+   * Aplica un abono adicional a capital, registra automáticamente el egreso en Gastos Diarios
+   * vinculando la categoría exacta de la deuda para descontar el saldo pendiente en tiempo real.
    */
   async applyPrepayment(draft: PrepaymentDraft): Promise<void> {
-    const debt = this.debts().find((d) => d.id === draft.debtId);
+    const debt = this.debtsWithLiveBalance().find((d) => d.id === draft.debtId);
     if (!debt || draft.amount <= 0) return;
 
-    const newBalance = Math.max(0, debt.currentBalance - draft.amount);
-    await this.updateDebt(debt.id, {
-      ...debt,
-      currentBalance: newBalance,
-    });
-
-    // Registrar egreso automático en Gastos Diarios
+    // Registrar egreso automático en Gastos Diarios con la categoría exacta de la deuda
     await this.expensesService.addExpense({
       date: draft.date,
       person: debt.person,
-      category: 'Otros',
+      category: debt.name,
       description: `Abono a capital: ${debt.name}`,
       amount: draft.amount,
     });

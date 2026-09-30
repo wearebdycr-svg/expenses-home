@@ -1,7 +1,7 @@
 export type ExpensePerson = 'Benny' | 'Charlie' | 'Compartido';
 export type ExpensePersonFilter = 'Todos' | 'Benny' | 'Charlie' | 'Compartido';
 
-export type ExpenseCategory =
+export type StandardExpenseCategory =
   | 'Ahorro/inversión'
   | 'Compras'
   | 'Deudas'
@@ -17,6 +17,8 @@ export type ExpenseCategory =
   | 'Transporte'
   | 'Viajes'
   | 'TC-compartida';
+
+export type ExpenseCategory = StandardExpenseCategory | (string & {});
 
 export interface Expense {
   id: string;

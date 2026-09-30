@@ -30,6 +30,9 @@
               <td class="col-name">
                 <span class="debt-dot" [style.background-color]="debt.color"></span>
                 <span class="debt-name-text">{{ debt.name }}</span>
+                @if (debt.status === 'saldada' || debt.currentBalance <= 0) {
+                  <app-badge color="#10b981">Saldada</app-badge>
+                }
               </td>
 
               <td class="col-person">
