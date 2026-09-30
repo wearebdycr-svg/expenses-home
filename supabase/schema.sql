@@ -59,7 +59,8 @@ CREATE TABLE IF NOT EXISTS public.expenses (
     person TEXT NOT NULL REFERENCES public.persons(name) ON UPDATE CASCADE,
     category TEXT NOT NULL CHECK (category IN (
         'Alimentación', 'Transporte', 'Salud', 'Entretenimiento', 'Educación',
-        'Ropa', 'Tecnología', 'Restaurantes', 'Cuidado Personal', 'Hogar', 'Servicios', 'Otros'
+        'Ropa', 'Tecnología', 'Restaurantes', 'Cuidado Personal', 'Hogar', 'Servicios',
+        'Ahorro / Inversión', 'Otros'
     )),
     description VARCHAR(100) NOT NULL,
     amount NUMERIC NOT NULL CHECK (amount > 0),

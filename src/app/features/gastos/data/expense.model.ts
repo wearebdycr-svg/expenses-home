@@ -13,6 +13,7 @@ export type ExpenseCategory =
   | 'Cuidado Personal'
   | 'Hogar'
   | 'Servicios'
+  | 'Ahorro / Inversión'
   | 'Otros';
 
 export interface Expense {
@@ -79,6 +80,7 @@ export const EXPENSE_CATEGORIES: readonly ExpenseCategory[] = [
   'Cuidado Personal',
   'Hogar',
   'Servicios',
+  'Ahorro / Inversión',
   'Otros',
 ];
 
@@ -100,6 +102,7 @@ export const EXPENSE_CATEGORY_COLORS: Record<ExpenseCategory, string> = {
   Ropa: '#ec4899',
   Tecnología: '#6366f1',
   'Cuidado Personal': '#f97316',
+  'Ahorro / Inversión': '#14b8a6',
   Otros: '#94a3b8',
 };
 
