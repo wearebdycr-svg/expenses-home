@@ -39,6 +39,45 @@ describe('DebtsService', () => {
     expect(tarjeta.remainingMonths).toBe(9);
   });
 
+  it('calculates remaining months accurately when totalMonths is defined', () => {
+    // 12 months total, 12M original, 1M monthly payment
+    const debtStart = calculateAmortization({
+      currentBalance: 12_000_000,
+      monthlyPayment: 1_000_000,
+      annualInterestRate: 0,
+      totalMonths: 12,
+    });
+    expect(debtStart.remainingMonths).toBe(12);
+
+    // After 1 payment of 1M -> 11M remaining -> 11 months
+    const debtAfter1Payment = calculateAmortization({
+      currentBalance: 11_000_000,
+      monthlyPayment: 1_000_000,
+      annualInterestRate: 0,
+      totalMonths: 12,
+    });
+    expect(debtAfter1Payment.remainingMonths).toBe(11);
+
+    // After 5 payments -> 7M remaining -> 7 months
+    const debtAfter5Payments = calculateAmortization({
+      currentBalance: 7_000_000,
+      monthlyPayment: 1_000_000,
+      annualInterestRate: 0,
+      totalMonths: 12,
+    });
+    expect(debtAfter5Payments.remainingMonths).toBe(7);
+
+    // Settled debt -> 0 months
+    const debtSettled = calculateAmortization({
+      currentBalance: 0,
+      monthlyPayment: 1_000_000,
+      annualInterestRate: 0,
+      totalMonths: 12,
+    });
+    expect(debtSettled.remainingMonths).toBe(0);
+    expect(debtSettled.projectedDateFormatted).toBe('Liquidada');
+  });
+
   it('adds, updates and deletes a debt', async () => {
     await service.addDebt({
       name: 'Crédito Moto',

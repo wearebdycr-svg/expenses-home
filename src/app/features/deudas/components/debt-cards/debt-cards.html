@@ -47,6 +47,8 @@
           <span class="stat-pct">{{ pct | number: '1.1-1' }}% pagado</span>
           @if (debt.currentBalance <= 0) {
             <span class="stat-months" style="color: #10b981; font-weight: 600;">Liquidada</span>
+          } @else if (debt.totalMonths) {
+            <span class="stat-months">{{ amort.remainingMonths }} de {{ debt.totalMonths }} meses</span>
           } @else {
             <span class="stat-months">{{ amort.remainingMonths }} meses</span>
           }

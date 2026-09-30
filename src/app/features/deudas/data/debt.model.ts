@@ -13,6 +13,7 @@ export interface Debt {
   currentBalance: number;
   monthlyPayment: number;
   annualInterestRate: number; // e.g. 8.5, 10.2, 24.0
+  totalMonths?: number; // Número de meses (plazo total del crédito)
   color: string;
   status?: DebtStatus;
   totalAmortized?: number;
@@ -93,12 +94,64 @@ export function generate36MonthLabels(baseDate: Date = new Date()): string[] {
 }
 
 /**
- * Algoritmo de Amortización Francesa (Criterio 70-77)
+ * Algoritmo de Amortización Francesa y cálculo de meses restantes (Criterio 70-77)
  */
 export function calculateAmortization(
-  debt: Pick<Debt, 'currentBalance' | 'monthlyPayment' | 'annualInterestRate'>,
+  debt: Pick<Debt, 'currentBalance' | 'monthlyPayment' | 'annualInterestRate'> & {
+    totalMonths?: number;
+    originalAmount?: number;
+  },
   baseDate: Date = new Date(),
 ): AmortizationResult {
+  // 1. Si la deuda está saldada o saldo <= 0
+  if (debt.currentBalance <= 0) {
+    return {
+      remainingMonths: 0,
+      projectedEndDate: baseDate,
+      projectedDateFormatted: 'Liquidada',
+      monthly36Series: Array(37).fill(0),
+    };
+  }
+
+  // 2. Si tiene definido totalMonths (número de meses pactado para el crédito):
+  // Los meses restantes se calculan en base al saldo pendiente y la cuota pactada.
+  if (debt.totalMonths && debt.totalMonths > 0) {
+    let remainingMonths: number;
+    if (debt.monthlyPayment > 0) {
+      remainingMonths = Math.ceil(debt.currentBalance / debt.monthlyPayment);
+      remainingMonths = Math.min(debt.totalMonths, remainingMonths);
+    } else {
+      remainingMonths = debt.totalMonths;
+    }
+    remainingMonths = Math.max(0, remainingMonths);
+
+    const projectedEndDate = new Date(
+      baseDate.getFullYear(),
+      baseDate.getMonth() + remainingMonths,
+      1,
+    );
+
+    const monthly36Series: number[] = [];
+    let s = debt.currentBalance;
+    const monthlyStep =
+      debt.monthlyPayment > 0
+        ? debt.monthlyPayment
+        : debt.currentBalance / debt.totalMonths;
+
+    for (let i = 0; i <= 36; i++) {
+      monthly36Series.push(Math.round(s));
+      s = Math.max(0, s - monthlyStep);
+    }
+
+    return {
+      remainingMonths,
+      projectedEndDate,
+      projectedDateFormatted: formatMonthYear(projectedEndDate),
+      monthly36Series: monthly36Series.slice(0, 37),
+    };
+  }
+
+  // 3. Algoritmo de Amortización Francesa clásico (para deudas históricas sin totalMonths)
   const r = debt.annualInterestRate / (12 * 100);
   let s = debt.currentBalance;
   let months = 0;

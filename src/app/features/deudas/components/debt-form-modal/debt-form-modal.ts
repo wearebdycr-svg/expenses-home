@@ -44,6 +44,7 @@ export class DebtFormModal {
   protected readonly startDate = signal(todayIso());
   protected readonly name = signal('');
   protected readonly originalAmount = signal('');
+  protected readonly totalMonths = signal('');
   protected readonly currentBalance = signal('');
   protected readonly monthlyPayment = signal('');
   protected readonly annualInterestRate = signal('');
@@ -60,6 +61,7 @@ export class DebtFormModal {
         this.startDate.set(existing.startDate || todayIso());
         this.name.set(existing.name);
         this.originalAmount.set(String(existing.originalAmount));
+        this.totalMonths.set(existing.totalMonths ? String(existing.totalMonths) : '');
         this.currentBalance.set(String(existing.currentBalance));
         this.monthlyPayment.set(String(existing.monthlyPayment));
         this.annualInterestRate.set(String(existing.annualInterestRate));
@@ -68,6 +70,7 @@ export class DebtFormModal {
         this.startDate.set(todayIso());
         this.name.set('');
         this.originalAmount.set('');
+        this.totalMonths.set('');
         this.currentBalance.set('');
         this.monthlyPayment.set('');
         this.annualInterestRate.set('');
@@ -80,18 +83,50 @@ export class DebtFormModal {
     signalRef.set(raw.replace(/[^0-9]/g, ''));
   }
 
+  protected onOriginalAmountInput(event: Event): void {
+    const raw = (event.target as HTMLInputElement).value.replace(/[^0-9]/g, '');
+    this.originalAmount.set(raw);
+    if (!this.isEditMode()) {
+      this.currentBalance.set(raw);
+    }
+    this.recalculateMonthlyPayment();
+  }
+
+  protected onMonthsInput(event: Event): void {
+    const raw = (event.target as HTMLInputElement).value.replace(/[^0-9]/g, '');
+    this.totalMonths.set(raw);
+    this.recalculateMonthlyPayment();
+  }
+
   protected onRateInput(event: Event): void {
     const raw = (event.target as HTMLInputElement).value;
-    // Allow numbers and decimal point
     this.annualInterestRate.set(raw.replace(/[^0-9.]/g, ''));
+    this.recalculateMonthlyPayment();
+  }
+
+  private recalculateMonthlyPayment(): void {
+    const amount = Number(this.originalAmount());
+    const months = Number(this.totalMonths());
+    if (amount > 0 && months > 0) {
+      const rate = Number(this.annualInterestRate()) || 0;
+      if (rate > 0) {
+        const r = rate / (12 * 100);
+        const factor = Math.pow(1 + r, months);
+        const payment = Math.round((amount * (r * factor)) / (factor - 1));
+        this.monthlyPayment.set(String(payment));
+      } else {
+        this.monthlyPayment.set(String(Math.round(amount / months)));
+      }
+    }
   }
 
   protected onSubmit(): void {
     const name = this.name().trim();
     const original = Number(this.originalAmount());
-    const current = Number(this.currentBalance());
-    const payment = Number(this.monthlyPayment());
-    const rate = Number(this.annualInterestRate());
+    const months = Number(this.totalMonths()) || undefined;
+    const current = this.currentBalance().trim() !== '' ? Number(this.currentBalance()) : original;
+    const payment = Number(this.monthlyPayment()) || (months ? Math.round(original / months) : 0);
+    const rate = Number(this.annualInterestRate()) || 0;
 
     if (!name || original <= 0 || current <= 0 || payment <= 0 || isNaN(rate)) {
       return;
@@ -105,6 +140,7 @@ export class DebtFormModal {
       currentBalance: current,
       monthlyPayment: payment,
       annualInterestRate: rate,
+      totalMonths: months,
     });
   }
 }

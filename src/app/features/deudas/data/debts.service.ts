@@ -82,7 +82,17 @@ export class DebtsService {
     return rawDebts.map((d) => {
       // 1. Amortización acumulada: Gastos registrados con la categoría exacta de esta deuda
       const amortizedAmount = allExpenses
-        .filter((e) => e.category === d.name)
+        .filter((e) => {
+          if (!e.category) return false;
+          const cat = e.category.trim().toLowerCase();
+          const debtName = d.name.trim().toLowerCase();
+          return (
+            cat === debtName ||
+            cat === `deuda: ${debtName}` ||
+            cat === `deuda: ${debtName} (inactiva)` ||
+            (cat === 'deudas' && e.description.toLowerCase().includes(debtName))
+          );
+        })
         .reduce((sum, e) => sum + e.amount, 0);
 
       // 2. Base de cálculo inicial: Saldo base de apertura o Monto Total Inicial
@@ -247,6 +257,11 @@ export class DebtsService {
           annualInterestRate: Number(
             item.annual_interest_rate || item.annualInterestRate,
           ),
+          totalMonths: item.total_months
+            ? Number(item.total_months)
+            : item.totalMonths
+              ? Number(item.totalMonths)
+              : undefined,
           color: item.color || DEBT_PALETTE[idx % DEBT_PALETTE.length],
           status: item.status || 'activa',
         }));
@@ -283,6 +298,7 @@ export class DebtsService {
           current_balance: newDebt.currentBalance,
           monthly_payment: newDebt.monthlyPayment,
           annual_interest_rate: newDebt.annualInterestRate,
+          total_months: newDebt.totalMonths || null,
           color: newDebt.color,
           status: newDebt.status,
         },
@@ -313,6 +329,7 @@ export class DebtsService {
           current_balance: draft.currentBalance,
           monthly_payment: draft.monthlyPayment,
           annual_interest_rate: draft.annualInterestRate,
+          total_months: draft.totalMonths || null,
           status: draft.status || 'activa',
         })
         .eq('id', id);

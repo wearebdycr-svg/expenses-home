@@ -38,21 +38,21 @@
           class="field-control"
           type="text"
           inputmode="numeric"
-          placeholder="64500000"
+          placeholder="Ej: 10000000"
           [value]="originalAmount()"
-          (input)="onNumberInput(originalAmount, $event)"
+          (input)="onOriginalAmountInput($event)"
         />
       </label>
 
       <label class="field">
-        <span class="field-label">Saldo actual (COP)</span>
+        <span class="field-label">Número de meses</span>
         <input
           class="field-control"
           type="text"
           inputmode="numeric"
-          placeholder="64500000"
-          [value]="currentBalance()"
-          (input)="onNumberInput(currentBalance, $event)"
+          placeholder="Ej: 12, 24, 36..."
+          [value]="totalMonths()"
+          (input)="onMonthsInput($event)"
         />
       </label>
     </div>
@@ -64,7 +64,7 @@
           class="field-control"
           type="text"
           inputmode="numeric"
-          placeholder="700000"
+          placeholder="Ej: 500000"
           [value]="monthlyPayment()"
           (input)="onNumberInput(monthlyPayment, $event)"
         />
@@ -76,9 +76,23 @@
           class="field-control"
           type="text"
           inputmode="decimal"
-          placeholder="8.5"
+          placeholder="0.0"
           [value]="annualInterestRate()"
           (input)="onRateInput($event)"
+        />
+      </label>
+    </div>
+
+    <div class="form-row">
+      <label class="field">
+        <span class="field-label">Saldo actual inicial (COP)</span>
+        <input
+          class="field-control"
+          type="text"
+          inputmode="numeric"
+          placeholder="Por defecto igual al monto original"
+          [value]="currentBalance()"
+          (input)="onNumberInput(currentBalance, $event)"
         />
       </label>
     </div>

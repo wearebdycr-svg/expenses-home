@@ -88,7 +88,25 @@ describe('DebtFormModal', () => {
       currentBalance: 14_200_000,
       monthlyPayment: 450_000,
       annualInterestRate: 10.2,
+      totalMonths: undefined,
     });
+  });
+
+  it('auto-calculates monthly payment when originalAmount and totalMonths are provided', () => {
+    const originalInput = fixture.nativeElement.querySelector('input[placeholder*="10000000"]');
+    originalInput.value = '12000000';
+    originalInput.dispatchEvent(new Event('input'));
+
+    const monthsInput = fixture.nativeElement.querySelector('input[placeholder*="12, 24"]');
+    monthsInput.value = '12';
+    monthsInput.dispatchEvent(new Event('input'));
+
+    expect(component['totalMonths']()).toBe('12');
+    expect(component['originalAmount']()).toBe('12000000');
+    // Without interest rate, monthly payment = 12M / 12 = 1M
+    expect(component['monthlyPayment']()).toBe('1000000');
+    // currentBalance automatically defaults to originalAmount
+    expect(component['currentBalance']()).toBe('12000000');
   });
 
   it('handles cancel button click', () => {

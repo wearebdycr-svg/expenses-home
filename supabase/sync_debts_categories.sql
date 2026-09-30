@@ -12,4 +12,7 @@ ALTER TABLE public.expenses DROP CONSTRAINT IF EXISTS expenses_category_check;
 -- 2. Asegurar la columna 'status' en la tabla de deudas ('activa' | 'saldada')
 ALTER TABLE public.debts ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'activa';
 
+-- 3. Añadir columna 'total_months' para el plazo en meses del crédito
+ALTER TABLE public.debts ADD COLUMN IF NOT EXISTS total_months INTEGER;
+
 COMMIT;

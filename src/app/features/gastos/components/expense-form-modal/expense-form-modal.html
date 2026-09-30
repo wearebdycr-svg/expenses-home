@@ -16,21 +16,35 @@
       (valueChange)="category.set($event)"
     />
 
+    @if (category() === 'Deudas') {
+      <div class="debt-amortization-info" style="background: #eff6ff; border-color: #bfdbfe;">
+        <div class="info-detail-row" style="color: #1e40af; font-size: 0.75rem; line-height: 1.35;">
+          <span>💡 <strong>Consejo:</strong> Para que este pago descuente automáticamente el saldo y los meses restantes de un crédito específico, selecciona en el selector de categoría la opción <em>"Deuda: [Nombre de tu crédito]"</em>.</span>
+        </div>
+      </div>
+    }
+
     @if (selectedDebt(); as debt) {
       <div class="debt-amortization-info" [class.overdraft]="isOverdraft()">
         <div class="info-header">
-          <span class="info-title">💳 Amortización de Deuda</span>
+          <span class="info-title">💳 Pago / Amortización de Crédito</span>
           <span class="info-badge">{{ debt.person }}</span>
         </div>
         <div class="info-body">
           <div class="info-detail-row">
-            <span class="info-label">Deuda:</span>
+            <span class="info-label">Crédito:</span>
             <span class="info-val font-semibold">{{ debt.name }}</span>
           </div>
           <div class="info-detail-row">
             <span class="info-label">Saldo pendiente:</span>
             <span class="info-val info-balance">{{ formatCOP(debt.currentBalance) }}</span>
           </div>
+          @if (debt.monthlyPayment > 0) {
+            <div class="info-detail-row">
+              <span class="info-label">Cuota mensual:</span>
+              <span class="info-val">{{ formatCOP(debt.monthlyPayment) }}</span>
+            </div>
+          }
         </div>
         @if (isOverdraft()) {
           <div class="overdraft-warning">
