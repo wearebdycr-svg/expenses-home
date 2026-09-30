@@ -75,6 +75,14 @@
           <span class="push-dot-active" aria-hidden="true"></span>
           <span class="push-active-text">Notificaciones Activas en este equipo</span>
         </div>
+        <button
+          type="button"
+          class="btn-test-push"
+          (click)="onTestPush()"
+          title="Probar notificación en este equipo"
+        >
+          ⚡ Probar en este equipo
+        </button>
       } @else {
         <button
           type="button"

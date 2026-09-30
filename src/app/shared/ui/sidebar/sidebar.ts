@@ -65,4 +65,8 @@ export class Sidebar {
   protected onSubscribePush(): void {
     this.pushService.requestSubscription();
   }
+
+  protected onTestPush(): void {
+    this.pushService.sendTestNotification();
+  }
 }

@@ -299,19 +299,61 @@ export class PushNotificationService {
     this.showSystemNotification(title, body, '/#tc-compartida');
   }
 
-  private showSystemNotification(title: string, body: string, url: string): void {
+  /**
+   * Muestra la notificación nativa usando el Service Worker (móvil y escritorio) o fallback de Notification
+   */
+  async showSystemNotification(title: string, body: string, url: string = '/#gastos'): Promise<void> {
     if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
       try {
+        let swReg = this.swRegistration;
+        if (!swReg && 'serviceWorker' in navigator) {
+          swReg = await navigator.serviceWorker.ready.catch(() => null);
+        }
+
+        if (swReg && typeof swReg.showNotification === 'function') {
+          await swReg.showNotification(title, {
+            body,
+            icon: '/favicon.svg',
+            badge: '/favicon.svg',
+            data: { url },
+          });
+          return;
+        }
+
         new Notification(title, {
           body,
           icon: '/favicon.svg',
           data: { url },
         });
-      } catch {
+      } catch (e) {
+        console.warn('Fallo al mostrar notificación nativa:', e);
         this.toastService.info(`${title}: ${body}`);
       }
     } else {
       this.toastService.info(`${title}: ${body}`);
     }
   }
+
+  /**
+   * Envía una notificación de prueba para validar que este dispositivo recibe alertas
+   */
+  async sendTestNotification(): Promise<void> {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      this.toastService.error('Este navegador no soporta notificaciones.');
+      return;
+    }
+
+    if (Notification.permission !== 'granted') {
+      const res = await this.requestSubscription();
+      if (!res) return;
+    }
+
+    await this.showSystemNotification(
+      '🔔 Notificación de Prueba',
+      '¡Tu equipo está listo y recibiendo alertas en tiempo real!',
+      '/#gastos'
+    );
+    this.toastService.success('Notificación de prueba enviada');
+  }
 }
+

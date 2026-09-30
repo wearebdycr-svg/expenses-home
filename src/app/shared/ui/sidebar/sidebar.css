@@ -252,6 +252,24 @@
 .btn-sub-push-full:hover {
   background: rgba(59, 130, 246, 0.25);
 }
+.btn-test-push {
+  width: 100%;
+  padding: 0.3rem 0.5rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  color: var(--sidebar-foreground);
+  font-size: 0.7rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  transition: background-color 0.15s ease;
+}
+.btn-test-push:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
 @media (min-width: 768px) {
   .mobile-menu-btn,
   .sidebar-overlay,
