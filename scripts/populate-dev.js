@@ -47,6 +47,18 @@ function sendRequest(path, method, body) {
 async function main() {
   console.log(`🚀 Poblando base de datos de pruebas en: ${hostname}...`);
 
+  // 0. Limpieza previa para evitar duplicados en la base de pruebas
+  console.log('0. Limpiando tablas de prueba en DEV...');
+  try {
+    await sendRequest('/rest/v1/tc_expenses?id=not.is.null', 'DELETE');
+    await sendRequest('/rest/v1/expenses?id=not.is.null', 'DELETE');
+    await sendRequest('/rest/v1/debts?id=not.is.null', 'DELETE');
+    await sendRequest('/rest/v1/incomes?id=not.is.null', 'DELETE');
+    console.log('   Tablas limpiadas correctamente.');
+  } catch (err) {
+    console.log('   (Aviso al limpiar tablas:', err.message, ')');
+  }
+
   // 1. Personas
   console.log('1. Registrando personas...');
   try {
@@ -68,20 +80,16 @@ async function main() {
     { date: '2026-07-20', person: 'Charlie', source: 'Inversiones', description: 'Rendimientos CDT', amount: 180000 },
   ]);
 
-  // 3. Gastos Diarios
+  // 3. Gastos Diarios (Personales de Benny y Charlie)
   console.log('3. Registrando gastos diarios...');
   await sendRequest('/rest/v1/expenses', 'POST', [
-    { date: '2026-07-05', person: 'Compartido', category: 'Hogar', description: 'Arriendo apartamento', amount: 1800000 },
-    { date: '2026-07-08', person: 'Compartido', category: 'Servicios públicos', description: 'Servicios públicos (Agua, Luz, Gas)', amount: 320000 },
     { date: '2026-07-09', person: 'Charlie', category: 'Entretenimiento/salidas', description: 'Cena Sushi', amount: 90000 },
     { date: '2026-07-10', person: 'Benny', category: 'Mercado', description: 'Mercado mensual Éxito', amount: 200000 },
     { date: '2026-07-12', person: 'Charlie', category: 'Transporte', description: 'Gasolina vehículo', amount: 150000 },
     { date: '2026-07-15', person: 'Benny', category: 'Salud', description: 'Medicamentos Farmacia', amount: 75000 },
-    { date: '2026-07-18', person: 'Compartido', category: 'Servicios públicos', description: 'Internet fibra óptica', amount: 110000 },
     { date: '2026-07-22', person: 'Charlie', category: 'Entretenimiento/salidas', description: 'Almuerzo familiar', amount: 120000 },
     { date: '2026-07-25', person: 'Benny', category: 'Entretenimiento/salidas', description: 'Boletas de Cine', amount: 28216 },
     { date: '2026-07-27', person: 'Benny', category: 'Compras', description: 'Compra almacén', amount: 145000 },
-    { date: '2026-07-28', person: 'Compartido', category: 'Mercado', description: 'Supermercado reposición', amount: 161657 },
     { date: '2026-07-29', person: 'Charlie', category: 'Compras', description: 'Audífonos Bluetooth', amount: 89000 },
     { date: '2026-07-30', person: 'Benny', category: 'Salud', description: 'Corte y barbería', amount: 45000 },
   ]);
@@ -95,17 +103,21 @@ async function main() {
     { name: 'Préstamo Personal', person: 'Charlie', start_date: '2026-07-01', original_amount: 8000000, current_balance: 5200000, monthly_payment: 350000, annual_interest_rate: 15.5, color: '#10B981' },
   ]);
 
-  // 5. Consumos TC Compartida y Abono de Conciliación
+  // 5. Consumos TC Compartida (incluyendo los compartidos del hogar)
   console.log('5. Registrando consumos de TC compartida...');
   try {
     await sendRequest('/rest/v1/tc_expenses', 'POST', [
       { date: '2026-07-04', person: 'Benny', description: 'Tiquetes Aéreos Vacaciones', amount: 650000, category: 'Viajes' },
+      { date: '2026-07-05', person: 'Compartido', description: 'Arriendo apartamento', amount: 1800000, category: 'Hogar' },
+      { date: '2026-07-08', person: 'Compartido', description: 'Servicios públicos (Agua, Luz, Gas)', amount: 320000, category: 'Servicios públicos' },
       { date: '2026-07-11', person: 'Charlie', description: 'Cena Aniversario Restaurante', amount: 220000, category: 'Entretenimiento/salidas' },
       { date: '2026-07-16', person: 'Compartido', description: 'Compra Smart TV Sala', amount: 1400000, category: 'Compras' },
+      { date: '2026-07-18', person: 'Compartido', description: 'Internet fibra óptica', amount: 110000, category: 'Servicios públicos' },
       { date: '2026-07-24', person: 'Benny', description: 'Mercado Mayorista Alkosto', amount: 380000, category: 'Mercado' },
+      { date: '2026-07-28', person: 'Compartido', description: 'Supermercado reposición', amount: 161657, category: 'Mercado' },
     ]);
   } catch (err) {
-    console.log('   (Tabla tc_expenses aún no creada en Supabase o error:', err.message, ')');
+    console.log('   (Error registrando consumos TC:', err.message, ')');
   }
 
   console.log('6. Registrando abono de conciliación en gastos diarios...');
