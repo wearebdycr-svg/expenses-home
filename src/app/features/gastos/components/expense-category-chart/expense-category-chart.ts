@@ -29,9 +29,7 @@ export class ExpenseCategoryChart {
       this.data();
       const chartDir = this.chartDirective();
       if (chartDir) {
-        queueMicrotask(() => {
-          chartDir.render();
-        });
+        chartDir.update();
       }
     });
   }

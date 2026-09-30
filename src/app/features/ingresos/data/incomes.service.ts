@@ -31,6 +31,7 @@ export class IncomesService {
   private readonly supabase = inject(SupabaseService);
 
   private readonly incomes = signal<Income[]>([]);
+  private lastLocalMutationTime = 0;
   readonly allIncomes = this.incomes.asReadonly();
   readonly loading = signal<boolean>(false);
   readonly error = signal<string | null>(null);
@@ -105,8 +106,10 @@ export class IncomesService {
     this.person.set(person);
   }
 
-  async loadIncomes(): Promise<void> {
-    this.loading.set(true);
+  async loadIncomes(showLoading: boolean = true): Promise<void> {
+    if (showLoading) {
+      this.loading.set(true);
+    }
     try {
       const { data, error } = await this.supabase.client
         .from('incomes')
@@ -138,11 +141,14 @@ export class IncomesService {
       console.warn('Error conectando a Supabase:', err);
       this.error.set(err?.message ?? 'Error inesperado de conexión');
     } finally {
-      this.loading.set(false);
+      if (showLoading) {
+        this.loading.set(false);
+      }
     }
   }
 
   async addIncome(draft: IncomeDraft): Promise<void> {
+    this.lastLocalMutationTime = Date.now();
     const tempId = generateId();
     const optimisticIncome: Income = { ...draft, id: tempId };
 
@@ -167,14 +173,16 @@ export class IncomesService {
       if (error) {
         console.error('Error insertando en Supabase:', error);
         this.error.set(error.message);
+        this.incomes.update((list) => list.filter((inc) => inc.id !== tempId));
         return;
       }
 
       if (data) {
-        // Reemplazar el ID temporal con el asignado por Supabase
-        this.incomes.update((list) =>
-          list.map((inc) => (inc.id === tempId ? { ...inc, id: String(data.id) } : inc))
-        );
+        // Reemplazar el ID temporal en el objeto en silencio sin recrear el array
+        const found = this.incomes().find((inc) => inc.id === tempId);
+        if (found) {
+          found.id = String(data.id);
+        }
       }
     } catch (err: any) {
       console.error('Error de red insertando en Supabase:', err);
@@ -182,6 +190,7 @@ export class IncomesService {
   }
 
   async updateIncome(id: string, draft: IncomeDraft): Promise<void> {
+    this.lastLocalMutationTime = Date.now();
     // Actualización optimista local inmediata
     this.incomes.update((list) =>
       list.map((income) => (income.id === id ? { ...draft, id } : income))
@@ -209,6 +218,7 @@ export class IncomesService {
   }
 
   async deleteIncome(id: string): Promise<void> {
+    this.lastLocalMutationTime = Date.now();
     // Actualización optimista local inmediata
     this.incomes.update((list) => list.filter((income) => income.id !== id));
 
@@ -240,7 +250,10 @@ export class IncomesService {
           'postgres_changes',
           { event: '*', schema: 'public', table: 'incomes' },
           () => {
-            this.loadIncomes();
+            if (Date.now() - this.lastLocalMutationTime < 2500) {
+              return;
+            }
+            this.loadIncomes(false);
           }
         )
         .subscribe();

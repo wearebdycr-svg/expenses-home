@@ -47,6 +47,7 @@ export class ExpensesService {
   private readonly supabase = inject(SupabaseService);
 
   private readonly expenses = signal<Expense[]>([]);
+  private lastLocalMutationTime = 0;
   readonly allExpenses = this.expenses.asReadonly();
   readonly loading = signal<boolean>(false);
   readonly error = signal<string | null>(null);
@@ -168,8 +169,10 @@ export class ExpensesService {
     this.person.set(person);
   }
 
-  async loadExpenses(): Promise<void> {
-    this.loading.set(true);
+  async loadExpenses(showLoading: boolean = true): Promise<void> {
+    if (showLoading) {
+      this.loading.set(true);
+    }
     try {
       const { data, error } = await this.supabase.client
         .from('expenses')
@@ -201,15 +204,18 @@ export class ExpensesService {
       console.warn('Error de conexión a Supabase:', err);
       this.error.set(err?.message ?? 'Error inesperado de conexión');
     } finally {
-      this.loading.set(false);
+      if (showLoading) {
+        this.loading.set(false);
+      }
     }
   }
 
   async addExpense(draft: ExpenseDraft): Promise<void> {
+    this.lastLocalMutationTime = Date.now();
     const tempId = generateExpenseId();
     const optimisticExpense: Expense = { ...draft, id: tempId };
 
-    // Actualización optimista local inmediata
+    // Actualización optimista local inmediata (un solo renderizado limpio)
     this.expenses.update((list) => [optimisticExpense, ...list]);
 
     try {
@@ -230,13 +236,17 @@ export class ExpensesService {
       if (error) {
         console.error('Error insertando gasto en Supabase:', error);
         this.error.set(error.message);
+        // Revertir optimista si falló
+        this.expenses.update((list) => list.filter((exp) => exp.id !== tempId));
         return;
       }
 
       if (data) {
-        this.expenses.update((list) =>
-          list.map((exp) => (exp.id === tempId ? { ...exp, id: String(data.id) } : exp)),
-        );
+        // Actualizar id en silencio en el objeto existente sin recrear el array para evitar saltos visuales en gráficos
+        const found = this.expenses().find((exp) => exp.id === tempId);
+        if (found) {
+          found.id = String(data.id);
+        }
       }
     } catch (err: any) {
       console.error('Error de red al insertar gasto:', err);
@@ -244,6 +254,7 @@ export class ExpensesService {
   }
 
   async updateExpense(id: string, draft: ExpenseDraft): Promise<void> {
+    this.lastLocalMutationTime = Date.now();
     // Actualización optimista local inmediata
     this.expenses.update((list) =>
       list.map((exp) => (exp.id === id ? { ...draft, id } : exp)),
@@ -271,6 +282,7 @@ export class ExpensesService {
   }
 
   async deleteExpense(id: string): Promise<void> {
+    this.lastLocalMutationTime = Date.now();
     // Actualización optimista local inmediata
     this.expenses.update((list) => list.filter((exp) => exp.id !== id));
 
@@ -330,7 +342,11 @@ export class ExpensesService {
           'postgres_changes',
           { event: '*', schema: 'public', table: 'expenses' },
           () => {
-            this.loadExpenses();
+            // Ignorar eventos de eco causados por mutaciones de este mismo cliente para no recrear los gráficos
+            if (Date.now() - this.lastLocalMutationTime < 2500) {
+              return;
+            }
+            this.loadExpenses(false);
           },
         )
         .subscribe();

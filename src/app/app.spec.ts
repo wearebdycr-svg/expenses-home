@@ -84,5 +84,18 @@ describe('App', () => {
     expect(app['currentPage']()).toBe('tc-compartida');
     expect(fixture.nativeElement.querySelector('app-tc-page')).toBeTruthy();
   });
+
+  it('saves selected page to localStorage and updates window.location.hash on navigation', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const app = fixture.componentInstance;
+
+    app['onNavigate']('deudas');
+    fixture.detectChanges();
+
+    expect(app['currentPage']()).toBe('deudas');
+    expect(localStorage.getItem('expenses_home_active_page')).toBe('deudas');
+    expect(window.location.hash).toBe('#deudas');
+  });
 });
 
