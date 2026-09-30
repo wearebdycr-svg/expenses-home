@@ -317,73 +317,12 @@ export class DebtsService {
           status: item.status || 'activa',
         }));
 
-        // Preservar deudas locales que aún no se hayan sincronizado con Supabase para evitar borrarlas al refrescar
-        const serverIds = new Set(mapped.map((d) => d.id));
-        const localPending = this.debts().filter((d) => !serverIds.has(d.id));
-
-        const finalDebts = [...mapped, ...localPending];
-        this.debts.set(finalDebts);
-        this.persistLocal(finalDebts);
-
-        // Auto-sincronizar deudas pendientes locales en Supabase
-        if (localPending.length > 0) {
-          this.syncPendingDebtsToSupabase(localPending);
-        }
+        // Supabase es la fuente oficial de verdad:
+        this.debts.set(mapped);
+        this.persistLocal(mapped);
       }
     } catch (err: any) {
       console.warn('Error conectando a Supabase para deudas:', err);
-    }
-  }
-
-  private async syncPendingDebtsToSupabase(pending: Debt[]): Promise<void> {
-    for (const d of pending) {
-      try {
-        const payload: Record<string, any> = {
-          name: d.name,
-          person: d.person,
-          start_date: d.startDate,
-          original_amount: d.originalAmount,
-          current_balance: d.currentBalance,
-          monthly_payment: d.monthlyPayment,
-          annual_interest_rate: d.annualInterestRate,
-          color: d.color,
-          status: d.status || 'activa',
-        };
-        if (d.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(d.id)) {
-          payload['id'] = d.id;
-        }
-        if (d.totalMonths != null) {
-          payload['total_months'] = d.totalMonths;
-        }
-
-        let { data, error } = await this.supabase.client
-          .from('debts')
-          .insert([payload])
-          .select()
-          .single();
-
-        if (error && error.message.includes('total_months')) {
-          delete payload['total_months'];
-          const retry = await this.supabase.client
-            .from('debts')
-            .insert([payload])
-            .select()
-            .single();
-          data = retry.data;
-          error = retry.error;
-        }
-
-        if (error) {
-          console.warn(`Supabase: No se pudo auto-sincronizar la deuda "${d.name}":`, error.message);
-        } else if (data && data.id) {
-          if (String(data.id) !== d.id) {
-            d.id = String(data.id);
-            this.persistLocal(this.debts());
-          }
-        }
-      } catch (err: any) {
-        console.warn(`Supabase: Error de red sincronizando deuda "${d.name}":`, err);
-      }
     }
   }
 
@@ -440,6 +379,9 @@ export class DebtsService {
 
       if (error) {
         console.error('Error insertando deuda en Supabase:', error.message);
+        // Si falló la inserción en la base de datos, revertir estado local para no mostrar registros fantasmas
+        this.debts.set(current);
+        this.persistLocal(current);
       } else if (data && data.id) {
         newDebt.id = String(data.id);
         this.persistLocal(this.debts());

@@ -168,19 +168,25 @@ export function calculateRemainingMonths(
   isNominal: boolean = false,
 ): number {
   if (balance <= 100) return 0;
-  const im = calculateMonthlyRate(annualInterestRate, isNominal);
-  let nRestantes: number;
 
+  // 1. Si el crédito tiene un plazo total pactado (totalMonths) y se han registrado cuotas pagadas:
+  // Los meses restantes corresponden a la resta exacta del plazo menos las cuotas pagadas
+  if (totalMonths && totalMonths > 0 && paidInstallmentsCount > 0) {
+    return Math.max(0, totalMonths - paidInstallmentsCount);
+  }
+
+  // 2. Si no se especificaron cuotas pagadas o no hay totalMonths, calcular amortización financiera:
+  const im = calculateMonthlyRate(annualInterestRate, isNominal);
   if (monthlyPayment <= 0) {
     return totalMonths ? Math.max(0, totalMonths - paidInstallmentsCount) : 0;
   }
 
+  let nRestantes: number;
   if (im <= 0) {
     nRestantes = cleanMonths(balance / monthlyPayment);
   } else {
     const ratio = (balance * im) / monthlyPayment;
     if (ratio >= 1) {
-      // Si los intereses superan o igualan la cuota pactada
       nRestantes = totalMonths ?? 600;
     } else {
       const raw = -Math.log(1 - ratio) / Math.log(1 + im);
@@ -189,10 +195,6 @@ export function calculateRemainingMonths(
   }
 
   if (totalMonths && totalMonths > 0) {
-    const maxByInstallments = Math.max(0, totalMonths - paidInstallmentsCount);
-    if (paidInstallmentsCount > 0 && maxByInstallments > 0) {
-      nRestantes = Math.min(nRestantes, maxByInstallments);
-    }
     nRestantes = Math.min(totalMonths, nRestantes);
   }
 
