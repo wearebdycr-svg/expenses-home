@@ -23,6 +23,8 @@ export {
   type MonthFilter,
 };
 
+export type BudgetStatus = 'normal' | 'warning' | 'exceeded' | 'none';
+
 export interface CategoryTableRow {
   category: ExpenseCategory;
   color: string;
@@ -32,6 +34,10 @@ export interface CategoryTableRow {
   total: number;
   percentage: number;
   transactionCount: number;
+  budget: number | null;
+  budgetPercentage: number | null;
+  budgetStatus: BudgetStatus;
+  statusColor: string;
 }
 
 export interface LegendCategoryItem {

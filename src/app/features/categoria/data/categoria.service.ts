@@ -1,6 +1,8 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { RemoteConfigService } from '../../../core/services/remote-config.service';
 import { ExpensesService } from '../../gastos/data/expenses.service';
 import type {
+  BudgetStatus,
   CategoryTableRow,
   DayFilter,
   ExpenseCategory,
@@ -17,6 +19,10 @@ import {
 @Injectable({ providedIn: 'root' })
 export class CategoriaService {
   private readonly expensesService = inject(ExpensesService);
+  private readonly remoteConfig = inject(RemoteConfigService);
+
+  readonly alertThresholdPct = computed(() => this.remoteConfig.alertThresholdPct());
+  readonly budgetsByCategory = this.remoteConfig.budgetsByCategory;
 
   readonly year = signal<number>(new Date().getFullYear());
   readonly month = signal<MonthFilter>('Todos');
@@ -91,8 +97,28 @@ export class CategoriaService {
       entry.count += 1;
     }
 
+    const threshold = this.alertThresholdPct();
     const rows: CategoryTableRow[] = [];
     categoryMap.forEach((entry, cat) => {
+      const budget = this.remoteConfig.getBudgetForCategory(cat);
+      let budgetPercentage: number | null = null;
+      let budgetStatus: BudgetStatus = 'none';
+      let statusColor = getCategoryColor(cat);
+
+      if (budget != null && budget > 0) {
+        budgetPercentage = (entry.total / budget) * 100;
+        if (budgetPercentage >= 100) {
+          budgetStatus = 'exceeded';
+          statusColor = '#ef4444'; // Consumo ≥ 100%: Rojo (Excedido)
+        } else if (budgetPercentage >= threshold) {
+          budgetStatus = 'warning';
+          statusColor = '#f59e0b'; // Consumo ≥ 80%: Ámbar / Naranja (Preventivo)
+        } else {
+          budgetStatus = 'normal';
+          statusColor = getCategoryColor(cat); // Consumo < 80%: Color normal
+        }
+      }
+
       rows.push({
         category: cat,
         color: getCategoryColor(cat),
@@ -102,6 +128,10 @@ export class CategoriaService {
         total: entry.total,
         percentage: total > 0 ? (entry.total / total) * 100 : 0,
         transactionCount: entry.count,
+        budget,
+        budgetPercentage,
+        budgetStatus,
+        statusColor,
       });
     });
 

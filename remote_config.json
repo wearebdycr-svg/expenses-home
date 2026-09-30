@@ -1,0 +1,67 @@
+{
+  "parameters": {
+    "daily_reminder_hour": {
+      "defaultValue": {
+        "value": "20"
+      },
+      "valueType": "NUMBER",
+      "description": "Hora militar para el disparador del recordatorio diario (ej.: 20 = 8:00 PM)."
+    },
+    "daily_reminder_message": {
+      "defaultValue": {
+        "value": "¿Tuviste gastos hoy? No olvides reportar los gastos de hoy"
+      },
+      "valueType": "STRING",
+      "description": "Texto personalizable para la alerta del recordatorio."
+    },
+    "budget_hogar": {
+      "defaultValue": {
+        "value": "2500000"
+      },
+      "valueType": "NUMBER",
+      "description": "Límite mensual máximo para el rubro Hogar."
+    },
+    "budget_alimentacion": {
+      "defaultValue": {
+        "value": "2000000"
+      },
+      "valueType": "NUMBER",
+      "description": "Límite mensual para Supermercado / Alimentación."
+    },
+    "budget_restaurantes": {
+      "defaultValue": {
+        "value": "1000000"
+      },
+      "valueType": "NUMBER",
+      "description": "Límite mensual para Salidas y Restaurantes."
+    },
+    "budget_transporte": {
+      "defaultValue": {
+        "value": "800000"
+      },
+      "valueType": "NUMBER",
+      "description": "Límite mensual para Gasolina / Transporte."
+    },
+    "budget_entretenimiento": {
+      "defaultValue": {
+        "value": "500000"
+      },
+      "valueType": "NUMBER",
+      "description": "Límite mensual para Cine / Ocio."
+    },
+    "alert_threshold_pct": {
+      "defaultValue": {
+        "value": "80"
+      },
+      "valueType": "NUMBER",
+      "description": "Porcentaje sobre el tope para disparar la alerta preventiva."
+    },
+    "enable_push_alerts": {
+      "defaultValue": {
+        "value": "true"
+      },
+      "valueType": "BOOLEAN",
+      "description": "Interruptor global para encender o pausar las alertas push."
+    }
+  }
+}

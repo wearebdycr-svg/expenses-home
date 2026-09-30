@@ -1,5 +1,6 @@
-import { DestroyRef, Injectable, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import { ExpensesService } from '../../features/gastos/data/expenses.service';
+import { RemoteConfigService } from './remote-config.service';
 import { ToastService } from './toast.service';
 
 export const REMINDER_STORAGE_KEY = 'last_daily_reminder_dismissed';
@@ -17,10 +18,12 @@ export function getLocalDateIso(date: Date = new Date()): string {
 })
 export class DailyReminderService {
   private readonly expensesService = inject(ExpensesService);
+  private readonly remoteConfig = inject(RemoteConfigService);
   private readonly toastService = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly reminderHour = signal<number>(DEFAULT_REMINDER_HOUR);
+  readonly reminderHour = computed(() => this.remoteConfig.dailyReminderHour());
+  readonly reminderMessage = computed(() => this.remoteConfig.dailyReminderMessage());
   readonly showBanner = signal<boolean>(false);
 
   private intervalId: any = null;
@@ -93,7 +96,7 @@ export class DailyReminderService {
         if (alreadyNotified !== todayStr) {
           try {
             new Notification('FinanzasHogar', {
-              body: '🌙 Recordatorio diario: ¿Tuviste gastos hoy? No olvides reportarlos en FinanzasHogar.',
+              body: `🌙 Recordatorio diario: ${this.reminderMessage()}`,
               icon: '/favicon.ico',
             });
             sessionStorage.setItem('last_native_reminder_sent', todayStr);

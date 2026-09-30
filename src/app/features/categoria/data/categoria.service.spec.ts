@@ -104,4 +104,62 @@ describe('CategoriaService', () => {
     expect(service.categoriesCount()).toBe(1);
     expect(service.categoryRows()[0].category).toBe('Mercado');
   });
+
+  it('calculates budget metrics and status colors according to Remote Config thresholds', () => {
+    service.setYear(2026);
+    service.setMonth('Todos');
+    service.setPerson('Todos');
+
+    // budget_transporte default = 800_000.
+    // Case 1: 500_000 -> 62.5% (< 80%) => normal
+    // Case 2: 700_000 -> 87.5% (>= 80%) => warning (#f59e0b)
+    // Case 3: 850_000 -> 106.25% (>= 100%) => exceeded (#ef4444)
+    expensesService['expenses'].set([
+      {
+        id: 'trans-1',
+        date: '2026-05-01',
+        person: 'Benny',
+        category: 'Transporte',
+        description: 'Gasolina',
+        amount: 500_000,
+      },
+    ]);
+
+    let rows = service.categoryRows();
+    expect(rows[0].budget).toBe(800_000);
+    expect(rows[0].budgetPercentage).toBeCloseTo(62.5, 1);
+    expect(rows[0].budgetStatus).toBe('normal');
+
+    // Update to 700_000 (87.5% - warning)
+    expensesService['expenses'].set([
+      {
+        id: 'trans-1',
+        date: '2026-05-01',
+        person: 'Benny',
+        category: 'Transporte',
+        description: 'Gasolina',
+        amount: 700_000,
+      },
+    ]);
+    rows = service.categoryRows();
+    expect(rows[0].budgetPercentage).toBeCloseTo(87.5, 1);
+    expect(rows[0].budgetStatus).toBe('warning');
+    expect(rows[0].statusColor).toBe('#f59e0b');
+
+    // Update to 850_000 (106.25% - exceeded)
+    expensesService['expenses'].set([
+      {
+        id: 'trans-1',
+        date: '2026-05-01',
+        person: 'Benny',
+        category: 'Transporte',
+        description: 'Gasolina',
+        amount: 850_000,
+      },
+    ]);
+    rows = service.categoryRows();
+    expect(rows[0].budgetPercentage).toBeCloseTo(106.25, 1);
+    expect(rows[0].budgetStatus).toBe('exceeded');
+    expect(rows[0].statusColor).toBe('#ef4444');
+  });
 });

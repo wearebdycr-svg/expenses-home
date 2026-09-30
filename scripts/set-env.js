@@ -27,6 +27,16 @@ if (fs.existsSync(envFilePath)) {
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
 
+const firebaseConfig = {
+  apiKey: process.env.FIREBASE_API_KEY || '',
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN || '',
+  projectId: process.env.FIREBASE_PROJECT_ID || '',
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET || '',
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || '',
+  appId: process.env.FIREBASE_APP_ID || '',
+  measurementId: process.env.FIREBASE_MEASUREMENT_ID || '',
+};
+
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn(
     '\x1b[33m%s\x1b[0m',
@@ -46,6 +56,7 @@ export const environment = {
   production: ${isProd},
   supabaseUrl: '${supabaseUrl}',
   supabaseAnonKey: '${supabaseAnonKey}',
+  firebase: ${JSON.stringify(firebaseConfig, null, 2).replace(/\n/g, '\n  ')},
 };
 `;
 

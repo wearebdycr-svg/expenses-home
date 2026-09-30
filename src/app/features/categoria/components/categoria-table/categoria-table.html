@@ -1,6 +1,9 @@
 <div class="table-card">
   <div class="table-header">
-    <h2 class="table-title">Detalle por categoría</h2>
+    <div>
+      <h2 class="table-title">Detalle por categoría</h2>
+      <p class="table-subtitle">Topes presupuestales centralizados vía Firebase Remote Config (Inmutables)</p>
+    </div>
   </div>
 
   @if (rows().length === 0) {
@@ -15,6 +18,8 @@
             <th class="col-currency col-charlie">CHARLIE</th>
             <th class="col-currency col-compartido">COMPARTIDO</th>
             <th class="col-currency col-total">TOTAL</th>
+            <th class="col-budget">TOPE (REMOTE CONFIG)</th>
+            <th class="col-budget-progress">CONSUMO DE TOPE</th>
             <th class="col-pct">% DEL TOTAL</th>
             <th class="col-tx">TRANSACCIONES</th>
           </tr>
@@ -53,6 +58,45 @@
 
               <td class="col-currency col-total">
                 {{ formatCOP(row.total) }}
+              </td>
+
+              <td class="col-budget">
+                @if (row.budget != null) {
+                  <span class="budget-badge" title="Tope fijado por Firebase Remote Config (Inmutable)">
+                    <span class="budget-lock-icon" aria-hidden="true">🔒</span>
+                    {{ formatCOP(row.budget) }}
+                  </span>
+                } @else {
+                  <span class="muted-dash">-</span>
+                }
+              </td>
+
+              <td class="col-budget-progress">
+                @if (row.budget != null && row.budgetPercentage != null) {
+                  <div class="budget-progress-container">
+                    <div class="budget-progress-track">
+                      <div
+                        class="budget-progress-fill"
+                        [style.background-color]="row.statusColor"
+                        [style.width.%]="row.budgetPercentage > 100 ? 100 : row.budgetPercentage"
+                      ></div>
+                    </div>
+                    <div class="budget-status-row">
+                      <span class="budget-pct-val" [style.color]="row.statusColor">
+                        {{ row.budgetPercentage | number: '1.0-1' }}%
+                      </span>
+                      @if (row.budgetStatus === 'exceeded') {
+                        <span class="badge-status badge-exceeded">Excedido</span>
+                      } @else if (row.budgetStatus === 'warning') {
+                        <span class="badge-status badge-warning">Alerta (≥ 80%)</span>
+                      } @else {
+                        <span class="badge-status badge-normal">Dentro de tope</span>
+                      }
+                    </div>
+                  </div>
+                } @else {
+                  <span class="no-budget-text">Sin tope central</span>
+                }
               </td>
 
               <td class="col-pct">
