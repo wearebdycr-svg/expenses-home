@@ -114,7 +114,6 @@ export class DebtFormModal {
     if (!this.isEditMode()) {
       this.currentBalance.set(formatted);
     }
-    this.recalculateMonthlyPayment();
   }
 
   protected onCurrentBalanceInput(event: Event): void {
@@ -134,23 +133,11 @@ export class DebtFormModal {
   protected onMonthsInput(event: Event): void {
     const raw = (event.target as HTMLInputElement).value.replace(/[^0-9]/g, '');
     this.totalMonths.set(raw);
-    this.recalculateMonthlyPayment();
   }
 
   protected onRateInput(event: Event): void {
     const raw = (event.target as HTMLInputElement).value;
     this.annualInterestRate.set(raw.replace(/[^0-9.]/g, ''));
-    this.recalculateMonthlyPayment();
-  }
-
-  protected recalculateMonthlyPayment(): void {
-    const amount = parseThousands(this.originalAmount());
-    const months = Number(this.totalMonths());
-    if (amount > 0 && months > 0) {
-      const rate = Number(this.annualInterestRate()) || 0;
-      const payment = calculateMonthlyPayment(amount, months, rate);
-      this.monthlyPayment.set(formatThousands(payment));
-    }
   }
 
   protected onSubmit(): void {

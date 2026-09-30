@@ -17,6 +17,7 @@ export interface Debt {
   color: string;
   status?: DebtStatus;
   totalAmortized?: number;
+  paidMonths?: number;
   paidInstallmentsCount?: number;
 }
 
@@ -29,6 +30,7 @@ export interface PrepaymentDraft {
 }
 
 export interface AmortizationResult {
+  paidMonths: number;
   remainingMonths: number;
   projectedEndDate: Date;
   projectedDateFormatted: string; // e.g. "Enero 2039"
@@ -205,11 +207,15 @@ export function calculateAmortization(
     totalMonths?: number;
     originalAmount?: number;
     paidInstallmentsCount?: number;
+    paidMonths?: number;
   },
   baseDate: Date = new Date(),
 ): AmortizationResult {
+  const paidMonths = debt.paidMonths ?? debt.paidInstallmentsCount ?? 0;
+
   if (debt.currentBalance <= 100) {
     return {
+      paidMonths: debt.totalMonths ? Math.max(debt.totalMonths, paidMonths) : paidMonths,
       remainingMonths: 0,
       projectedEndDate: baseDate,
       projectedDateFormatted: 'Liquidada',
@@ -222,7 +228,7 @@ export function calculateAmortization(
     debt.monthlyPayment,
     debt.annualInterestRate,
     debt.totalMonths,
-    debt.paidInstallmentsCount ?? 0,
+    paidMonths,
   );
 
   const projectedEndDate = new Date(
@@ -250,6 +256,7 @@ export function calculateAmortization(
   }
 
   return {
+    paidMonths,
     remainingMonths,
     projectedEndDate,
     projectedDateFormatted: remainingMonths === 0 ? 'Liquidada' : formatMonthYear(projectedEndDate),

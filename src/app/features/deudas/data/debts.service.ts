@@ -120,18 +120,44 @@ export class DebtsService {
           const amort = Math.min(balance, Math.max(0, e.amount - interest));
           balance = Math.max(0, balance - amort);
           totalAmortized += amort;
+        }
+
+        if (!isPrepayment) {
           paidInstallmentsCount += 1;
         }
       }
       const isSettled = balance <= 100 || d.status === 'saldada';
       const status = isSettled ? ('saldada' as const) : ('activa' as const);
 
+      // Cálculo de la cantidad de meses o cuotas pagadas desde la fecha de inicio o primer pago
+      const now = new Date();
+      const elapsedMonthsFromStart = differenceInMonths(d.startDate, now);
+
+      let paidMonths = Math.max(elapsedMonthsFromStart, paidInstallmentsCount);
+      if (elapsedMonthsFromStart > 0 && paidInstallmentsCount > 0) {
+        const expensesInCurrentOrFuture = matchingExpenses.filter((e) => {
+          const [y, m] = e.date.split('-').map(Number);
+          return (
+            y > now.getFullYear() ||
+            (y === now.getFullYear() && m >= now.getMonth() + 1)
+          );
+        }).length;
+        paidMonths = elapsedMonthsFromStart + expensesInCurrentOrFuture;
+      }
+
+      if (isSettled && d.totalMonths) {
+        paidMonths = d.totalMonths;
+      } else if (d.totalMonths) {
+        paidMonths = Math.min(d.totalMonths, paidMonths);
+      }
+
       return {
         ...d,
         currentBalance: Math.round(balance),
         status,
         totalAmortized: Math.round(totalAmortized),
-        paidInstallmentsCount,
+        paidMonths,
+        paidInstallmentsCount: paidMonths,
       };
     });
   });

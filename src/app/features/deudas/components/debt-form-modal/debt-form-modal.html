@@ -84,17 +84,7 @@
 
     <div class="form-row">
       <label class="field" [class.has-error]="errors()['monthlyPayment']">
-        <div class="field-label-row">
-          <span class="field-label">Cuota mensual (COP)</span>
-          <button
-            type="button"
-            class="btn-calc"
-            (click)="recalculateMonthlyPayment()"
-            title="Autocalcular cuota con sistema francés"
-          >
-            ⚡ Autocalcular
-          </button>
-        </div>
+        <span class="field-label">Cuota mensual (COP)</span>
         <input
           class="field-control"
           [class.control-error]="errors()['monthlyPayment']"

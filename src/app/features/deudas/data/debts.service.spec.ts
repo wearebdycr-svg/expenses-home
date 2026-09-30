@@ -358,8 +358,8 @@ describe('DebtsService', () => {
     expect(uuidRegex.test(id)).toBe(true);
   });
 
-  it('keeps remaining months consistent without jumping when debt has past start date and payment is recorded', async () => {
-    // Deuda creada con fecha en el pasado (ej: hace 2 meses)
+  it('calculates paidMonths and remainingMonths based on startDate and recorded payments', async () => {
+    // 1. Deuda con fecha de inicio hace 2 meses (Julio 2026), plazo 12 meses
     service['debts'].set([
       {
         id: 'debt-past-start-test',
@@ -376,23 +376,62 @@ describe('DebtsService', () => {
       },
     ]);
 
-    // Inicialmente (sin pagos registrados aún): 12 meses restantes
+    // Meses transcurridos desde 01/07/2026: 2 meses pagados, 10 meses restantes
     const initialLiveDebt = service.allDebts().find((d) => d.id === 'debt-past-start-test')!;
     const initialAmort = calculateAmortization(initialLiveDebt);
-    expect(initialAmort.remainingMonths).toBe(12);
+    expect(initialAmort.paidMonths).toBe(2);
+    expect(initialAmort.remainingMonths).toBe(10);
 
-    // Tras registrar el primer pago en Gastos: debe bajar exactamente a 11 meses (sin saltar a 11 desde 10 o similar)
+    // Tras registrar el pago de septiembre en Gastos: 3 meses pagados, 9 meses restantes
     await expensesService.addExpense({
       date: '2026-09-30',
       person: 'Benny',
       category: 'Crédito Consumo',
-      description: 'Pago cuota 1',
+      description: 'Pago cuota 3',
       amount: 1_000_000,
     });
 
     const afterPaymentLiveDebt = service.allDebts().find((d) => d.id === 'debt-past-start-test')!;
     const afterPaymentAmort = calculateAmortization(afterPaymentLiveDebt);
-    expect(afterPaymentLiveDebt.currentBalance).toBe(11_000_000);
-    expect(afterPaymentAmort.remainingMonths).toBe(11);
+    expect(afterPaymentAmort.paidMonths).toBe(3);
+    expect(afterPaymentAmort.remainingMonths).toBe(9);
+  });
+
+  it('calculates 0 paid months and full remaining months when debt starts today', async () => {
+    // Deuda que inicia hoy (30/09/2026), 12 meses
+    service['debts'].set([
+      {
+        id: 'debt-today-start-test',
+        name: 'Crédito Hoy',
+        person: 'Charlie',
+        startDate: '2026-09-30',
+        originalAmount: 6_000_000,
+        currentBalance: 6_000_000,
+        monthlyPayment: 500_000,
+        annualInterestRate: 0,
+        totalMonths: 12,
+        color: '#f59e0b',
+        status: 'activa',
+      },
+    ]);
+
+    const initialLive = service.allDebts().find((d) => d.id === 'debt-today-start-test')!;
+    const initialAmort = calculateAmortization(initialLive);
+    expect(initialAmort.paidMonths).toBe(0);
+    expect(initialAmort.remainingMonths).toBe(12);
+
+    // Pago registrado hoy
+    await expensesService.addExpense({
+      date: '2026-09-30',
+      person: 'Charlie',
+      category: 'Crédito Hoy',
+      description: 'Pago cuota 1',
+      amount: 500_000,
+    });
+
+    const afterLive = service.allDebts().find((d) => d.id === 'debt-today-start-test')!;
+    const afterAmort = calculateAmortization(afterLive);
+    expect(afterAmort.paidMonths).toBe(1);
+    expect(afterAmort.remainingMonths).toBe(11);
   });
 });

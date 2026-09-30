@@ -102,7 +102,7 @@ describe('DebtFormModal', () => {
     });
   });
 
-  it('auto-calculates monthly payment when originalAmount and totalMonths are provided', () => {
+  it('formats originalAmount and sets default currentBalance in create mode', () => {
     const originalInput = fixture.nativeElement.querySelector('input[placeholder*="10"]');
     originalInput.value = '12000000';
     originalInput.dispatchEvent(new Event('input'));
@@ -113,21 +113,18 @@ describe('DebtFormModal', () => {
 
     expect(component['totalMonths']()).toBe('12');
     expect(component['originalAmount']()).toBe('12.000.000');
-    // Without interest rate, monthly payment = 12M / 12 = 1M
-    expect(component['monthlyPayment']()).toBe('1.000.000');
-    // currentBalance automatically defaults to originalAmount
+    // currentBalance automatically defaults to originalAmount in create mode
     expect(component['currentBalance']()).toBe('12.000.000');
+    // monthlyPayment is not auto-calculated; user must input it
+    expect(component['monthlyPayment']()).toBe('');
   });
 
-  it('auto-calculates monthly payment using French amortization formula when interest rate is entered', () => {
-    component['originalAmount'].set('112.500.000');
-    component['totalMonths'].set('60');
-    component['annualInterestRate'].set('15.4');
+  it('allows manual entry of monthlyPayment with thousands formatting', () => {
+    const paymentInput = fixture.nativeElement.querySelector('input[placeholder*="500.000"]');
+    paymentInput.value = '2500000';
+    paymentInput.dispatchEvent(new Event('input'));
 
-    component['recalculateMonthlyPayment']();
-
-    // French amortization for 112.5M, 60 months, 15.4% EA:
-    expect(component['monthlyPayment']()).toBe('2.641.608');
+    expect(component['monthlyPayment']()).toBe('2.500.000');
   });
 
   it('handles cancel button click', () => {

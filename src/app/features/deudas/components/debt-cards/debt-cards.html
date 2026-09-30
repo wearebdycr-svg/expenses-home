@@ -48,15 +48,17 @@
           @if (debt.currentBalance <= 0) {
             <span class="stat-months" style="color: #10b981; font-weight: 600;">Liquidada</span>
           } @else if (debt.totalMonths) {
-            <span class="stat-months">{{ amort.remainingMonths }} / {{ debt.totalMonths }} meses</span>
+            <span class="stat-months">{{ amort.paidMonths }} / {{ debt.totalMonths }} cuotas</span>
           } @else {
-            <span class="stat-months">{{ amort.remainingMonths }} meses</span>
+            <span class="stat-months">{{ amort.remainingMonths }} meses restantes</span>
           }
         </div>
 
         <div class="projected-date">
           @if (debt.currentBalance <= 0) {
             Estado: 100% Amortizada
+          } @else if (debt.totalMonths) {
+            Restan {{ amort.remainingMonths }} meses • Fin: {{ amort.projectedDateFormatted }}
           } @else {
             Fin: {{ amort.projectedDateFormatted }}
           }

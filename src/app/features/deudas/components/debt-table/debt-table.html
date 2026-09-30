@@ -17,7 +17,7 @@
             <th class="col-currency">MONTO ORIGINAL</th>
             <th class="col-currency">CUOTA/MES</th>
             <th class="col-rate">TASA ANUAL</th>
-            <th class="col-months">MESES RESTANTES</th>
+            <th class="col-months">CUOTAS / MESES</th>
             <th class="col-end">FIN PROYECTADO</th>
             <th class="col-actions" aria-hidden="true"></th>
           </tr>
@@ -62,17 +62,12 @@
 
               <td class="col-months">
                 @if (debt.currentBalance <= 0) {
-                  <span style="color: #10b981; font-weight: 600;">
-                    @if (debt.totalMonths) {
-                      0 / {{ debt.totalMonths }} (Liquidada)
-                    } @else {
-                      0 (Liquidada)
-                    }
-                  </span>
+                  <span style="color: #10b981; font-weight: 600;">Liquidada</span>
                 } @else if (debt.totalMonths) {
-                  <span>{{ amort.remainingMonths }} / {{ debt.totalMonths }}</span>
+                  <span>{{ amort.paidMonths }} / {{ debt.totalMonths }} pagadas</span>
+                  <div style="font-size: 0.72rem; color: #64748b;">(Restan {{ amort.remainingMonths }})</div>
                 } @else {
-                  <span>{{ amort.remainingMonths }}</span>
+                  <span>{{ amort.remainingMonths }} meses restantes</span>
                 }
               </td>
 
