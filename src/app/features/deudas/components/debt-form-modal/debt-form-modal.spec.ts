@@ -43,9 +43,9 @@ describe('DebtFormModal', () => {
     expect(fixture.nativeElement.querySelector('.modal-title').textContent).toContain('Editar Deuda');
     expect(component['person']()).toBe('Compartido');
     expect(component['name']()).toBe('Hipoteca Apartamento');
-    expect(component['originalAmount']()).toBe('120000000');
-    expect(component['currentBalance']()).toBe('64500000');
-    expect(component['monthlyPayment']()).toBe('700000');
+    expect(component['originalAmount']()).toBe('120.000.000');
+    expect(component['currentBalance']()).toBe('64.500.000');
+    expect(component['monthlyPayment']()).toBe('700.000');
     expect(component['annualInterestRate']()).toBe('8.5');
   });
 
@@ -93,7 +93,7 @@ describe('DebtFormModal', () => {
   });
 
   it('auto-calculates monthly payment when originalAmount and totalMonths are provided', () => {
-    const originalInput = fixture.nativeElement.querySelector('input[placeholder*="10000000"]');
+    const originalInput = fixture.nativeElement.querySelector('input[placeholder*="10"]');
     originalInput.value = '12000000';
     originalInput.dispatchEvent(new Event('input'));
 
@@ -102,11 +102,11 @@ describe('DebtFormModal', () => {
     monthsInput.dispatchEvent(new Event('input'));
 
     expect(component['totalMonths']()).toBe('12');
-    expect(component['originalAmount']()).toBe('12000000');
+    expect(component['originalAmount']()).toBe('12.000.000');
     // Without interest rate, monthly payment = 12M / 12 = 1M
-    expect(component['monthlyPayment']()).toBe('1000000');
+    expect(component['monthlyPayment']()).toBe('1.000.000');
     // currentBalance automatically defaults to originalAmount
-    expect(component['currentBalance']()).toBe('12000000');
+    expect(component['currentBalance']()).toBe('12.000.000');
   });
 
   it('handles cancel button click', () => {

@@ -40,7 +40,7 @@ describe('IncomeFormModal', () => {
     expect(component['date']()).toBe('2026-07-22');
     expect(component['source']()).toBe('Freelance');
     expect(component['description']()).toBe('Proyecto diseño / consultoría');
-    expect(component['amount']()).toBe('358668');
+    expect(component['amount']()).toBe('358.668');
   });
 
   it('does not emit save when description is missing', () => {
@@ -65,13 +65,13 @@ describe('IncomeFormModal', () => {
     expect(spy).not.toHaveBeenCalled();
   });
 
-  it('strips non-numeric characters from the amount field', () => {
+  it('strips non-numeric characters and formats thousands in the amount field', () => {
     fixture.detectChanges();
-    const amountInput = fixture.nativeElement.querySelector('input[placeholder="3500000"]') as HTMLInputElement;
+    const amountInput = fixture.nativeElement.querySelector('input[placeholder*="3.500.000"]') as HTMLInputElement;
     amountInput.value = '35a0b0000';
     amountInput.dispatchEvent(new Event('input'));
 
-    expect(component['amount']()).toBe('3500000');
+    expect(component['amount']()).toBe('3.500.000');
   });
 
   it('emits a valid draft on submit', () => {

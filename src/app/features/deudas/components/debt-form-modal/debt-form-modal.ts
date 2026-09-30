@@ -15,6 +15,7 @@ import {
   type ExpensePerson,
 } from '../../../gastos/data/expense.model';
 import type { Debt, DebtDraft, DebtPerson } from '../../data/debt.model';
+import { formatThousands, parseThousands } from '../../../../shared/utils/format.utils';
 
 function todayIso(): string {
   const now = new Date();
@@ -60,10 +61,10 @@ export class DebtFormModal {
         this.person.set(existing.person);
         this.startDate.set(existing.startDate || todayIso());
         this.name.set(existing.name);
-        this.originalAmount.set(String(existing.originalAmount));
+        this.originalAmount.set(formatThousands(existing.originalAmount));
         this.totalMonths.set(existing.totalMonths ? String(existing.totalMonths) : '');
-        this.currentBalance.set(String(existing.currentBalance));
-        this.monthlyPayment.set(String(existing.monthlyPayment));
+        this.currentBalance.set(formatThousands(existing.currentBalance));
+        this.monthlyPayment.set(formatThousands(existing.monthlyPayment));
         this.annualInterestRate.set(String(existing.annualInterestRate));
       } else {
         this.person.set('Benny');
@@ -84,12 +85,28 @@ export class DebtFormModal {
   }
 
   protected onOriginalAmountInput(event: Event): void {
-    const raw = (event.target as HTMLInputElement).value.replace(/[^0-9]/g, '');
-    this.originalAmount.set(raw);
+    const raw = (event.target as HTMLInputElement).value;
+    const formatted = formatThousands(raw);
+    (event.target as HTMLInputElement).value = formatted;
+    this.originalAmount.set(formatted);
     if (!this.isEditMode()) {
-      this.currentBalance.set(raw);
+      this.currentBalance.set(formatted);
     }
     this.recalculateMonthlyPayment();
+  }
+
+  protected onCurrentBalanceInput(event: Event): void {
+    const raw = (event.target as HTMLInputElement).value;
+    const formatted = formatThousands(raw);
+    (event.target as HTMLInputElement).value = formatted;
+    this.currentBalance.set(formatted);
+  }
+
+  protected onMonthlyPaymentInput(event: Event): void {
+    const raw = (event.target as HTMLInputElement).value;
+    const formatted = formatThousands(raw);
+    (event.target as HTMLInputElement).value = formatted;
+    this.monthlyPayment.set(formatted);
   }
 
   protected onMonthsInput(event: Event): void {
@@ -105,7 +122,7 @@ export class DebtFormModal {
   }
 
   private recalculateMonthlyPayment(): void {
-    const amount = Number(this.originalAmount());
+    const amount = parseThousands(this.originalAmount());
     const months = Number(this.totalMonths());
     if (amount > 0 && months > 0) {
       const rate = Number(this.annualInterestRate()) || 0;
@@ -113,19 +130,19 @@ export class DebtFormModal {
         const r = rate / (12 * 100);
         const factor = Math.pow(1 + r, months);
         const payment = Math.round((amount * (r * factor)) / (factor - 1));
-        this.monthlyPayment.set(String(payment));
+        this.monthlyPayment.set(formatThousands(payment));
       } else {
-        this.monthlyPayment.set(String(Math.round(amount / months)));
+        this.monthlyPayment.set(formatThousands(Math.round(amount / months)));
       }
     }
   }
 
   protected onSubmit(): void {
     const name = this.name().trim();
-    const original = Number(this.originalAmount());
+    const original = parseThousands(this.originalAmount());
     const months = Number(this.totalMonths()) || undefined;
-    const current = this.currentBalance().trim() !== '' ? Number(this.currentBalance()) : original;
-    const payment = Number(this.monthlyPayment()) || (months ? Math.round(original / months) : 0);
+    const current = this.currentBalance().trim() !== '' ? parseThousands(this.currentBalance()) : original;
+    const payment = parseThousands(this.monthlyPayment()) || (months ? Math.round(original / months) : 0);
     const rate = Number(this.annualInterestRate()) || 0;
 
     if (!name || original <= 0 || current <= 0 || payment <= 0 || isNaN(rate)) {

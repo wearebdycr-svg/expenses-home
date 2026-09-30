@@ -38,7 +38,7 @@
           class="field-control"
           type="text"
           inputmode="numeric"
-          placeholder="Ej: 10000000"
+          placeholder="Ej: 10.000.000"
           [value]="originalAmount()"
           (input)="onOriginalAmountInput($event)"
         />
@@ -64,9 +64,9 @@
           class="field-control"
           type="text"
           inputmode="numeric"
-          placeholder="Ej: 500000"
+          placeholder="Ej: 500.000"
           [value]="monthlyPayment()"
-          (input)="onNumberInput(monthlyPayment, $event)"
+          (input)="onMonthlyPaymentInput($event)"
         />
       </label>
 
@@ -92,7 +92,7 @@
           inputmode="numeric"
           placeholder="Por defecto igual al monto original"
           [value]="currentBalance()"
-          (input)="onNumberInput(currentBalance, $event)"
+          (input)="onCurrentBalanceInput($event)"
         />
       </label>
     </div>

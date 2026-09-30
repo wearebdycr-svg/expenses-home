@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  viewChild,
+} from '@angular/core';
 import type { ChartConfiguration, TooltipModel } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 import {
@@ -17,6 +24,19 @@ import { ResumenService } from '../../data/resumen.service';
 })
 export class ResumenBarChart {
   protected readonly resumenService = inject(ResumenService);
+  private readonly chartDirective = viewChild(BaseChartDirective);
+
+  constructor() {
+    effect(() => {
+      this.data();
+      const chartDir = this.chartDirective();
+      if (chartDir) {
+        queueMicrotask(() => {
+          chartDir.render();
+        });
+      }
+    });
+  }
 
   protected readonly data = computed<ChartConfiguration<'bar'>['data']>(() => {
     const series = this.resumenService.barChartSeries();

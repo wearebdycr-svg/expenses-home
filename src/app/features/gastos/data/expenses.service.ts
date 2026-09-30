@@ -11,6 +11,7 @@ import {
   EXPENSE_CATEGORIES,
   EXPENSE_CATEGORY_COLORS,
   generateExpenseId,
+  getExpenseCategoryColor,
 } from './expense.model';
 
 export type MonthFilter = 'Todos' | number;
@@ -122,7 +123,7 @@ export class ExpensesService {
 
   /** Desglose por categoría para la gráfica de dona y su leyenda */
   readonly categoryBreakdown = computed<CategoryBreakdownItem[]>(() => {
-    const list = this.monthlyExpenses();
+    const list = this.filteredExpenses();
     const total = list.reduce((sum, item) => sum + item.amount, 0);
 
     const totalsByCategory = new Map<ExpenseCategory, number>();
@@ -142,7 +143,7 @@ export class ExpensesService {
           category,
           amount,
           percentage: total > 0 ? (amount / total) * 100 : 0,
-          color: EXPENSE_CATEGORY_COLORS[category] ?? '#94a3b8',
+          color: getExpenseCategoryColor(category),
         });
       }
     });

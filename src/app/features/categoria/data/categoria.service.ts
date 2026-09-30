@@ -11,6 +11,7 @@ import type {
 import {
   CATEGORY_COLORS,
   MEMBER_COLORS,
+  getCategoryColor,
 } from './categoria.model';
 
 @Injectable({ providedIn: 'root' })
@@ -94,7 +95,7 @@ export class CategoriaService {
     categoryMap.forEach((entry, cat) => {
       rows.push({
         category: cat,
-        color: CATEGORY_COLORS[cat] ?? '#94a3b8',
+        color: getCategoryColor(cat),
         benny: entry.benny,
         charlie: entry.charlie,
         compartido: entry.compartido,

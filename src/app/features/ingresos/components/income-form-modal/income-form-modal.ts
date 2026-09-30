@@ -9,6 +9,7 @@ import {
   type IncomeSource,
   type Person,
 } from '../../data/income.model';
+import { formatThousands, parseThousands } from '../../../../shared/utils/format.utils';
 
 function todayIso(): string {
   const now = new Date();
@@ -56,18 +57,20 @@ export class IncomeFormModal {
       this.person.set(existing?.person ?? 'Benny');
       this.source.set(existing?.source ?? 'Salario');
       this.description.set(existing?.description ?? '');
-      this.amount.set(existing ? String(existing.amount) : '');
+      this.amount.set(existing ? formatThousands(existing.amount) : '');
     });
   }
 
   protected onAmountInput(event: Event): void {
     const raw = (event.target as HTMLInputElement).value;
-    this.amount.set(raw.replace(/[^0-9]/g, ''));
+    const formatted = formatThousands(raw);
+    (event.target as HTMLInputElement).value = formatted;
+    this.amount.set(formatted);
   }
 
   protected onSubmit(): void {
     const description = this.description().trim();
-    const amount = Number(this.amount());
+    const amount = parseThousands(this.amount());
     if (!description || !this.amount() || amount <= 0) {
       return;
     }

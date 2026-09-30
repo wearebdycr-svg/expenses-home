@@ -114,6 +114,33 @@ export const EXPENSE_CATEGORY_COLORS: Record<ExpenseCategory, string> = {
   'TC-compartida': '#8b5cf6',
 };
 
+export const DYNAMIC_CATEGORY_PALETTE = [
+  '#f43f5e', // rose
+  '#8b5cf6', // purple
+  '#06b6d4', // cyan
+  '#f59e0b', // amber
+  '#10b981', // emerald
+  '#6366f1', // indigo
+  '#ec4899', // pink
+  '#14b8a6', // teal
+  '#f97316', // orange
+  '#3b82f6', // blue
+  '#84cc16', // lime
+  '#d946ef', // fuchsia
+];
+
+export function getExpenseCategoryColor(category: string): string {
+  if (EXPENSE_CATEGORY_COLORS[category]) {
+    return EXPENSE_CATEGORY_COLORS[category];
+  }
+  let hash = 0;
+  for (let i = 0; i < category.length; i++) {
+    hash = category.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % DYNAMIC_CATEGORY_PALETTE.length;
+  return DYNAMIC_CATEGORY_PALETTE[index];
+}
+
 export function generateExpenseId(): string {
   return `exp_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 }

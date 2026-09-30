@@ -2,7 +2,9 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
+  viewChild,
 } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import type { ChartConfiguration, TooltipModel } from 'chart.js';
@@ -20,10 +22,23 @@ import { CategoriaService } from '../../data/categoria.service';
 })
 export class CategoriaDonutChart {
   protected readonly categoriaService = inject(CategoriaService);
+  private readonly chartDirective = viewChild(BaseChartDirective);
   protected readonly formatCOP = formatCOP;
 
   protected readonly legendItems = this.categoriaService.donutLegendItems;
   protected readonly total = this.categoriaService.totalPeriod;
+
+  constructor() {
+    effect(() => {
+      this.data();
+      const chartDir = this.chartDirective();
+      if (chartDir) {
+        queueMicrotask(() => {
+          chartDir.render();
+        });
+      }
+    });
+  }
 
   protected readonly data = computed<ChartConfiguration<'doughnut'>['data']>(() => {
     const raw = this.categoriaService.donutChartData();

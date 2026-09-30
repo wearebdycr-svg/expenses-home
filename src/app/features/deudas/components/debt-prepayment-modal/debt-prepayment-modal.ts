@@ -15,6 +15,7 @@ import {
   type Debt,
   type PrepaymentDraft,
 } from '../../data/debt.model';
+import { formatThousands, parseThousands } from '../../../../shared/utils/format.utils';
 
 function todayIso(): string {
   const now = new Date();
@@ -39,7 +40,7 @@ export class DebtPrepaymentModal {
   cancel = output<void>();
 
   protected readonly selectedDebtId = signal<string>('');
-  protected readonly amount = signal<string>('500000');
+  protected readonly amount = signal<string>('500.000');
   protected readonly date = signal<string>(todayIso());
 
   protected readonly selectedDebt = computed(() => {
@@ -73,12 +74,14 @@ export class DebtPrepaymentModal {
 
   protected onAmountInput(event: Event): void {
     const raw = (event.target as HTMLInputElement).value;
-    this.amount.set(raw.replace(/[^0-9]/g, ''));
+    const formatted = formatThousands(raw);
+    (event.target as HTMLInputElement).value = formatted;
+    this.amount.set(formatted);
   }
 
   protected onSubmit(): void {
     const debtId = this.selectedDebtId();
-    const amountVal = Number(this.amount());
+    const amountVal = parseThousands(this.amount());
 
     if (!debtId || amountVal <= 0 || !this.date()) {
       return;

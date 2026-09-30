@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  viewChild,
+} from '@angular/core';
 import type { ChartConfiguration, TooltipModel } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 import { formatCOP } from '../../data/expense.model';
@@ -13,8 +20,21 @@ import { ExpensesService } from '../../data/expenses.service';
 })
 export class ExpenseCategoryChart {
   protected readonly expensesService = inject(ExpensesService);
+  private readonly chartDirective = viewChild(BaseChartDirective);
 
   protected readonly breakdown = this.expensesService.categoryBreakdown;
+
+  constructor() {
+    effect(() => {
+      this.data();
+      const chartDir = this.chartDirective();
+      if (chartDir) {
+        queueMicrotask(() => {
+          chartDir.render();
+        });
+      }
+    });
+  }
 
   protected readonly hasData = computed(() => this.breakdown().length > 0);
 

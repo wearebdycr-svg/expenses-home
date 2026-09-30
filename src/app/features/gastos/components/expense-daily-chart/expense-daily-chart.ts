@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  viewChild,
+} from '@angular/core';
 import type { ChartConfiguration, TooltipModel } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 import {
@@ -22,6 +29,19 @@ function formatKCurrency(value: number): string {
 })
 export class ExpenseDailyChart {
   protected readonly expensesService = inject(ExpensesService);
+  private readonly chartDirective = viewChild(BaseChartDirective);
+
+  constructor() {
+    effect(() => {
+      this.data();
+      const chartDir = this.chartDirective();
+      if (chartDir) {
+        queueMicrotask(() => {
+          chartDir.render();
+        });
+      }
+    });
+  }
 
   protected readonly title = computed(() => {
     const year = this.expensesService.year();

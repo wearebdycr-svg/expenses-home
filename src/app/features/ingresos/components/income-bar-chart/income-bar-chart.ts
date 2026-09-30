@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  viewChild,
+} from '@angular/core';
 import type { ChartConfiguration } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 import { externalTooltipHandler } from '../../charts/chart-tooltip';
@@ -15,6 +22,19 @@ import { IncomesService } from '../../data/incomes.service';
 })
 export class IncomeBarChart {
   private readonly incomesService = inject(IncomesService);
+  private readonly chartDirective = viewChild(BaseChartDirective);
+
+  constructor() {
+    effect(() => {
+      this.data();
+      const chartDir = this.chartDirective();
+      if (chartDir) {
+        queueMicrotask(() => {
+          chartDir.render();
+        });
+      }
+    });
+  }
 
   protected readonly title = computed(() => `Ingresos por mes — ${this.incomesService.year()}`);
 

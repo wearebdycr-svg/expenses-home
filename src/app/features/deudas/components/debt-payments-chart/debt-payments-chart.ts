@@ -2,7 +2,9 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
+  viewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import type { ChartConfiguration, TooltipModel } from 'chart.js';
@@ -20,7 +22,20 @@ import { DebtsService } from '../../data/debts.service';
 })
 export class DebtPaymentsChart {
   protected readonly debtsService = inject(DebtsService);
+  private readonly chartDirective = viewChild(BaseChartDirective);
   protected readonly debts = this.debtsService.filteredDebts;
+
+  constructor() {
+    effect(() => {
+      this.data();
+      const chartDir = this.chartDirective();
+      if (chartDir) {
+        queueMicrotask(() => {
+          chartDir.render();
+        });
+      }
+    });
+  }
 
   protected readonly data = computed<ChartConfiguration<'bar'>['data']>(() => {
     const raw = this.debtsService.paymentsChartData();

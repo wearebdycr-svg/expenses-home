@@ -11,6 +11,7 @@ import { Modal } from '../../../../shared/ui/modal/modal';
 import { Select, type SelectOption } from '../../../../shared/ui/select/select';
 import type { ExpensePerson } from '../../data/tc.model';
 import { EXPENSE_PERSONS, TC_DEFAULT_CATEGORIES, type TcExpense, type TcExpenseDraft } from '../../data/tc.model';
+import { formatThousands, parseThousands } from '../../../../shared/utils/format.utils';
 
 function todayIso(): string {
   const now = new Date();
@@ -68,7 +69,7 @@ export class TcFormModal {
         this.person.set(exp.person);
         this.category.set(exp.category ?? 'General');
         this.description.set(exp.description);
-        this.amount.set(String(exp.amount));
+        this.amount.set(formatThousands(exp.amount));
       } else {
         this.date.set(todayIso());
         this.person.set('Benny');
@@ -81,13 +82,14 @@ export class TcFormModal {
 
   protected onAmountInput(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const sanitized = input.value.replace(/\D/g, '');
-    this.amount.set(sanitized);
+    const formatted = formatThousands(input.value);
+    input.value = formatted;
+    this.amount.set(formatted);
   }
 
   protected onSubmit(): void {
     const desc = this.description().trim();
-    const numAmount = Number(this.amount());
+    const numAmount = parseThousands(this.amount());
 
     if (!desc || !numAmount || numAmount <= 0) {
       return;

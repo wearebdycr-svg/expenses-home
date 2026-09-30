@@ -21,6 +21,7 @@ import {
 } from '../../data/expense.model';
 import { DebtsService } from '../../../deudas/data/debts.service';
 import type { Debt } from '../../../deudas/data/debt.model';
+import { formatThousands, parseThousands } from '../../../../shared/utils/format.utils';
 
 function todayIso(): string {
   const now = new Date();
@@ -44,7 +45,7 @@ export class ExpenseFormModal {
   cancel = output<void>();
 
   protected readonly formatCOP = formatCOP;
-  protected readonly Number = Number;
+  protected readonly parseThousands = parseThousands;
 
   protected readonly isEditMode = computed(() => this.expense() !== null);
   protected readonly modalTitle = computed(() => (this.isEditMode() ? 'Editar Gasto' : 'Nuevo Gasto'));
@@ -98,7 +99,7 @@ export class ExpenseFormModal {
   protected readonly isOverdraft = computed(() => {
     const debt = this.selectedDebt();
     if (!debt) return false;
-    const entered = Number(this.amount()) || 0;
+    const entered = parseThousands(this.amount());
     return entered > debt.currentBalance;
   });
 
@@ -109,18 +110,20 @@ export class ExpenseFormModal {
       this.person.set(existing?.person ?? 'Benny');
       this.category.set(existing?.category ?? 'Mercado');
       this.description.set(existing?.description ?? '');
-      this.amount.set(existing ? String(existing.amount) : '');
+      this.amount.set(existing ? formatThousands(existing.amount) : '');
     });
   }
 
   protected onAmountInput(event: Event): void {
     const raw = (event.target as HTMLInputElement).value;
-    this.amount.set(raw.replace(/[^0-9]/g, ''));
+    const formatted = formatThousands(raw);
+    (event.target as HTMLInputElement).value = formatted;
+    this.amount.set(formatted);
   }
 
   protected onSubmit(): void {
     const description = this.description().trim().slice(0, 100);
-    const amount = Number(this.amount());
+    const amount = parseThousands(this.amount());
 
     if (!description || !this.amount() || amount <= 0) {
       return;

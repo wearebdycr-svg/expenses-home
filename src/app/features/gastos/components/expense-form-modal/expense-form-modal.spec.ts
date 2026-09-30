@@ -41,7 +41,7 @@ describe('ExpenseFormModal', () => {
     expect(component['person']()).toBe('Compartido');
     expect(component['category']()).toBe('Mercado');
     expect(component['description']()).toBe('Supermercado');
-    expect(component['amount']()).toBe('161657');
+    expect(component['amount']()).toBe('161.657');
   });
 
   it('blocks submit if required fields are missing', () => {

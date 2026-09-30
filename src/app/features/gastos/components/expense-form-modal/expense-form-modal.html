@@ -48,7 +48,7 @@
         </div>
         @if (isOverdraft()) {
           <div class="overdraft-warning">
-            ⚠️ El monto ingresado ({{ formatCOP(Number(amount()) || 0) }}) supera el saldo pendiente de esta deuda. Quedará totalmente liquidada.
+            ⚠️ El monto ingresado ({{ formatCOP(parseThousands(amount())) }}) supera el saldo pendiente de esta deuda. Quedará totalmente liquidada.
           </div>
         }
       </div>
@@ -72,7 +72,7 @@
         class="field-control"
         type="text"
         inputmode="numeric"
-        placeholder="150000"
+        placeholder="Ej: 150.000"
         [value]="amount()"
         (input)="onAmountInput($event)"
       />
