@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Método no permitido' });
   }
 
-  const { title, body, icon, data, targetPerson } = req.body || {};
+  const { title, body, icon, data, targetPerson, senderPerson } = req.body || {};
 
   if (!title || !body) {
     return res.status(400).json({ error: 'Título y cuerpo son requeridos' });
@@ -33,6 +33,9 @@ export default async function handler(req, res) {
 
       if (targetPerson && targetPerson !== 'all') {
         query = query.eq('person', targetPerson);
+      } else if (senderPerson) {
+        // Excluir dispositivos del emisor para que la alerta llegue a la otra persona
+        query = query.neq('person', senderPerson);
       }
 
       const { data: dbTokens, error } = await query;

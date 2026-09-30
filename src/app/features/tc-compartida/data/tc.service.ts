@@ -1,6 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseService } from '../../../core/services/supabase.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { PushNotificationService } from '../../../core/services/push-notification.service';
 import type { Expense, ExpensePerson, ExpensePersonFilter } from '../../gastos/data/expense.model';
 import { EXPENSE_PERSON_COLORS, EXPENSE_PERSONS } from '../../gastos/data/expense.model';
 import { ExpensesService } from '../../gastos/data/expenses.service';
@@ -17,6 +18,7 @@ export class TcService {
   private readonly supabase = inject(SupabaseService);
   private readonly expensesService = inject(ExpensesService);
   private readonly toastService = inject(ToastService);
+  private readonly pushNotificationService = inject(PushNotificationService);
 
   private readonly tcExpenses = signal<TcExpense[]>([]);
   readonly allTcExpenses = this.tcExpenses.asReadonly();
@@ -395,8 +397,11 @@ export class TcService {
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'tc_expenses' },
-          () => {
+          (payload: any) => {
             this.loadTcExpenses();
+            if (payload?.eventType === 'INSERT' && payload?.new) {
+              this.pushNotificationService.notifyIncomingTcExpense(payload.new);
+            }
           },
         )
         .subscribe();

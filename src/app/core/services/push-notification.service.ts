@@ -35,7 +35,8 @@ export class PushNotificationService {
   readonly permission = signal<NotificationPermission>('default');
   readonly isSubscribed = signal<boolean>(false);
   readonly currentToken = signal<string | null>(null);
-  readonly registeredPerson = signal<string>('Hogar');
+  readonly activePerson = signal<ExpensePerson>('Charlie');
+  readonly registeredPerson = this.activePerson.asReadonly();
 
   constructor() {
     this.init();
@@ -51,13 +52,14 @@ export class PushNotificationService {
 
     this.permission.set(Notification.permission);
 
-    // Recuperar suscripción previa de localStorage
+    // Recuperar suscripción previa y persona activa de localStorage
     const savedToken = localStorage.getItem(FCM_TOKEN_STORAGE_KEY);
-    const savedPerson = localStorage.getItem(FCM_PERSON_STORAGE_KEY) || 'Hogar';
+    const savedPerson = (localStorage.getItem(FCM_PERSON_STORAGE_KEY) as ExpensePerson) || 'Charlie';
+    this.activePerson.set(savedPerson);
+
     if (savedToken) {
       this.currentToken.set(savedToken);
       this.isSubscribed.set(true);
-      this.registeredPerson.set(savedPerson);
     }
 
     try {
@@ -99,14 +101,28 @@ export class PushNotificationService {
     }
   }
 
+  setActivePerson(person: ExpensePerson): void {
+    this.activePerson.set(person);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(FCM_PERSON_STORAGE_KEY, person);
+    }
+    const token = this.currentToken();
+    if (token) {
+      this.registerTokenInBackend(token, person);
+    }
+  }
+
   /**
    * Criterio 2.1 & 2.2: Solicita permiso y registra el Token FCM en el backend
    */
-  async requestSubscription(person: string = 'Hogar'): Promise<string | null> {
+  async requestSubscription(person?: ExpensePerson): Promise<string | null> {
     if (!this.isSupported()) {
       this.toastService.error('Las notificaciones Push no están soportadas en este navegador.');
       return null;
     }
+
+    const selectedPerson = person || this.activePerson();
+    this.setActivePerson(selectedPerson);
 
     try {
       const permissionResult = await Notification.requestPermission();
@@ -134,21 +150,19 @@ export class PushNotificationService {
 
       // Si no hay token de FCM (modo dev / offline), generar identificador único de dispositivo
       if (!token) {
-        token = `fcm-dev-${person.toLowerCase()}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        token = `fcm-dev-${selectedPerson.toLowerCase()}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
       }
 
       // 2. Guardar en localStorage
       localStorage.setItem(FCM_TOKEN_STORAGE_KEY, token);
-      localStorage.setItem(FCM_PERSON_STORAGE_KEY, person);
 
       this.currentToken.set(token);
       this.isSubscribed.set(true);
-      this.registeredPerson.set(person);
 
       // 3. Criterio 2.2: Registrar token en Supabase / Backend API
-      await this.registerTokenInBackend(token, person);
+      await this.registerTokenInBackend(token, selectedPerson);
 
-      this.toastService.success('Notificaciones Push activadas en este dispositivo');
+      this.toastService.success(`Notificaciones activadas para ${selectedPerson}`);
       return token;
     } catch (err: any) {
       console.error('[PushNotificationService] Error al suscribirse a notificaciones:', err);
@@ -259,34 +273,74 @@ export class PushNotificationService {
   }
 
   /**
-   * Despacha la notificación Push vía backend serverless o notificación nativa local
+   * Despacha la notificación Push vía backend serverless para los demás dispositivos del hogar
    */
-  async dispatchPushNotification(message: PushNotificationMessage): Promise<void> {
+  async dispatchPushNotification(message: PushNotificationMessage, senderPerson?: string): Promise<void> {
+    const sender = senderPerson || this.activePerson();
     try {
-      // 1. Invocar endpoint del backend /api/notify
       await fetch('/api/notify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(message),
+        body: JSON.stringify({
+          ...message,
+          senderPerson: sender,
+        }),
       });
     } catch {
-      // Fallback si no hay backend activo
+      // Fallback silencioso si no hay red o backend
+    }
+  }
+
+  /**
+   * Dispara una alerta nativa y toast cuando otro miembro del hogar registra un gasto
+   */
+  notifyIncomingExpense(expense: { person?: string; amount: number; category: string; description?: string }): void {
+    const currentDevicePerson = this.activePerson();
+    // No notificar al propio usuario que acaba de registrar el gasto
+    if (expense.person && expense.person === currentDevicePerson) {
+      return;
     }
 
-    // 2. Si el usuario actual tiene permiso de notificación nativa concedido, mostrar alerta nativa
+    const creator = expense.person || 'Tu pareja';
+    const title = creator === 'Compartido' 
+      ? '💸 Nuevo Gasto Compartido' 
+      : `💸 ${creator} registró un gasto`;
+    const descText = expense.description ? ` (${expense.description})` : '';
+    const body = `${formatCOP(expense.amount)} en ${expense.category}${descText}`;
+
+    this.showSystemNotification(title, body, '/#gastos');
+  }
+
+  /**
+   * Dispara una alerta cuando se usa la Tarjeta Compartida desde otro dispositivo
+   */
+  notifyIncomingTcExpense(expense: { person?: string; amount: number; description?: string; category?: string }): void {
+    const currentDevicePerson = this.activePerson();
+    if (expense.person && expense.person === currentDevicePerson) {
+      return;
+    }
+
+    const creator = expense.person || 'Tu pareja';
+    const title = `💳 ${creator} usó la TC Compartida`;
+    const desc = expense.description || expense.category || 'Consumo';
+    const body = `${formatCOP(expense.amount)} - ${desc}`;
+
+    this.showSystemNotification(title, body, '/#tc-compartida');
+  }
+
+  private showSystemNotification(title: string, body: string, url: string): void {
     if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
       try {
-        new Notification(message.title, {
-          body: message.body,
-          icon: message.icon || '/favicon.svg',
-          data: message.data,
+        new Notification(title, {
+          body,
+          icon: '/favicon.svg',
+          data: { url },
         });
       } catch {
-        // Fallback a toast
-        this.toastService.warning(`${message.title}: ${message.body}`);
+        this.toastService.info(`${title}: ${body}`);
       }
     } else {
-      this.toastService.warning(`${message.title}: ${message.body}`);
+      this.toastService.info(`${title}: ${body}`);
     }
   }
 }

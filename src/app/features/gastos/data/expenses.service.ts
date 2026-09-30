@@ -372,12 +372,16 @@ export class ExpensesService {
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'expenses' },
-          () => {
+          (payload: any) => {
             // Ignorar eventos de eco causados por mutaciones de este mismo cliente para no recrear los gráficos
             if (Date.now() - this.lastLocalMutationTime < 2500) {
               return;
             }
             this.loadExpenses(false);
+
+            if (payload?.eventType === 'INSERT' && payload?.new) {
+              this.pushNotificationService.notifyIncomingExpense(payload.new);
+            }
           },
         )
         .subscribe();
