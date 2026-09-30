@@ -1,23 +1,31 @@
 /**
  * ==============================================================================
- * EXPENSES-HOME: Sincronizador Automático de Alertas de Bancolombia
+ * EXPENSES-HOME: Sincronizador Integral de Alertas de Bancolombia
  * ==============================================================================
  * Este script de Google Apps Script lee los correos de alertas de Bancolombia
- * en tu cuenta de Gmail, extrae el monto, comercio/descripción y fecha,
- * clasifica la categoría automáticamente e inserta el gasto en Supabase.
+ * en tu cuenta de Gmail, clasifica el tipo de transacción y registra:
  *
- * Soporta:
- * - Compras con Tarjeta de Crédito
- * - Compras con Tarjeta Débito
- * - Pagos por PSE
- * - Transferencias salientes
- * - Detección automática de Tarjeta Compartida (hacia public.tc_expenses)
- * - Detección automática de Gastos Diarios (hacia public.expenses)
+ * 1. 🛒 GASTOS DIARIOS (public.expenses):
+ *    - Compras con Tarjeta Débito
+ *    - Compras con Tarjetas de Crédito Personales
+ *    - Pagos por PSE (servicios públicos, compras online)
+ *    - Transferencias salientes
+ * 
+ * 2. 💳 TC COMPARTIDA (public.tc_expenses):
+ *    - Compras realizadas con la(s) Tarjeta(s) Compartida(s)
+ * 
+ * 3. 💵 INGRESOS (public.incomes):
+ *    - Transferencias recibidas
+ *    - Abonos o pagos de Nómina / Salario
+ *    - Consignaciones en cuenta
+ *
+ * 4. 📉 DEUDAS / CRÉDITOS:
+ *    - Pagos de cuota o abonos a créditos (categorizados como 'Deudas')
  * ==============================================================================
  */
 
 // ==============================================================================
-// 1. CONFIGURACIÓN PERSONALIZADA (Ajusta estos valores)
+// 1. CONFIGURACIÓN PERSONALIZADA
 // ==============================================================================
 const CONFIG = {
   // URL de tu proyecto de Supabase (ej: 'https://zmechahctplsnnauxvju.supabase.co')
@@ -26,11 +34,11 @@ const CONFIG = {
   // Llave anónima pública de Supabase
   SUPABASE_ANON_KEY: 'TU_SUPABASE_ANON_KEY',
 
-  // Persona a la que pertenece esta cuenta de Gmail ('Benny' o 'Charlie')
+  // Persona a la que pertenece esta cuenta de Gmail ('Charlie' o 'Benny')
   PERSON: 'Charlie',
 
   // Últimos 4 dígitos de la(s) Tarjeta(s) de Crédito Compartida(s)
-  // Si la compra fue con una de estas tarjetas, se registra en 'tc_expenses'
+  // Si la compra coincide con estos dígitos, se envía a 'tc_expenses'
   SHARED_TC_DIGITS: ['1234'], 
 
   // Etiqueta de Gmail para marcar correos ya procesados y no duplicar
@@ -42,9 +50,13 @@ const CONFIG = {
 };
 
 // ==============================================================================
-// 2. REGLAS DE CATEGORIZACIÓN INTELIGENTE (15 Categorías Oficiales)
+// 2. REGLAS DE CATEGORIZACIÓN INTELIGENTE (15 Categorías Oficiales de Gastos)
 // ==============================================================================
 const CATEGORY_KEYWORDS = {
+  'Deudas': [
+    'pago de credito', 'pago credito', 'abono a credito', 'cuota hipoteca',
+    'cuota vehiculo', 'credito consumo', 'sufi'
+  ],
   'Mercado': [
     'exito', 'carulla', 'd1', 'ara', 'jumbo', 'metro', 'olimpica', 'olympica',
     'alkosto', 'euro', 'fruver', 'zapatoca', 'surtimax', 'pricesmart', 'colsubsidio',
@@ -96,7 +108,7 @@ const CATEGORY_KEYWORDS = {
  */
 function syncBancolombiaEmails() {
   const query = `from:${CONFIG.BANCOLOMBIA_SENDER} -label:${CONFIG.LABEL_PROCESSED}`;
-  const threads = GmailApp.search(query, 0, 20);
+  const threads = GmailApp.search(query, 0, 25);
 
   if (threads.length === 0) {
     Logger.log('No se encontraron correos nuevos de Bancolombia para procesar.');
@@ -109,7 +121,6 @@ function syncBancolombiaEmails() {
   for (const thread of threads) {
     const messages = thread.getMessages();
     for (const message of messages) {
-      // Ignorar si el mensaje individual ya fue marcado
       if (hasLabel(thread, CONFIG.LABEL_PROCESSED)) continue;
 
       const body = message.getPlainBody();
@@ -120,11 +131,11 @@ function syncBancolombiaEmails() {
         const parsed = parseBancolombiaEmail(body, subject, date);
 
         if (parsed) {
-          Logger.log(`Gasto extraído: $${parsed.amount} en ${parsed.description} (${parsed.targetTable})`);
-          saveExpenseToSupabase(parsed);
+          Logger.log(`Registro extraído [${parsed.type.toUpperCase()}]: $${parsed.amount} - ${parsed.description} (${parsed.targetTable})`);
+          saveRecordToSupabase(parsed);
           thread.addLabel(processedLabel);
         } else {
-          // No es un correo de compra/gasto (ej: inicio de sesión, clave dinámica, etc.)
+          // No es un correo transaccional relevante (ej: seguridad, inicio de sesión)
           thread.addLabel(processedLabel);
         }
       } catch (err) {
@@ -136,48 +147,82 @@ function syncBancolombiaEmails() {
 }
 
 /**
- * Parsea el texto del correo de Bancolombia y extrae los datos clave
+ * Parsea el texto del correo de Bancolombia y extrae datos de Gasto o Ingreso
  */
 function parseBancolombiaEmail(body, subject, emailDate) {
   const cleanBody = body.replace(/\s+/g, ' ');
   const text = `${subject} ${cleanBody}`;
 
-  // 1. Filtrar si es un correo que no representa egreso de dinero
-  const ignorePatterns = [
-    /transferencia recibida/i,
-    /consignaci[oó]n/i,
+  // 1. Filtrar correos puramente informativos o de seguridad
+  const securityPatterns = [
     /clave din[aá]mica/i,
     /ingreso a sucursal/i,
     /inicio de sesi[oó]n/i,
+    /bloqueo de clave/i,
+    /actualizaci[oó]n de datos/i,
     /bienvenido/i,
   ];
-  for (const pat of ignorePatterns) {
+  for (const pat of securityPatterns) {
     if (pat.test(text)) return null;
   }
 
   // 2. Extraer Monto ($ 45.000,00 o $45.000)
-  // Formatos Bancolombia: "por $45.000,00", "por $ 120.000", "Valor: $50.000"
   const amountMatch = text.match(/(?:por|valor:?)\s*\$\s*([\d\.,]+)/i) || text.match(/\$\s*([\d\.,]+)/);
   if (!amountMatch) return null;
 
   const rawAmount = amountMatch[1];
-  // Convertir formato colombiano (puntos de miles, coma de decimales): 45.000,00 -> 45000
   const normalizedAmount = rawAmount.replace(/\./g, '').split(',')[0].replace(/[^\d]/g, '');
   const amount = Number(normalizedAmount);
   if (!amount || amount <= 0) return null;
 
   // 3. Extraer Fecha (YYYY-MM-DD)
-  // Buscar en el texto o usar la fecha del email
-  let expenseDate = Utilities.formatDate(emailDate, 'America/Bogota', 'yyyy-MM-dd');
+  let recordDate = Utilities.formatDate(emailDate, 'America/Bogota', 'yyyy-MM-dd');
   const dateMatch = text.match(/(\d{2})\/(\d{2})\/(\d{4})/);
   if (dateMatch) {
-    expenseDate = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`;
+    recordDate = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`;
   }
 
-  // 4. Extraer Comercio o Descripción
+  // ============================================================================
+  // 4. DETECCIÓN DE INGRESOS (Salarios, Transferencias recibidas, Consignaciones)
+  // ============================================================================
+  const isIncome = /transferencia recibida|consignaci[oó]n|n[oó]mina|abono a su cuenta/i.test(text);
+  if (isIncome) {
+    let source = 'Otros';
+    if (/n[oó]mina|salario/i.test(text)) {
+      source = 'Salario';
+    } else if (/inversi[oó]n|rendimiento|interes/i.test(text)) {
+      source = 'Inversiones';
+    } else if (/honorario/i.test(text)) {
+      source = 'Honorarios';
+    }
+
+    let description = 'Ingreso Bancolombia';
+    const senderMatch = text.match(/de\s+([A-Za-z0-9\s\.\*\-]+?)(?:\s+el|\s+a\s+la|\.|$)/i);
+    if (senderMatch && senderMatch[1] && senderMatch[1].length < 40) {
+      description = `De: ${cleanMerchantName(senderMatch[1].trim())}`;
+    } else if (/n[oó]mina/i.test(text)) {
+      description = 'Pago de Nómina';
+    } else if (/transferencia/i.test(text)) {
+      description = 'Transferencia recibida';
+    }
+
+    return {
+      type: 'income',
+      targetTable: 'incomes',
+      amount,
+      date: recordDate,
+      person: CONFIG.PERSON,
+      source,
+      description,
+    };
+  }
+
+  // ============================================================================
+  // 5. DETECCIÓN DE GASTOS (Compras Débito/Crédito, PSE, Transferencias enviadas)
+  // ============================================================================
   let description = 'Compra Bancolombia';
-  
-  // Caso A: Pago PSE (ej: "pago por PSE a ENEL CODENSA por $...")
+
+  // Caso A: Pago por PSE (ej: "pago por PSE a ENEL CODENSA por $...")
   const pseMatch = text.match(/PSE\s+(?:a|en)\s+([A-Za-z0-9\s\.\*\-]+?)(?:\s+por|\s+desde|\s+el)/i);
   if (pseMatch && pseMatch[1]) {
     description = cleanMerchantName(pseMatch[1].trim());
@@ -187,7 +232,7 @@ function parseBancolombiaEmail(body, subject, emailDate) {
     if (enMatch && enMatch[1]) {
       description = cleanMerchantName(enMatch[1].trim());
     } else {
-      // Caso C: Transferencia enviada
+      // Caso C: Transferencia enviada a otra cuenta
       const transMatch = text.match(/a\s+la\s+cuenta\s+([A-Za-z0-9\*\-]+)/i);
       if (transMatch && transMatch[1]) {
         description = `Transferencia a cta ${transMatch[1].trim()}`;
@@ -197,8 +242,8 @@ function parseBancolombiaEmail(body, subject, emailDate) {
     }
   }
 
-  // 5. Detectar si fue con Tarjeta Compartida o Tarjeta Personal
-  let targetTable = 'expenses'; // Por defecto tabla general
+  // Detección de Tarjeta Compartida vs Tarjetas Personales
+  let targetTable = 'expenses'; // Por defecto tabla general de Gastos Diarios
   let isSharedTC = false;
 
   const cardMatch = text.match(/(?:\*|terminada en\s*)(\d{4})/i);
@@ -210,25 +255,24 @@ function parseBancolombiaEmail(body, subject, emailDate) {
     }
   }
 
-  // 6. Asignar Categoría Automática
   const category = guessCategory(description, text, isSharedTC);
 
   return {
-    amount,
-    date: expenseDate,
-    description,
-    category,
-    person: CONFIG.PERSON,
+    type: 'expense',
     targetTable,
+    amount,
+    date: recordDate,
+    person: CONFIG.PERSON,
+    category,
+    description,
   };
 }
 
 /**
- * Limpia y formatea nombres de comercios de Bancolombia (quita códigos raros y mayúsculas sostenidas)
+ * Limpia y da formato Title Case a nombres de comercios
  */
 function cleanMerchantName(name) {
   let cleaned = name.replace(/[\*\#\_\d]{4,}/g, '').trim();
-  // Capitalizar cada palabra (Title Case)
   return cleaned
     .toLowerCase()
     .split(' ')
@@ -238,7 +282,7 @@ function cleanMerchantName(name) {
 }
 
 /**
- * Clasifica el gasto en una de las categorías del sistema
+ * Clasifica automáticamente el gasto en una de las 15 categorías oficiales
  */
 function guessCategory(description, fullText, isSharedTC) {
   const combined = `${description} ${fullText}`.toLowerCase();
@@ -255,18 +299,30 @@ function guessCategory(description, fullText, isSharedTC) {
 }
 
 /**
- * Envía el registro de gasto a la API REST de Supabase
+ * Guarda el registro en la tabla correspondiente de Supabase (expenses, tc_expenses o incomes)
  */
-function saveExpenseToSupabase(expense) {
-  const url = `${CONFIG.SUPABASE_URL}/rest/v1/${expense.targetTable}`;
+function saveRecordToSupabase(record) {
+  const url = `${CONFIG.SUPABASE_URL}/rest/v1/${record.targetTable}`;
   
-  const payload = {
-    date: expense.date,
-    person: expense.person,
-    category: expense.category,
-    description: expense.description,
-    amount: expense.amount,
-  };
+  let payload;
+  if (record.targetTable === 'incomes') {
+    payload = {
+      date: record.date,
+      person: record.person,
+      source: record.source,
+      description: record.description,
+      amount: record.amount,
+    };
+  } else {
+    // 'expenses' o 'tc_expenses'
+    payload = {
+      date: record.date,
+      person: record.person,
+      category: record.category,
+      description: record.description,
+      amount: record.amount,
+    };
+  }
 
   const options = {
     method: 'post',
@@ -284,7 +340,7 @@ function saveExpenseToSupabase(expense) {
   const code = response.getResponseCode();
 
   if (code >= 200 && code < 300) {
-    Logger.log(`✅ Guardado con éxito en Supabase (${expense.targetTable}): ${response.getContentText()}`);
+    Logger.log(`✅ Guardado con éxito en Supabase [${record.targetTable}]: ${response.getContentText()}`);
   } else {
     throw new Error(`Error Supabase HTTP ${code}: ${response.getContentText()}`);
   }
@@ -307,24 +363,43 @@ function hasLabel(thread, name) {
 // ==============================================================================
 
 /**
- * Prueba manual sin enviar a Supabase para verificar que el parser funcione
+ * Prueba simulada con varios tipos de transacciones de Bancolombia
  */
 function testWithSampleEmail() {
-  const sampleEmail = `
-    Bancolombia le informa compra con su tarjeta de credito *1234 por $85.500,00 en EXITO CALLE 80 el 30/09/2026 14:35. Inquietudes al 018000912345.
-  `;
-  const subject = 'Bancolombia: Compra con tarjeta de crédito';
-  const parsed = parseBancolombiaEmail(sampleEmail, subject, new Date());
+  const samples = [
+    {
+      sub: 'Bancolombia: Compra con tarjeta débito',
+      body: 'Bancolombia: Compra por $18.500 en D1 con t.deb *9876 el 30/09/2026. Dudas al 018000912345.',
+    },
+    {
+      sub: 'Comprobante de pago PSE',
+      body: 'Bancolombia le informa pago por PSE a ENEL CODENSA por $145.000,00 el 30/09/2026.',
+    },
+    {
+      sub: 'Bancolombia: Transferencia recibida',
+      body: 'Bancolombia le informa: Transferencia recibida por $3.500.000 de EMPRESA SA el 30/09/2026 por abono de nómina.',
+    },
+    {
+      sub: 'Bancolombia: Compra con tarjeta de crédito compartida',
+      body: 'Bancolombia le informa compra con su tarjeta *1234 por $89.000 en RESTAURANTE WOK el 30/09/2026.',
+    },
+  ];
 
-  Logger.log('Resultado de la prueba:');
-  Logger.log(JSON.stringify(parsed, null, 2));
+  Logger.log('🧪 Iniciando pruebas de extracción...');
+  for (const s of samples) {
+    const res = parseBancolombiaEmail(s.body, s.sub, new Date());
+    Logger.log(`--------------------------------------------------`);
+    Logger.log(`Tipo: ${res.type.toUpperCase()} -> Tabla: ${res.targetTable}`);
+    Logger.log(`Detalle: $${res.amount.toLocaleString()} | ${res.description} | Persona: ${res.person}`);
+    if (res.category) Logger.log(`Categoría: ${res.category}`);
+    if (res.source) Logger.log(`Fuente ingreso: ${res.source}`);
+  }
 }
 
 /**
  * Ejecuta esta función UNA SOLA VEZ para instalar el disparador automático cada 10 minutos
  */
 function installTrigger() {
-  // Eliminar disparadores previos si existen
   const triggers = ScriptApp.getProjectTriggers();
   for (const t of triggers) {
     if (t.getHandlerFunction() === 'syncBancolombiaEmails') {
@@ -332,7 +407,6 @@ function installTrigger() {
     }
   }
 
-  // Crear disparador cada 10 minutos
   ScriptApp.newTrigger('syncBancolombiaEmails')
     .timeBased()
     .everyMinutes(10)
