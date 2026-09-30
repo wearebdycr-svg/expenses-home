@@ -62,11 +62,17 @@
 
               <td class="col-months">
                 @if (debt.currentBalance <= 0) {
-                  <span style="color: #10b981; font-weight: 600;">0 (Liquidada)</span>
+                  <span style="color: #10b981; font-weight: 600;">
+                    @if (debt.totalMonths) {
+                      0 / {{ debt.totalMonths }} (Liquidada)
+                    } @else {
+                      0 (Liquidada)
+                    }
+                  </span>
                 } @else if (debt.totalMonths) {
                   <span>{{ amort.remainingMonths }} / {{ debt.totalMonths }}</span>
                 } @else {
-                  {{ amort.remainingMonths }}
+                  <span>{{ amort.remainingMonths }}</span>
                 }
               </td>
 

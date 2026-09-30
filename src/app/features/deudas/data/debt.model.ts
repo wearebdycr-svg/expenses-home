@@ -17,6 +17,7 @@ export interface Debt {
   color: string;
   status?: DebtStatus;
   totalAmortized?: number;
+  paidInstallmentsCount?: number;
 }
 
 export type DebtDraft = Omit<Debt, 'id' | 'color'>;
@@ -94,16 +95,110 @@ export function generate36MonthLabels(baseDate: Date = new Date()): string[] {
 }
 
 /**
- * Algoritmo de Amortización Francesa y cálculo de meses restantes (Criterio 70-77)
+ * Conversión de Tasa Anual a Tasa Periódica Mensual (i_m):
+ * - Tasa Efectiva Anual (E.A.): i_m = (1 + EA)^(1/12) - 1
+ * - Tasa Anual Nominal (M.V.): i_m = Tasa Anual / (12 * 100)
+ */
+export function calculateMonthlyRate(annualRate: number, isNominal: boolean = false): number {
+  if (annualRate <= 0) return 0;
+  if (isNominal) {
+    return annualRate / (12 * 100);
+  }
+  return Math.pow(1 + annualRate / 100, 1 / 12) - 1;
+}
+
+/**
+ * Cálculo de la Cuota Mensual Fija (C) — Amortización Francesa:
+ * C = P * [ (i_m * (1 + i_m)^n) / ((1 + i_m)^n - 1) ]
+ * Si i_m == 0: C = P / n
+ */
+export function calculateMonthlyPayment(
+  originalAmount: number,
+  totalMonths: number,
+  annualInterestRate: number,
+  isNominal: boolean = false,
+): number {
+  if (originalAmount <= 0 || totalMonths <= 0) return 0;
+  const im = calculateMonthlyRate(annualInterestRate, isNominal);
+  if (im <= 0) {
+    return Math.round(originalAmount / totalMonths);
+  }
+  const factor = Math.pow(1 + im, totalMonths);
+  const payment = (originalAmount * (im * factor)) / (factor - 1);
+  return Math.round(payment);
+}
+
+/**
+ * Diferencia en meses entre fecha inicio y fecha de evaluación
+ */
+export function differenceInMonths(startDateStr: string, currentDate: Date = new Date()): number {
+  if (!startDateStr) return 0;
+  const parts = startDateStr.split('-').map(Number);
+  if (parts.length < 2 || !parts[0] || !parts[1]) return 0;
+  const start = new Date(parts[0], parts[1] - 1, parts[2] || 1);
+  const diffYears = currentDate.getFullYear() - start.getFullYear();
+  const diffMonths = currentDate.getMonth() - start.getMonth();
+  return Math.max(0, diffYears * 12 + diffMonths);
+}
+
+/**
+ * Algoritmo de Cálculo de Cuotas Pagadas y Meses Restantes (n_restantes):
+ * Dada la cuota fija C, saldo actual S y tasa periódica i_m:
+ * n_restantes = ceil( -ln(1 - (S * i_m) / C) / ln(1 + i_m) )
+ */
+export function calculateRemainingMonths(
+  balance: number,
+  monthlyPayment: number,
+  annualInterestRate: number,
+  totalMonths?: number,
+  paidInstallmentsCount: number = 0,
+  isNominal: boolean = false,
+): number {
+  if (balance <= 0) return 0;
+  const im = calculateMonthlyRate(annualInterestRate, isNominal);
+  let nRestantes: number;
+
+  if (monthlyPayment <= 0) {
+    return totalMonths ? Math.max(0, totalMonths - paidInstallmentsCount) : 0;
+  }
+
+  if (im <= 0) {
+    nRestantes = Math.ceil(balance / monthlyPayment);
+  } else {
+    const ratio = (balance * im) / monthlyPayment;
+    if (ratio >= 1) {
+      // Si los intereses superan o igualan la cuota pactada
+      nRestantes = totalMonths ?? 600;
+    } else {
+      const raw = -Math.log(1 - ratio) / Math.log(1 + im);
+      // Redondear a 6 decimales para evitar problemas de precisión en Math.ceil (ej. 59.000000000002)
+      const rounded = Math.round(raw * 1e6) / 1e6;
+      nRestantes = Math.ceil(rounded);
+    }
+  }
+
+  if (totalMonths && totalMonths > 0) {
+    const maxByInstallments = Math.max(0, totalMonths - paidInstallmentsCount);
+    if (paidInstallmentsCount > 0 && maxByInstallments > 0) {
+      nRestantes = Math.min(nRestantes, maxByInstallments);
+    }
+    nRestantes = Math.min(totalMonths, nRestantes);
+  }
+
+  return Math.max(0, nRestantes);
+}
+
+/**
+ * Algoritmo de Amortización Francesa y cálculo de meses restantes
  */
 export function calculateAmortization(
   debt: Pick<Debt, 'currentBalance' | 'monthlyPayment' | 'annualInterestRate'> & {
     totalMonths?: number;
     originalAmount?: number;
+    paidInstallmentsCount?: number;
   },
   baseDate: Date = new Date(),
 ): AmortizationResult {
-  // 1. Si la deuda está saldada o saldo <= 0
   if (debt.currentBalance <= 0) {
     return {
       remainingMonths: 0,
@@ -113,85 +208,43 @@ export function calculateAmortization(
     };
   }
 
-  // 2. Si tiene definido totalMonths (número de meses pactado para el crédito):
-  // Los meses restantes se calculan en base al saldo pendiente y la cuota pactada.
-  if (debt.totalMonths && debt.totalMonths > 0) {
-    let remainingMonths: number;
-    if (debt.monthlyPayment > 0) {
-      remainingMonths = Math.ceil(debt.currentBalance / debt.monthlyPayment);
-      remainingMonths = Math.min(debt.totalMonths, remainingMonths);
-    } else {
-      remainingMonths = debt.totalMonths;
-    }
-    remainingMonths = Math.max(0, remainingMonths);
-
-    const projectedEndDate = new Date(
-      baseDate.getFullYear(),
-      baseDate.getMonth() + remainingMonths,
-      1,
-    );
-
-    const monthly36Series: number[] = [];
-    let s = debt.currentBalance;
-    const monthlyStep =
-      debt.monthlyPayment > 0
-        ? debt.monthlyPayment
-        : debt.currentBalance / debt.totalMonths;
-
-    for (let i = 0; i <= 36; i++) {
-      monthly36Series.push(Math.round(s));
-      s = Math.max(0, s - monthlyStep);
-    }
-
-    return {
-      remainingMonths,
-      projectedEndDate,
-      projectedDateFormatted: formatMonthYear(projectedEndDate),
-      monthly36Series: monthly36Series.slice(0, 37),
-    };
-  }
-
-  // 3. Algoritmo de Amortización Francesa clásico (para deudas históricas sin totalMonths)
-  const r = debt.annualInterestRate / (12 * 100);
-  let s = debt.currentBalance;
-  let months = 0;
-
-  // Serie para los 36 meses (mes 0 = saldo actual)
-  const monthly36Series: number[] = [s];
-
-  while (s > 0 && months < 600) {
-    months++;
-    const interest = s * r;
-    const amortization = debt.monthlyPayment - interest;
-
-    if (amortization <= 0) {
-      // Si la cuota no cubre ni los intereses, el saldo no decrece
-      break;
-    }
-
-    s = Math.max(0, s - amortization);
-
-    if (months <= 36) {
-      monthly36Series.push(Math.round(s));
-    }
-  }
-
-  // Si se amortizó antes del mes 36, rellenar los meses restantes con 0
-  while (monthly36Series.length <= 37) {
-    monthly36Series.push(0);
-  }
+  const remainingMonths = calculateRemainingMonths(
+    debt.currentBalance,
+    debt.monthlyPayment,
+    debt.annualInterestRate,
+    debt.totalMonths,
+    debt.paidInstallmentsCount ?? 0,
+  );
 
   const projectedEndDate = new Date(
     baseDate.getFullYear(),
-    baseDate.getMonth() + months,
+    baseDate.getMonth() + remainingMonths,
     1,
   );
 
+  const im = calculateMonthlyRate(debt.annualInterestRate);
+  const monthly36Series: number[] = [Math.round(debt.currentBalance)];
+  let s = debt.currentBalance;
+
+  for (let k = 1; k <= 36; k++) {
+    if (s <= 0 || k > remainingMonths) {
+      s = 0;
+    } else {
+      const interest = s * im;
+      const amort = debt.monthlyPayment > 0 ? Math.max(0, debt.monthlyPayment - interest) : 0;
+      s = Math.max(0, s - amort);
+      if (k === remainingMonths || s < 1) {
+        s = 0;
+      }
+    }
+    monthly36Series.push(Math.round(s));
+  }
+
   return {
-    remainingMonths: months,
+    remainingMonths,
     projectedEndDate,
-    projectedDateFormatted: formatMonthYear(projectedEndDate),
-    monthly36Series: monthly36Series.slice(0, 37),
+    projectedDateFormatted: remainingMonths === 0 ? 'Liquidada' : formatMonthYear(projectedEndDate),
+    monthly36Series,
   };
 }
 

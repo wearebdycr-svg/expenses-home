@@ -84,6 +84,7 @@ describe('DebtFormModal', () => {
     component['person'].set('Benny');
     component['name'].set('Crédito Vehículo');
     component['originalAmount'].set('30000000');
+    component['totalMonths'].set('36');
     component['currentBalance'].set('14200000');
     component['monthlyPayment'].set('450000');
     component['annualInterestRate'].set('10.2');
@@ -97,7 +98,7 @@ describe('DebtFormModal', () => {
       currentBalance: 14_200_000,
       monthlyPayment: 450_000,
       annualInterestRate: 10.2,
-      totalMonths: undefined,
+      totalMonths: 36,
     });
   });
 
@@ -116,6 +117,17 @@ describe('DebtFormModal', () => {
     expect(component['monthlyPayment']()).toBe('1.000.000');
     // currentBalance automatically defaults to originalAmount
     expect(component['currentBalance']()).toBe('12.000.000');
+  });
+
+  it('auto-calculates monthly payment using French amortization formula when interest rate is entered', () => {
+    component['originalAmount'].set('112.500.000');
+    component['totalMonths'].set('60');
+    component['annualInterestRate'].set('15.4');
+
+    component['recalculateMonthlyPayment']();
+
+    // French amortization for 112.5M, 60 months, 15.4% EA:
+    expect(component['monthlyPayment']()).toBe('2.641.608');
   });
 
   it('handles cancel button click', () => {

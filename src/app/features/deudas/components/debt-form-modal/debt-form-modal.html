@@ -18,7 +18,7 @@
       />
 
       <label class="field" [class.has-error]="errors()['startDate']">
-        <span class="field-label">Fecha inicio</span>
+        <span class="field-label">Fecha inicio / Primer pago</span>
         <input
           class="field-control"
           [class.control-error]="errors()['startDate']"
@@ -65,22 +65,36 @@
         }
       </label>
 
-      <label class="field">
-        <span class="field-label">Número de meses</span>
+      <label class="field" [class.has-error]="errors()['totalMonths']">
+        <span class="field-label">Número de meses / Cuotas</span>
         <input
           class="field-control"
+          [class.control-error]="errors()['totalMonths']"
           type="text"
           inputmode="numeric"
-          placeholder="Ej: 12, 24, 36..."
+          placeholder="Ej: 12, 24, 60..."
           [value]="totalMonths()"
           (input)="onMonthsInput($event)"
         />
+        @if (errors()['totalMonths']) {
+          <span class="field-error-msg">{{ errors()['totalMonths'] }}</span>
+        }
       </label>
     </div>
 
     <div class="form-row">
       <label class="field" [class.has-error]="errors()['monthlyPayment']">
-        <span class="field-label">Cuota mensual (COP)</span>
+        <div class="field-label-row">
+          <span class="field-label">Cuota mensual (COP)</span>
+          <button
+            type="button"
+            class="btn-calc"
+            (click)="recalculateMonthlyPayment()"
+            title="Autocalcular cuota con sistema francés"
+          >
+            ⚡ Autocalcular
+          </button>
+        </div>
         <input
           class="field-control"
           [class.control-error]="errors()['monthlyPayment']"
@@ -96,7 +110,7 @@
       </label>
 
       <label class="field">
-        <span class="field-label">Tasa anual (%)</span>
+        <span class="field-label">Tasa anual (% E.A.)</span>
         <input
           class="field-control"
           type="text"
@@ -110,7 +124,7 @@
 
     <div class="form-row">
       <label class="field" [class.has-error]="errors()['currentBalance']">
-        <span class="field-label">Saldo actual inicial (COP)</span>
+        <span class="field-label">Saldo actual inicial (Opcional)</span>
         <input
           class="field-control"
           [class.control-error]="errors()['currentBalance']"
@@ -120,6 +134,7 @@
           [value]="currentBalance()"
           (input)="onCurrentBalanceInput($event)"
         />
+        <span class="field-hint">Si no se especifica, por defecto toma el valor del monto original.</span>
         @if (errors()['currentBalance']) {
           <span class="field-error-msg">{{ errors()['currentBalance'] }}</span>
         }

@@ -1,7 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { DebtsService } from './debts.service';
 import { ExpensesService } from '../../gastos/data/expenses.service';
-import { calculateAmortization } from './debt.model';
+import {
+  calculateAmortization,
+  calculateMonthlyPayment,
+  calculateMonthlyRate,
+} from './debt.model';
 
 describe('DebtsService', () => {
   let service: DebtsService;
@@ -14,13 +18,13 @@ describe('DebtsService', () => {
   });
 
   it('calculates French amortization properly matching the mockup values', () => {
-    // Hipoteca: 64.5M saldo, 700k cuota, 8.5% tasa -> 150 meses
+    // Hipoteca: 64.5M saldo, 700k cuota, 8.5% tasa EA -> 146 meses
     const hipoteca = calculateAmortization({
       currentBalance: 64_500_000,
       monthlyPayment: 700_000,
       annualInterestRate: 8.5,
     });
-    expect(hipoteca.remainingMonths).toBe(150);
+    expect(hipoteca.remainingMonths).toBe(146);
 
     // Vehículo: 14.2M saldo, 450k cuota, 10.2% tasa -> 37 meses
     const vehiculo = calculateAmortization({
@@ -37,6 +41,68 @@ describe('DebtsService', () => {
       annualInterestRate: 24.0,
     });
     expect(tarjeta.remainingMonths).toBe(9);
+  });
+
+  it('implements official financial formulas for French amortization and remaining months (User Story Acceptance Test)', async () => {
+    // Caso Captura:
+    // Monto Original: 112.500.000, Plazo: 60 meses, Tasa Anual EA: 15.4% (0.154), Fecha: 30/09/2026
+    const P = 112_500_000;
+    const n = 60;
+    const EA = 15.4;
+    const startDate = '2026-09-30';
+
+    // 1. Tasa Mensual (i_m): (1 + 0.154)^(1/12) - 1 ≈ 1.2008%
+    const im = calculateMonthlyRate(EA);
+    expect(im).toBeCloseTo(0.0120, 3);
+
+    // 2. Cuota Mensual Fija
+    const cuotaCalculada = calculateMonthlyPayment(P, n, EA);
+    expect(cuotaCalculada).toBe(2_641_608);
+
+    const cuota = 2_628_784;
+
+    service['debts'].set([
+      {
+        id: 'debt-acceptance-test',
+        name: 'Crédito Principal',
+        person: 'Compartido',
+        startDate,
+        originalAmount: P,
+        currentBalance: P,
+        monthlyPayment: cuota,
+        annualInterestRate: EA,
+        totalMonths: n,
+        color: '#3b82f6',
+        status: 'activa',
+      },
+    ]);
+
+    // 3. Tras pagar 1 cuota registrada en Gastos:
+    await expensesService.addExpense({
+      date: '2026-09-30',
+      person: 'Compartido',
+      category: 'Crédito Principal',
+      description: 'Pago cuota 1',
+      amount: cuota,
+    });
+
+    const liveDebt = service.allDebts().find((d) => d.id === 'debt-acceptance-test')!;
+
+    // Saldo Actual Esperado: ~111.222.082 (esperado alrededor de 111.222.180)
+    expect(liveDebt.currentBalance).toBeGreaterThanOrEqual(111_220_000);
+    expect(liveDebt.currentBalance).toBeLessThanOrEqual(111_225_000);
+
+    // % Pagado: ~1.13% - 1.14%
+    const pct = ((liveDebt.originalAmount - liveDebt.currentBalance) / liveDebt.originalAmount) * 100;
+    expect(pct).toBeCloseTo(1.13, 1);
+
+    // Meses Restantes: 59 / 60
+    const amort = calculateAmortization(liveDebt, new Date(2026, 8, 30));
+    expect(amort.remainingMonths).toBe(59);
+
+    // Fin Proyectado: Agosto de 2031
+    expect(amort.projectedDateFormatted.toLowerCase()).toContain('agosto');
+    expect(amort.projectedDateFormatted).toContain('2031');
   });
 
   it('calculates remaining months accurately when totalMonths is defined', () => {

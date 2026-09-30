@@ -15,6 +15,7 @@ import {
   type ExpensePerson,
 } from '../../../gastos/data/expense.model';
 import type { Debt, DebtDraft, DebtPerson } from '../../data/debt.model';
+import { calculateMonthlyPayment } from '../../data/debt.model';
 import { formatThousands, parseThousands } from '../../../../shared/utils/format.utils';
 
 function todayIso(): string {
@@ -59,6 +60,8 @@ export class DebtFormModal {
     if (!this.startDate()) errs['startDate'] = 'La fecha de inicio es obligatoria';
     const orig = parseThousands(this.originalAmount());
     if (!this.originalAmount() || orig <= 0) errs['originalAmount'] = 'El monto original debe ser mayor a 0';
+    const months = Number(this.totalMonths());
+    if (!this.totalMonths() || months <= 0) errs['totalMonths'] = 'El número de meses debe ser mayor a 0';
     const curr = this.currentBalance().trim() !== '' ? parseThousands(this.currentBalance()) : orig;
     if (curr <= 0) errs['currentBalance'] = 'El saldo actual debe ser mayor a 0';
     const pay = parseThousands(this.monthlyPayment());
@@ -140,19 +143,13 @@ export class DebtFormModal {
     this.recalculateMonthlyPayment();
   }
 
-  private recalculateMonthlyPayment(): void {
+  protected recalculateMonthlyPayment(): void {
     const amount = parseThousands(this.originalAmount());
     const months = Number(this.totalMonths());
     if (amount > 0 && months > 0) {
       const rate = Number(this.annualInterestRate()) || 0;
-      if (rate > 0) {
-        const r = rate / (12 * 100);
-        const factor = Math.pow(1 + r, months);
-        const payment = Math.round((amount * (r * factor)) / (factor - 1));
-        this.monthlyPayment.set(formatThousands(payment));
-      } else {
-        this.monthlyPayment.set(formatThousands(Math.round(amount / months)));
-      }
+      const payment = calculateMonthlyPayment(amount, months, rate);
+      this.monthlyPayment.set(formatThousands(payment));
     }
   }
 
@@ -161,12 +158,12 @@ export class DebtFormModal {
     const name = this.name().trim();
     const person = this.person();
     const original = parseThousands(this.originalAmount());
-    const months = Number(this.totalMonths()) || undefined;
+    const months = Number(this.totalMonths());
     const current = this.currentBalance().trim() !== '' ? parseThousands(this.currentBalance()) : original;
-    const payment = parseThousands(this.monthlyPayment()) || (months ? Math.round(original / months) : 0);
+    const payment = parseThousands(this.monthlyPayment());
     const rate = Number(this.annualInterestRate()) || 0;
 
-    if (!person || !name || original <= 0 || current <= 0 || payment <= 0 || isNaN(rate) || !this.startDate()) {
+    if (!person || !name || original <= 0 || !months || months <= 0 || current <= 0 || payment <= 0 || isNaN(rate) || !this.startDate()) {
       return;
     }
 

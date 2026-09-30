@@ -10,6 +10,8 @@ import type {
 import {
   DEBT_PALETTE,
   calculateAmortization,
+  calculateMonthlyRate,
+  differenceInMonths,
   generate36MonthLabels,
   generateDebtId,
 } from './debt.model';
@@ -80,8 +82,8 @@ export class DebtsService {
     const allExpenses = this.expensesService.allExpenses();
 
     return rawDebts.map((d) => {
-      // 1. Amortización acumulada: Gastos registrados con la categoría exacta de esta deuda
-      const amortizedAmount = allExpenses
+      // 1. Filtrar y ordenar cronológicamente los gastos registrados para esta deuda
+      const matchingExpenses = allExpenses
         .filter((e) => {
           if (!e.category) return false;
           const cat = e.category.trim().toLowerCase();
@@ -93,20 +95,49 @@ export class DebtsService {
             (cat === 'deudas' && e.description.toLowerCase().includes(debtName))
           );
         })
-        .reduce((sum, e) => sum + e.amount, 0);
+        .sort((a, b) => a.date.localeCompare(b.date));
 
-      // 2. Base de cálculo inicial: Saldo base de apertura o Monto Total Inicial
-      const startingBase = d.currentBalance ?? d.originalAmount;
+      const im = calculateMonthlyRate(d.annualInterestRate);
+      let balance = d.currentBalance ?? d.originalAmount;
+      let totalAmortized = 0;
+      let paidInstallmentsCount = 0;
 
-      const liveBalance = Math.max(0, startingBase - amortizedAmount);
-      const isSettled = liveBalance <= 0 || d.status === 'saldada';
+      for (const e of matchingExpenses) {
+        const desc = (e.description || '').toLowerCase();
+        const isPrepayment =
+          desc.includes('capital') ||
+          (desc.includes('abono') && !desc.includes('cuota'));
+
+        if (isPrepayment || im <= 0) {
+          // Abono directo a capital o crédito sin intereses
+          const amort = Math.min(balance, e.amount);
+          balance = Math.max(0, balance - amort);
+          totalAmortized += amort;
+        } else {
+          // Cuota periódica regular con amortización francesa
+          const interest = balance * im;
+          const amort = Math.min(balance, Math.max(0, e.amount - interest));
+          balance = Math.max(0, balance - amort);
+          totalAmortized += amort;
+          paidInstallmentsCount += 1;
+        }
+      }
+
+      // Si no hay gastos registrados pero la deuda tiene fecha de inicio en el pasado,
+      // estimar cuotas transcurridas para coherencia de proyección
+      if (matchingExpenses.length === 0 && d.startDate) {
+        paidInstallmentsCount = differenceInMonths(d.startDate, new Date());
+      }
+
+      const isSettled = balance <= 0 || d.status === 'saldada';
       const status = isSettled ? ('saldada' as const) : ('activa' as const);
 
       return {
         ...d,
-        currentBalance: liveBalance,
+        currentBalance: Math.round(balance),
         status,
-        totalAmortized: amortizedAmount,
+        totalAmortized: Math.round(totalAmortized),
+        paidInstallmentsCount,
       };
     });
   });
