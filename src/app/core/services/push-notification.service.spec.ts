@@ -123,8 +123,12 @@ describe('PushNotificationService', () => {
 
     await service.handleExpenseCreated(newDraft, monthlyExpenses);
 
-    // Only 100k out of 800k (< 80%)
-    expect(dispatchSpy).not.toHaveBeenCalled();
+    // Only 100k out of 800k (< 80%), so budget alert is NOT triggered
+    expect(dispatchSpy).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: '⚠️ Tope Financiero en Riesgo',
+      })
+    );
   });
 
   it('does not trigger alerts when enablePushAlerts is false', async () => {

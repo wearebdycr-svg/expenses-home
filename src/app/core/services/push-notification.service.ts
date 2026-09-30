@@ -202,21 +202,21 @@ export class PushNotificationService {
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth() + 1;
 
-    // 1. Criterio 4.1: Notificación de Gasto Compartido Registrado
-    if (newExpense.person === 'Compartido') {
-      const sharedMessage: PushNotificationMessage = {
-        title: '💸 Nuevo Gasto Compartido',
-        body: `Se registró un gasto de ${formatCOP(newExpense.amount)} en ${newExpense.category}.`,
-        icon: '/favicon.svg',
-        data: {
-          url: '/#gastos',
-          category: newExpense.category,
-        },
-        targetPerson: 'all',
-      };
+    // 1. Notificación a los demás dispositivos para cualquier gasto registrado (Charlie, Benny o Compartido)
+    const creator = newExpense.person || 'Alguien';
+    const descText = newExpense.description ? ` (${newExpense.description})` : '';
+    const expenseMessage: PushNotificationMessage = {
+      title: creator === 'Compartido' ? '💸 Nuevo Gasto Compartido' : `💸 ${creator} registró un gasto`,
+      body: `${formatCOP(newExpense.amount)} en ${newExpense.category}${descText}`,
+      icon: '/favicon.svg',
+      data: {
+        url: '/#gastos',
+        category: newExpense.category,
+      },
+      targetPerson: 'all',
+    };
 
-      await this.dispatchPushNotification(sharedMessage);
-    }
+    await this.dispatchPushNotification(expenseMessage);
 
     // 2. Criterio 3.1: Disparo de Notificación por Consumo Excedido (Push Automatizado)
     const budget = this.remoteConfig.getBudgetForCategory(newExpense.category);
