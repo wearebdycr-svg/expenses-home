@@ -1,19 +1,9 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
 
-export interface PushNotificationPayload {
-  title: string;
-  body: string;
-  icon?: string;
-  data?: Record<string, string>;
-  targetPerson?: 'Benny' | 'Charlie' | 'all';
-  household_id?: string;
-}
-
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req, res) {
   // Manejo de CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -27,14 +17,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Método no permitido' });
   }
 
-  const { title, body, icon, data, targetPerson, household_id } = (req.body || {}) as PushNotificationPayload;
+  const { title, body, icon, data, targetPerson } = req.body || {};
 
   if (!title || !body) {
     return res.status(400).json({ error: 'Título y cuerpo son requeridos' });
   }
 
   try {
-    let tokens: string[] = [];
+    let tokens = [];
 
     // 1. Obtener tokens de Supabase
     if (supabaseUrl && supabaseAnonKey) {
@@ -47,7 +37,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const { data: dbTokens, error } = await query;
       if (!error && dbTokens) {
-        tokens = dbTokens.map((t: any) => t.token);
+        tokens = dbTokens.map((t) => t.token);
       }
     }
 
@@ -91,7 +81,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       fcmSent: sentCount,
       notification: { title, body, icon, data },
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error('Error procesando despacho push:', err);
     return res.status(500).json({ error: err.message });
   }

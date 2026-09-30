@@ -1,10 +1,9 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req, res) {
   // Manejo de CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, DELETE');
@@ -45,7 +44,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         message: `Token FCM registrado para ${person}`,
         token,
       });
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error al registrar token FCM:', err);
       return res.status(500).json({ error: err.message });
     }
