@@ -324,9 +324,66 @@ export class DebtsService {
         const finalDebts = [...mapped, ...localPending];
         this.debts.set(finalDebts);
         this.persistLocal(finalDebts);
+
+        // Auto-sincronizar deudas pendientes locales en Supabase
+        if (localPending.length > 0) {
+          this.syncPendingDebtsToSupabase(localPending);
+        }
       }
     } catch (err: any) {
       console.warn('Error conectando a Supabase para deudas:', err);
+    }
+  }
+
+  private async syncPendingDebtsToSupabase(pending: Debt[]): Promise<void> {
+    for (const d of pending) {
+      try {
+        const payload: Record<string, any> = {
+          name: d.name,
+          person: d.person,
+          start_date: d.startDate,
+          original_amount: d.originalAmount,
+          current_balance: d.currentBalance,
+          monthly_payment: d.monthlyPayment,
+          annual_interest_rate: d.annualInterestRate,
+          color: d.color,
+          status: d.status || 'activa',
+        };
+        if (d.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(d.id)) {
+          payload['id'] = d.id;
+        }
+        if (d.totalMonths != null) {
+          payload['total_months'] = d.totalMonths;
+        }
+
+        let { data, error } = await this.supabase.client
+          .from('debts')
+          .insert([payload])
+          .select()
+          .single();
+
+        if (error && error.message.includes('total_months')) {
+          delete payload['total_months'];
+          const retry = await this.supabase.client
+            .from('debts')
+            .insert([payload])
+            .select()
+            .single();
+          data = retry.data;
+          error = retry.error;
+        }
+
+        if (error) {
+          console.warn(`Supabase: No se pudo auto-sincronizar la deuda "${d.name}":`, error.message);
+        } else if (data && data.id) {
+          if (String(data.id) !== d.id) {
+            d.id = String(data.id);
+            this.persistLocal(this.debts());
+          }
+        }
+      } catch (err: any) {
+        console.warn(`Supabase: Error de red sincronizando deuda "${d.name}":`, err);
+      }
     }
   }
 
@@ -346,25 +403,40 @@ export class DebtsService {
     this.persistLocal(updated);
 
     try {
-      const { data, error } = await this.supabase.client
+      const payload: Record<string, any> = {
+        name: newDebt.name,
+        person: newDebt.person,
+        start_date: newDebt.startDate,
+        original_amount: newDebt.originalAmount,
+        current_balance: newDebt.currentBalance,
+        monthly_payment: newDebt.monthlyPayment,
+        annual_interest_rate: newDebt.annualInterestRate,
+        color: newDebt.color,
+        status: newDebt.status,
+      };
+      if (newDebt.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(newDebt.id)) {
+        payload['id'] = newDebt.id;
+      }
+      if (newDebt.totalMonths != null) {
+        payload['total_months'] = newDebt.totalMonths;
+      }
+
+      let { data, error } = await this.supabase.client
         .from('debts')
-        .insert([
-          {
-            id: newDebt.id,
-            name: newDebt.name,
-            person: newDebt.person,
-            start_date: newDebt.startDate,
-            original_amount: newDebt.originalAmount,
-            current_balance: newDebt.currentBalance,
-            monthly_payment: newDebt.monthlyPayment,
-            annual_interest_rate: newDebt.annualInterestRate,
-            total_months: newDebt.totalMonths || null,
-            color: newDebt.color,
-            status: newDebt.status,
-          },
-        ])
+        .insert([payload])
         .select()
         .single();
+
+      if (error && error.message.includes('total_months')) {
+        delete payload['total_months'];
+        const retry = await this.supabase.client
+          .from('debts')
+          .insert([payload])
+          .select()
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
 
       if (error) {
         console.error('Error insertando deuda en Supabase:', error.message);
@@ -389,20 +461,33 @@ export class DebtsService {
     this.persistLocal(updated);
 
     try {
-      const { error } = await this.supabase.client
+      const payload: Record<string, any> = {
+        name: draft.name,
+        person: draft.person,
+        start_date: draft.startDate,
+        original_amount: draft.originalAmount,
+        current_balance: draft.currentBalance,
+        monthly_payment: draft.monthlyPayment,
+        annual_interest_rate: draft.annualInterestRate,
+        status: draft.status || 'activa',
+      };
+      if (draft.totalMonths != null) {
+        payload['total_months'] = draft.totalMonths;
+      }
+
+      let { error } = await this.supabase.client
         .from('debts')
-        .update({
-          name: draft.name,
-          person: draft.person,
-          start_date: draft.startDate,
-          original_amount: draft.originalAmount,
-          current_balance: draft.currentBalance,
-          monthly_payment: draft.monthlyPayment,
-          annual_interest_rate: draft.annualInterestRate,
-          total_months: draft.totalMonths || null,
-          status: draft.status || 'activa',
-        })
+        .update(payload)
         .eq('id', id);
+
+      if (error && error.message.includes('total_months')) {
+        delete payload['total_months'];
+        const retry = await this.supabase.client
+          .from('debts')
+          .update(payload)
+          .eq('id', id);
+        error = retry.error;
+      }
 
       if (error) {
         console.error('Error actualizando deuda en Supabase:', error.message);
