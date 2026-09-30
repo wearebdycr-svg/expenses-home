@@ -43,7 +43,7 @@ export class ExpenseFormModal {
 
   protected readonly date = signal(todayIso());
   protected readonly person = signal<ExpensePerson>('Benny');
-  protected readonly category = signal<ExpenseCategory>('Alimentación');
+  protected readonly category = signal<ExpenseCategory>('Mercado');
   protected readonly description = signal('');
   protected readonly amount = signal('');
 
@@ -66,7 +66,7 @@ export class ExpenseFormModal {
       const existing = this.expense();
       this.date.set(existing?.date ?? todayIso());
       this.person.set(existing?.person ?? 'Benny');
-      this.category.set(existing?.category ?? 'Alimentación');
+      this.category.set(existing?.category ?? 'Mercado');
       this.description.set(existing?.description ?? '');
       this.amount.set(existing ? String(existing.amount) : '');
     });

@@ -53,7 +53,7 @@ describe('TcService - Módulo TC Compartida y Conciliación', () => {
       person: 'Charlie',
       description: 'Cena Aniversario',
       amount: 200_000,
-      category: 'Restaurantes',
+      category: 'Entretenimiento/salidas',
     });
 
     expect(tcService.totalConsumptions()).toBe(500_000);
@@ -64,7 +64,7 @@ describe('TcService - Módulo TC Compartida y Conciliación', () => {
     expensesService.addExpense({
       date: '2026-07-14',
       person: 'Benny',
-      category: 'Alimentación',
+      category: 'Mercado',
       description: 'Panadería',
       amount: 50_000,
     });
@@ -149,7 +149,7 @@ describe('TcService - Módulo TC Compartida y Conciliación', () => {
       person: 'Benny',
       description: 'Monitor LG',
       amount: 150_000,
-      category: 'Tecnología',
+      category: 'Compras',
     });
 
     tcService.addTcExpense({
@@ -157,7 +157,7 @@ describe('TcService - Módulo TC Compartida y Conciliación', () => {
       person: 'Charlie',
       description: 'Zapatos Deportivos',
       amount: 200_000,
-      category: 'Ropa',
+      category: 'Compras',
     });
 
     tcService.setPersonFilter('Benny');

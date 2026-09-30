@@ -31,7 +31,7 @@ describe('ExpensesService', () => {
     service.addExpense({
       date: '2026-07-28',
       person: 'Compartido',
-      category: 'Alimentación',
+      category: 'Mercado',
       description: 'Supermercado',
       amount: 161_657,
     });
@@ -52,7 +52,7 @@ describe('ExpensesService', () => {
     service.addExpense({
       date: '2026-07-10',
       person: 'Benny',
-      category: 'Alimentación',
+      category: 'Mercado',
       description: 'Mercado',
       amount: 200_000,
     });
@@ -62,7 +62,7 @@ describe('ExpensesService', () => {
     expect(breakdown[0].category).toBe('Hogar');
     expect(breakdown[0].amount).toBe(1_800_000);
     expect(breakdown[0].percentage).toBe(90);
-    expect(breakdown[1].category).toBe('Alimentación');
+    expect(breakdown[1].category).toBe('Mercado');
     expect(breakdown[1].percentage).toBe(10);
   });
 
@@ -70,7 +70,7 @@ describe('ExpensesService', () => {
     service.addExpense({
       date: '2026-07-09',
       person: 'Charlie',
-      category: 'Restaurantes',
+      category: 'Entretenimiento/salidas',
       description: 'Sushi',
       amount: 90_000,
     });
@@ -87,7 +87,7 @@ describe('ExpensesService', () => {
     service.addExpense({
       date: '2026-07-25',
       person: 'Benny',
-      category: 'Entretenimiento',
+      category: 'Entretenimiento/salidas',
       description: 'Cine',
       amount: 28_216,
     });

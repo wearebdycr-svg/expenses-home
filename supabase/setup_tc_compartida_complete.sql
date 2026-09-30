@@ -1,26 +1,27 @@
 -- ==============================================================================
--- Script Completo: Configuración de TC Compartida y Conciliación
--- Ejecutar en el SQL Editor de Supabase (Primero en DEV, luego en PROD si aplica)
+-- Script Completo: Configuración de Categorías Oficiales y TC Compartida
+-- Ejecutar en el SQL Editor de Supabase (Primero en DEV, luego en PROD)
 -- ==============================================================================
 
--- 1. Actualizar la restricción de categorías en public.expenses para incluir 'TC-compartida'
+-- 1. Actualizar la restricción de categorías en public.expenses con las 15 categorías oficiales
 ALTER TABLE public.expenses DROP CONSTRAINT IF EXISTS expenses_category_check;
 
 ALTER TABLE public.expenses ADD CONSTRAINT expenses_category_check CHECK (category IN (
-    'Alimentación',
-    'Transporte',
-    'Salud',
-    'Entretenimiento',
+    'Ahorro/inversión',
+    'Compras',
+    'Deudas',
     'Educación',
-    'Ropa',
-    'Tecnología',
-    'Restaurantes',
-    'Cuidado Personal',
+    'Entretenimiento/salidas',
     'Hogar',
-    'Servicios',
-    'Ahorro / Inversión',
-    'TC-compartida',
-    'Otros'
+    'Mercado',
+    'Otros',
+    'Regalos',
+    'Salud',
+    'Servicios públicos',
+    'Suscripciones',
+    'Transporte',
+    'Viajes',
+    'TC-compartida'
 ));
 
 -- 2. Crear la tabla de consumos directos de la Tarjeta de Crédito (public.tc_expenses)

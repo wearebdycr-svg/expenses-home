@@ -40,20 +40,21 @@ export interface LegendCategoryItem {
 }
 
 export const CATEGORY_COLORS: Record<ExpenseCategory, string> = {
+  'Ahorro/inversión': '#14b8a6',
+  Compras: '#ec4899',
+  Deudas: '#ef4444',
+  Educación: '#eab308',
+  'Entretenimiento/salidas': '#a855f7',
   Hogar: '#84cc16',
-  Alimentación: '#10b981',
-  Transporte: '#3b82f6',
-  Restaurantes: '#ef4444',
-  Servicios: '#64748b',
-  Entretenimiento: '#a855f7',
-  Salud: '#ec4899',
-  Ropa: '#f97316',
-  Educación: '#06b6d4',
-  'Cuidado Personal': '#f43f5e',
-  Tecnología: '#6366f1',
-  'Ahorro / Inversión': '#14b8a6',
-  'TC-compartida': '#8b5cf6',
+  Mercado: '#10b981',
   Otros: '#94a3b8',
+  Regalos: '#f97316',
+  Salud: '#06b6d4',
+  'Servicios públicos': '#64748b',
+  Suscripciones: '#6366f1',
+  Transporte: '#2563eb',
+  Viajes: '#0ea5e9',
+  'TC-compartida': '#8b5cf6',
 };
 
 export const MEMBER_COLORS: Record<ExpensePerson, string> = {

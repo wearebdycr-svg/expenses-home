@@ -34,7 +34,7 @@ describe('TcTable', () => {
       person: 'Benny',
       description: 'Cena Restaurante',
       amount: 120_000,
-      category: 'Restaurantes',
+      category: 'Entretenimiento/salidas',
     });
 
     fixture.detectChanges();

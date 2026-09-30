@@ -2,20 +2,21 @@ export type ExpensePerson = 'Benny' | 'Charlie' | 'Compartido';
 export type ExpensePersonFilter = 'Todos' | 'Benny' | 'Charlie' | 'Compartido';
 
 export type ExpenseCategory =
-  | 'Alimentación'
-  | 'Transporte'
-  | 'Salud'
-  | 'Entretenimiento'
+  | 'Ahorro/inversión'
+  | 'Compras'
+  | 'Deudas'
   | 'Educación'
-  | 'Ropa'
-  | 'Tecnología'
-  | 'Restaurantes'
-  | 'Cuidado Personal'
+  | 'Entretenimiento/salidas'
   | 'Hogar'
-  | 'Servicios'
-  | 'Ahorro / Inversión'
-  | 'TC-compartida'
-  | 'Otros';
+  | 'Mercado'
+  | 'Otros'
+  | 'Regalos'
+  | 'Salud'
+  | 'Servicios públicos'
+  | 'Suscripciones'
+  | 'Transporte'
+  | 'Viajes'
+  | 'TC-compartida';
 
 export interface Expense {
   id: string;
@@ -70,20 +71,21 @@ export const MONTH_ABBREVIATIONS: readonly string[] = [
 export const EXPENSE_PERSONS: readonly ExpensePerson[] = ['Benny', 'Charlie', 'Compartido'];
 
 export const EXPENSE_CATEGORIES: readonly ExpenseCategory[] = [
-  'Alimentación',
-  'Transporte',
-  'Salud',
-  'Entretenimiento',
+  'Ahorro/inversión',
+  'Compras',
+  'Deudas',
   'Educación',
-  'Ropa',
-  'Tecnología',
-  'Restaurantes',
-  'Cuidado Personal',
+  'Entretenimiento/salidas',
   'Hogar',
-  'Servicios',
-  'Ahorro / Inversión',
-  'TC-compartida',
+  'Mercado',
   'Otros',
+  'Regalos',
+  'Salud',
+  'Servicios públicos',
+  'Suscripciones',
+  'Transporte',
+  'Viajes',
+  'TC-compartida',
 ];
 
 export const EXPENSE_PERSON_COLORS: Record<ExpensePerson, string> = {
@@ -93,20 +95,21 @@ export const EXPENSE_PERSON_COLORS: Record<ExpensePerson, string> = {
 };
 
 export const EXPENSE_CATEGORY_COLORS: Record<ExpenseCategory, string> = {
-  Hogar: '#84cc16',
-  Alimentación: '#10b981',
-  Transporte: '#3b82f6',
-  Servicios: '#64748b',
-  Restaurantes: '#ef4444',
-  Salud: '#06b6d4',
-  Entretenimiento: '#a855f7',
+  'Ahorro/inversión': '#14b8a6',
+  Compras: '#ec4899',
+  Deudas: '#ef4444',
   Educación: '#eab308',
-  Ropa: '#ec4899',
-  Tecnología: '#6366f1',
-  'Cuidado Personal': '#f97316',
-  'Ahorro / Inversión': '#14b8a6',
-  'TC-compartida': '#8b5cf6',
+  'Entretenimiento/salidas': '#a855f7',
+  Hogar: '#84cc16',
+  Mercado: '#10b981',
   Otros: '#94a3b8',
+  Regalos: '#f97316',
+  Salud: '#06b6d4',
+  'Servicios públicos': '#64748b',
+  Suscripciones: '#6366f1',
+  Transporte: '#2563eb',
+  Viajes: '#0ea5e9',
+  'TC-compartida': '#8b5cf6',
 };
 
 export function generateExpenseId(): string {

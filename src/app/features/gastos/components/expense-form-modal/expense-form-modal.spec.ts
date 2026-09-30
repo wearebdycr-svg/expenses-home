@@ -14,10 +14,10 @@ describe('ExpenseFormModal', () => {
     fixture.detectChanges();
   });
 
-  it('defaults to "Nuevo Gasto" with Benny and Alimentación preselected', () => {
+  it('defaults to "Nuevo Gasto" with Benny and Mercado preselected', () => {
     expect(fixture.nativeElement.querySelector('.modal-title').textContent).toContain('Nuevo Gasto');
     expect(component['person']()).toBe('Benny');
-    expect(component['category']()).toBe('Alimentación');
+    expect(component['category']()).toBe('Mercado');
     expect(component['description']()).toBe('');
     expect(component['amount']()).toBe('');
   });
@@ -27,7 +27,7 @@ describe('ExpenseFormModal', () => {
       id: 'exp-100',
       date: '2026-07-28',
       person: 'Compartido',
-      category: 'Alimentación',
+      category: 'Mercado',
       description: 'Supermercado',
       amount: 161_657,
     };
@@ -38,7 +38,7 @@ describe('ExpenseFormModal', () => {
     expect(fixture.nativeElement.querySelector('.modal-title').textContent).toContain('Editar Gasto');
     expect(component['date']()).toBe('2026-07-28');
     expect(component['person']()).toBe('Compartido');
-    expect(component['category']()).toBe('Alimentación');
+    expect(component['category']()).toBe('Mercado');
     expect(component['description']()).toBe('Supermercado');
     expect(component['amount']()).toBe('161657');
   });
@@ -69,7 +69,7 @@ describe('ExpenseFormModal', () => {
     expect(spy).toHaveBeenCalledWith({
       date: component['date'](),
       person: 'Benny',
-      category: 'Alimentación',
+      category: 'Mercado',
       description: 'Supermercado',
       amount: 161_657,
     });

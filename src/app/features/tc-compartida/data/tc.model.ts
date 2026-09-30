@@ -42,13 +42,17 @@ export interface TcKpiSummary {
 
 export const TC_DEFAULT_CATEGORIES: readonly string[] = [
   'General',
-  'Supermercado',
-  'Restaurantes',
-  'Tecnología',
-  'Viajes / Transporte',
+  'Mercado',
+  'Compras',
+  'Entretenimiento/salidas',
+  'Viajes',
+  'Transporte',
   'Hogar',
-  'Entretenimiento',
   'Salud',
+  'Educación',
+  'Servicios públicos',
+  'Suscripciones',
+  'Regalos',
   'Otros',
 ];
 

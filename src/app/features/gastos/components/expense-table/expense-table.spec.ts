@@ -28,7 +28,7 @@ describe('ExpenseTable', () => {
     service.addExpense({
       date: '2026-07-28',
       person: 'Compartido',
-      category: 'Alimentación',
+      category: 'Mercado',
       description: 'Supermercado',
       amount: 161_657,
     });
@@ -43,7 +43,7 @@ describe('ExpenseTable', () => {
     service.addExpense({
       date: '2026-07-28',
       person: 'Compartido',
-      category: 'Alimentación',
+      category: 'Mercado',
       description: 'Supermercado',
       amount: 161_657,
     });
@@ -60,7 +60,7 @@ describe('ExpenseTable', () => {
     service.addExpense({
       date: '2026-07-28',
       person: 'Compartido',
-      category: 'Alimentación',
+      category: 'Mercado',
       description: 'Supermercado',
       amount: 161_657,
     });

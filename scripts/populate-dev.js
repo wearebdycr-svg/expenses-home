@@ -72,18 +72,18 @@ async function main() {
   console.log('3. Registrando gastos diarios...');
   await sendRequest('/rest/v1/expenses', 'POST', [
     { date: '2026-07-05', person: 'Compartido', category: 'Hogar', description: 'Arriendo apartamento', amount: 1800000 },
-    { date: '2026-07-08', person: 'Compartido', category: 'Servicios', description: 'Servicios públicos (Agua, Luz, Gas)', amount: 320000 },
-    { date: '2026-07-09', person: 'Charlie', category: 'Restaurantes', description: 'Cena Sushi', amount: 90000 },
-    { date: '2026-07-10', person: 'Benny', category: 'Alimentación', description: 'Mercado mensual Éxito', amount: 200000 },
+    { date: '2026-07-08', person: 'Compartido', category: 'Servicios públicos', description: 'Servicios públicos (Agua, Luz, Gas)', amount: 320000 },
+    { date: '2026-07-09', person: 'Charlie', category: 'Entretenimiento/salidas', description: 'Cena Sushi', amount: 90000 },
+    { date: '2026-07-10', person: 'Benny', category: 'Mercado', description: 'Mercado mensual Éxito', amount: 200000 },
     { date: '2026-07-12', person: 'Charlie', category: 'Transporte', description: 'Gasolina vehículo', amount: 150000 },
     { date: '2026-07-15', person: 'Benny', category: 'Salud', description: 'Medicamentos Farmacia', amount: 75000 },
-    { date: '2026-07-18', person: 'Compartido', category: 'Servicios', description: 'Internet fibra óptica', amount: 110000 },
-    { date: '2026-07-22', person: 'Charlie', category: 'Restaurantes', description: 'Almuerzo familiar', amount: 120000 },
-    { date: '2026-07-25', person: 'Benny', category: 'Entretenimiento', description: 'Boletas de Cine', amount: 28216 },
-    { date: '2026-07-27', person: 'Benny', category: 'Ropa', description: 'Compra almacén', amount: 145000 },
-    { date: '2026-07-28', person: 'Compartido', category: 'Alimentación', description: 'Supermercado reposición', amount: 161657 },
-    { date: '2026-07-29', person: 'Charlie', category: 'Tecnología', description: 'Audífonos Bluetooth', amount: 89000 },
-    { date: '2026-07-30', person: 'Benny', category: 'Cuidado Personal', description: 'Corte y barbería', amount: 45000 },
+    { date: '2026-07-18', person: 'Compartido', category: 'Servicios públicos', description: 'Internet fibra óptica', amount: 110000 },
+    { date: '2026-07-22', person: 'Charlie', category: 'Entretenimiento/salidas', description: 'Almuerzo familiar', amount: 120000 },
+    { date: '2026-07-25', person: 'Benny', category: 'Entretenimiento/salidas', description: 'Boletas de Cine', amount: 28216 },
+    { date: '2026-07-27', person: 'Benny', category: 'Compras', description: 'Compra almacén', amount: 145000 },
+    { date: '2026-07-28', person: 'Compartido', category: 'Mercado', description: 'Supermercado reposición', amount: 161657 },
+    { date: '2026-07-29', person: 'Charlie', category: 'Compras', description: 'Audífonos Bluetooth', amount: 89000 },
+    { date: '2026-07-30', person: 'Benny', category: 'Salud', description: 'Corte y barbería', amount: 45000 },
   ]);
 
   // 4. Deudas
@@ -99,10 +99,10 @@ async function main() {
   console.log('5. Registrando consumos de TC compartida...');
   try {
     await sendRequest('/rest/v1/tc_expenses', 'POST', [
-      { date: '2026-07-04', person: 'Benny', description: 'Tiquetes Aéreos Vacaciones', amount: 650000, category: 'Viajes / Transporte' },
-      { date: '2026-07-11', person: 'Charlie', description: 'Cena Aniversario Restaurante', amount: 220000, category: 'Restaurantes' },
-      { date: '2026-07-16', person: 'Compartido', description: 'Compra Smart TV Sala', amount: 1400000, category: 'Tecnología' },
-      { date: '2026-07-24', person: 'Benny', description: 'Mercado Mayorista Alkosto', amount: 380000, category: 'Supermercado' },
+      { date: '2026-07-04', person: 'Benny', description: 'Tiquetes Aéreos Vacaciones', amount: 650000, category: 'Viajes' },
+      { date: '2026-07-11', person: 'Charlie', description: 'Cena Aniversario Restaurante', amount: 220000, category: 'Entretenimiento/salidas' },
+      { date: '2026-07-16', person: 'Compartido', description: 'Compra Smart TV Sala', amount: 1400000, category: 'Compras' },
+      { date: '2026-07-24', person: 'Benny', description: 'Mercado Mayorista Alkosto', amount: 380000, category: 'Mercado' },
     ]);
   } catch (err) {
     console.log('   (Tabla tc_expenses aún no creada en Supabase o error:', err.message, ')');

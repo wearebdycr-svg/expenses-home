@@ -70,7 +70,7 @@ describe('TcPage', () => {
     (component as any).onSave({
       date: '2026-07-15',
       person: 'Charlie',
-      category: 'Restaurantes',
+      category: 'Entretenimiento/salidas',
       description: 'Cena',
       amount: 80_000,
     });
@@ -78,7 +78,7 @@ describe('TcPage', () => {
     expect(addSpy).toHaveBeenCalledWith({
       date: '2026-07-15',
       person: 'Charlie',
-      category: 'Restaurantes',
+      category: 'Entretenimiento/salidas',
       description: 'Cena',
       amount: 80_000,
     });

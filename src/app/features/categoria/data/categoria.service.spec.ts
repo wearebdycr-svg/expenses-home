@@ -37,7 +37,7 @@ describe('CategoriaService', () => {
         id: '2',
         date: '2026-07-10',
         person: 'Benny',
-        category: 'Alimentación',
+        category: 'Mercado',
         description: 'Mercado',
         amount: 200_000,
       },
@@ -45,7 +45,7 @@ describe('CategoriaService', () => {
         id: '3',
         date: '2026-07-15',
         person: 'Charlie',
-        category: 'Alimentación',
+        category: 'Mercado',
         description: 'Restaurante',
         amount: 100_000,
       },
@@ -57,7 +57,7 @@ describe('CategoriaService', () => {
     const rows = service.categoryRows();
     expect(rows.length).toBe(2);
 
-    // Sorted DESC by total: Hogar (1.8M) first, then Alimentación (300k)
+    // Sorted DESC by total: Hogar (1.8M) first, then Mercado (300k)
     expect(rows[0].category).toBe('Hogar');
     expect(rows[0].total).toBe(1_800_000);
     expect(rows[0].compartido).toBe(1_800_000);
@@ -65,7 +65,7 @@ describe('CategoriaService', () => {
     expect(rows[0].percentage).toBeCloseTo((1_800_000 / 2_100_000) * 100, 1);
     expect(rows[0].transactionCount).toBe(1);
 
-    expect(rows[1].category).toBe('Alimentación');
+    expect(rows[1].category).toBe('Mercado');
     expect(rows[1].total).toBe(300_000);
     expect(rows[1].benny).toBe(200_000);
     expect(rows[1].charlie).toBe(100_000);
@@ -88,7 +88,7 @@ describe('CategoriaService', () => {
         id: '2',
         date: '2026-08-10',
         person: 'Benny',
-        category: 'Alimentación',
+        category: 'Mercado',
         description: 'Mercado',
         amount: 200_000,
       },
@@ -102,6 +102,6 @@ describe('CategoriaService', () => {
     service.setPerson('Benny');
     expect(service.totalPeriod()).toBe(200_000);
     expect(service.categoriesCount()).toBe(1);
-    expect(service.categoryRows()[0].category).toBe('Alimentación');
+    expect(service.categoryRows()[0].category).toBe('Mercado');
   });
 });

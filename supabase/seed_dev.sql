@@ -25,21 +25,21 @@ INSERT INTO public.incomes (date, person, source, description, amount) VALUES
   ('2026-07-15', 'Benny', 'Freelance', 'Consultoría UI/UX', 850000),
   ('2026-07-20', 'Charlie', 'Inversiones', 'Rendimientos CDT', 180000);
 
--- 4. Insertar Gastos Diarios de Prueba (Julio 2026 - Datos realistas de las HU)
+-- 4. Insertar Gastos Diarios de Prueba (Julio 2026 - Categorías oficiales)
 INSERT INTO public.expenses (date, person, category, description, amount) VALUES
   ('2026-07-05', 'Compartido', 'Hogar', 'Arriendo apartamento', 1800000),
-  ('2026-07-08', 'Compartido', 'Servicios', 'Servicios públicos (Agua, Luz, Gas)', 320000),
-  ('2026-07-09', 'Charlie', 'Restaurantes', 'Cena Sushi', 90000),
-  ('2026-07-10', 'Benny', 'Alimentación', 'Mercado mensual Éxito', 200000),
+  ('2026-07-08', 'Compartido', 'Servicios públicos', 'Servicios públicos (Agua, Luz, Gas)', 320000),
+  ('2026-07-09', 'Charlie', 'Entretenimiento/salidas', 'Cena Sushi', 90000),
+  ('2026-07-10', 'Benny', 'Mercado', 'Mercado mensual Éxito', 200000),
   ('2026-07-12', 'Charlie', 'Transporte', 'Gasolina vehículo', 150000),
   ('2026-07-15', 'Benny', 'Salud', 'Medicamentos Farmacia', 75000),
-  ('2026-07-18', 'Compartido', 'Servicios', 'Internet fibra óptica', 110000),
-  ('2026-07-22', 'Charlie', 'Restaurantes', 'Almuerzo familiar', 120000),
-  ('2026-07-25', 'Benny', 'Entretenimiento', 'Boletas de Cine', 28216),
-  ('2026-07-27', 'Benny', 'Ropa', 'Compra almacén', 145000),
-  ('2026-07-28', 'Compartido', 'Alimentación', 'Supermercado reposición', 161657),
-  ('2026-07-29', 'Charlie', 'Tecnología', 'Audífonos Bluetooth', 89000),
-  ('2026-07-30', 'Benny', 'Cuidado Personal', 'Corte y barbería', 45000);
+  ('2026-07-18', 'Compartido', 'Servicios públicos', 'Internet fibra óptica', 110000),
+  ('2026-07-22', 'Charlie', 'Entretenimiento/salidas', 'Almuerzo familiar', 120000),
+  ('2026-07-25', 'Benny', 'Entretenimiento/salidas', 'Boletas de Cine', 28216),
+  ('2026-07-27', 'Benny', 'Compras', 'Compra almacén', 145000),
+  ('2026-07-28', 'Compartido', 'Mercado', 'Supermercado reposición', 161657),
+  ('2026-07-29', 'Charlie', 'Compras', 'Audífonos Bluetooth', 89000),
+  ('2026-07-30', 'Benny', 'Salud', 'Corte y barbería', 45000);
 
 -- 5. Insertar Deudas de Prueba (HU06)
 INSERT INTO public.debts (name, person, start_date, original_amount, current_balance, monthly_payment, annual_interest_rate, color) VALUES
@@ -51,10 +51,10 @@ INSERT INTO public.debts (name, person, start_date, original_amount, current_bal
 -- 6. Insertar Consumos Directos de TC Compartida de Prueba
 DELETE FROM public.tc_expenses;
 INSERT INTO public.tc_expenses (date, person, description, amount, category) VALUES
-  ('2026-07-04', 'Benny', 'Tiquetes Aéreos Vacaciones', 650000, 'Viajes / Transporte'),
-  ('2026-07-11', 'Charlie', 'Cena Aniversario Restaurante', 220000, 'Restaurantes'),
-  ('2026-07-16', 'Compartido', 'Compra Smart TV Sala', 1400000, 'Tecnología'),
-  ('2026-07-24', 'Benny', 'Mercado Mayorista Alkosto', 380000, 'Supermercado');
+  ('2026-07-04', 'Benny', 'Tiquetes Aéreos Vacaciones', 650000, 'Viajes'),
+  ('2026-07-11', 'Charlie', 'Cena Aniversario Restaurante', 220000, 'Entretenimiento/salidas'),
+  ('2026-07-16', 'Compartido', 'Compra Smart TV Sala', 1400000, 'Compras'),
+  ('2026-07-24', 'Benny', 'Mercado Mayorista Alkosto', 380000, 'Mercado');
 
 -- 7. Insertar Abono de Prueba en Gastos Diarios (Categoría TC-compartida)
 -- Total consumos: 650k + 220k + 1.4M + 380k = $2,650,000
