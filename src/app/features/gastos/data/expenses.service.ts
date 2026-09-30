@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseService } from '../../../core/services/supabase.service';
+import { ToastService } from '../../../core/services/toast.service';
 import type {
   Expense,
   ExpenseCategory,
@@ -45,12 +46,18 @@ function emptyDailySeries(daysInMonth: number = 31): DailyExpenseSeries {
 @Injectable({ providedIn: 'root' })
 export class ExpensesService {
   private readonly supabase = inject(SupabaseService);
+  private readonly toastService = inject(ToastService);
 
   private readonly expenses = signal<Expense[]>([]);
   private lastLocalMutationTime = 0;
   readonly allExpenses = this.expenses.asReadonly();
   readonly loading = signal<boolean>(false);
   readonly error = signal<string | null>(null);
+  readonly openModalRequest = signal<number>(0);
+
+  requestOpenCreateModal(): void {
+    this.openModalRequest.update((n) => n + 1);
+  }
 
   readonly year = signal<number>(new Date().getFullYear());
   readonly month = signal<MonthFilter>(new Date().getMonth() + 1);
@@ -248,6 +255,7 @@ export class ExpensesService {
           found.id = String(data.id);
         }
       }
+      this.toastService.success('Gasto registrado exitosamente');
     } catch (err: any) {
       console.error('Error de red al insertar gasto:', err);
     }
@@ -275,7 +283,9 @@ export class ExpensesService {
       if (error) {
         console.error('Error actualizando gasto en Supabase:', error);
         this.error.set(error.message);
+        return;
       }
+      this.toastService.success('Gasto actualizado correctamente');
     } catch (err: any) {
       console.error('Error de red al actualizar gasto:', err);
     }
@@ -283,8 +293,26 @@ export class ExpensesService {
 
   async deleteExpense(id: string): Promise<void> {
     this.lastLocalMutationTime = Date.now();
+    const existing = this.expenses().find((exp) => exp.id === id);
+
     // Actualización optimista local inmediata
     this.expenses.update((list) => list.filter((exp) => exp.id !== id));
+
+    if (existing) {
+      const backupDraft: ExpenseDraft = {
+        date: existing.date,
+        person: existing.person,
+        category: existing.category,
+        description: existing.description,
+        amount: existing.amount,
+      };
+      this.toastService.success('Gasto eliminado', {
+        label: 'Deshacer',
+        onClick: () => {
+          this.addExpense(backupDraft);
+        },
+      });
+    }
 
     try {
       const { error } = await this.supabase.client

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
 import { Icon } from '../../shared/ui/icon/icon';
 import { ExpenseCategoryChart } from './components/expense-category-chart/expense-category-chart';
 import { ExpenseDailyChart } from './components/expense-daily-chart/expense-daily-chart';
@@ -27,6 +27,15 @@ export class GastosPage {
 
   protected readonly isModalOpen = signal(false);
   protected readonly editingExpense = signal<Expense | null>(null);
+
+  constructor() {
+    effect(() => {
+      const req = this.expensesService.openModalRequest();
+      if (req > 0) {
+        this.openCreateModal();
+      }
+    });
+  }
 
   protected openCreateModal(): void {
     this.editingExpense.set(null);

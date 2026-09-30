@@ -1,0 +1,32 @@
+<div class="toast-viewport" aria-live="polite" aria-atomic="true">
+  @for (toast of toasts(); track toast.id) {
+    <div class="toast-item toast-{{ toast.type }}" role="status">
+      <div class="toast-icon">
+        <app-icon [name]="getIconName(toast.type)" [size]="20" />
+      </div>
+
+      <div class="toast-content">
+        <span class="toast-message">{{ toast.message }}</span>
+      </div>
+
+      @if (toast.action) {
+        <button
+          type="button"
+          class="toast-action-btn"
+          (click)="onActionClick(toast)"
+        >
+          {{ toast.action.label }}
+        </button>
+      }
+
+      <button
+        type="button"
+        class="toast-close-btn"
+        (click)="onDismiss(toast.id)"
+        aria-label="Cerrar notificación"
+      >
+        <app-icon name="x" [size]="16" />
+      </button>
+    </div>
+  }
+</div>

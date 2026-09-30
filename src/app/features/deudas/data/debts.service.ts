@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseService } from '../../../core/services/supabase.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { ExpensesService } from '../../gastos/data/expenses.service';
 import type {
   Debt,
@@ -69,6 +70,7 @@ export const DEFAULT_DEBTS: Debt[] = [
 export class DebtsService {
   private readonly supabase = inject(SupabaseService);
   private readonly expensesService = inject(ExpensesService);
+  private readonly toastService = inject(ToastService);
   private lastLocalMutationTime = 0;
 
   readonly debts = signal<Debt[]>([]);
@@ -382,10 +384,12 @@ export class DebtsService {
         // Si falló la inserción en la base de datos, revertir estado local para no mostrar registros fantasmas
         this.debts.set(current);
         this.persistLocal(current);
+        return;
       } else if (data && data.id) {
         newDebt.id = String(data.id);
         this.persistLocal(this.debts());
       }
+      this.toastService.success('Deuda registrada exitosamente');
     } catch (err: any) {
       console.error('Error de red insertando deuda en Supabase:', err);
     }
@@ -433,12 +437,14 @@ export class DebtsService {
 
       if (error) {
         console.error('Error actualizando deuda en Supabase:', error.message);
+        return;
       }
 
       // Cascada: Si el nombre cambió, actualizar todos los gastos asociados
       if (oldName && oldName !== newName) {
         await this.expensesService.renameCategory(oldName, newName);
       }
+      this.toastService.success('Deuda actualizada correctamente');
     } catch (err: any) {
       console.error('Error de red actualizando deuda en Supabase:', err);
       if (oldName && oldName !== newName) {
@@ -450,9 +456,30 @@ export class DebtsService {
   async deleteDebt(id: string): Promise<void> {
     this.lastLocalMutationTime = Date.now();
     const current = this.debts();
+    const existing = current.find((d) => d.id === id);
     const updated = current.filter((d) => d.id !== id);
     this.debts.set(updated);
     this.persistLocal(updated);
+
+    if (existing) {
+      const backupDraft: DebtDraft = {
+        name: existing.name,
+        person: existing.person,
+        startDate: existing.startDate,
+        originalAmount: existing.originalAmount,
+        currentBalance: existing.currentBalance,
+        monthlyPayment: existing.monthlyPayment,
+        annualInterestRate: existing.annualInterestRate,
+        totalMonths: existing.totalMonths,
+        status: existing.status,
+      };
+      this.toastService.success('Deuda eliminada', {
+        label: 'Deshacer',
+        onClick: () => {
+          this.addDebt(backupDraft);
+        },
+      });
+    }
 
     try {
       const { error } = await this.supabase.client.from('debts').delete().eq('id', id);
@@ -481,6 +508,7 @@ export class DebtsService {
       description: `Abono a capital: ${debt.name}`,
       amount: draft.amount,
     });
+    this.toastService.success('Abono a capital aplicado exitosamente');
   }
 
   private persistLocal(debts: Debt[]): void {

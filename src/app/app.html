@@ -1,6 +1,7 @@
 <div class="app-shell">
   <app-sidebar [currentPage]="currentPage()" (navigate)="onNavigate($event)" />
   <main class="app-content">
+    <app-daily-reminder-banner (registerExpenseClicked)="onNavigate('gastos')" />
     @switch (currentPage()) {
       @case ('gastos') {
         <app-gastos-page />
@@ -26,3 +27,4 @@
     }
   </main>
 </div>
+<app-toast-container />

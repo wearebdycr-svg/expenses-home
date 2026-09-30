@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseService } from '../../../core/services/supabase.service';
+import { ToastService } from '../../../core/services/toast.service';
 import type { Expense, ExpensePerson, ExpensePersonFilter } from '../../gastos/data/expense.model';
 import { EXPENSE_PERSON_COLORS, EXPENSE_PERSONS } from '../../gastos/data/expense.model';
 import { ExpensesService } from '../../gastos/data/expenses.service';
@@ -15,6 +16,7 @@ export type DayFilter = number | 'Todos';
 export class TcService {
   private readonly supabase = inject(SupabaseService);
   private readonly expensesService = inject(ExpensesService);
+  private readonly toastService = inject(ToastService);
 
   private readonly tcExpenses = signal<TcExpense[]>([]);
   readonly allTcExpenses = this.tcExpenses.asReadonly();
@@ -281,6 +283,7 @@ export class TcService {
           return updated;
         });
       }
+      this.toastService.success('Consumo de TC registrado');
     } catch (err: any) {
       console.error('Error de red al insertar consumo TC:', err);
     }
@@ -309,19 +312,39 @@ export class TcService {
       if (error) {
         console.error('Error actualizando consumo TC en Supabase:', error);
         this.error.set(error.message);
+        return;
       }
+      this.toastService.success('Consumo de TC actualizado');
     } catch (err: any) {
       console.error('Error de red al actualizar consumo TC:', err);
     }
   }
 
   async deleteTcExpense(id: string): Promise<void> {
+    const existing = this.tcExpenses().find((item) => item.id === id);
+
     // Actualización optimista
     this.tcExpenses.update((list) => {
       const updated = list.filter((item) => item.id !== id);
       this.saveToStorage(updated);
       return updated;
     });
+
+    if (existing) {
+      const backupDraft: TcExpenseDraft = {
+        date: existing.date,
+        person: existing.person,
+        description: existing.description,
+        amount: existing.amount,
+        category: existing.category,
+      };
+      this.toastService.success('Consumo de TC eliminado', {
+        label: 'Deshacer',
+        onClick: () => {
+          this.addTcExpense(backupDraft);
+        },
+      });
+    }
 
     try {
       const { error } = await this.supabase.client

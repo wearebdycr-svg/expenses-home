@@ -1,0 +1,34 @@
+@if (show()) {
+  <div class="reminder-banner-wrap" role="region" aria-label="Recordatorio diario de gastos">
+    <div class="reminder-banner-card">
+      <div class="reminder-left">
+        <span class="reminder-moon-icon" aria-hidden="true">🌙</span>
+        <div class="reminder-text">
+          <strong class="reminder-title">Recordatorio diario:</strong>
+          <span class="reminder-msg">
+            ¿Tuviste gastos hoy? No olvides reportarlos en FinanzasHogar para mantener las cuentas al día.
+          </span>
+        </div>
+      </div>
+
+      <div class="reminder-actions">
+        <button
+          type="button"
+          class="btn-action-register"
+          (click)="onRegisterClick()"
+        >
+          <app-icon name="plus" [size]="16" />
+          Registrar Gasto de Hoy
+        </button>
+
+        <button
+          type="button"
+          class="btn-action-dismiss"
+          (click)="onNoExpensesClick()"
+        >
+          Hoy no gasté nada
+        </button>
+      </div>
+    </div>
+  </div>
+}

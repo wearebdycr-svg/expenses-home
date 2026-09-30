@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseService } from '../../../core/services/supabase.service';
+import { ToastService } from '../../../core/services/toast.service';
 import type { Income, IncomeDraft, IncomeSource, Person, PersonFilter } from './income.model';
 import { generateId } from './income.model';
 
@@ -29,6 +30,7 @@ function emptyMonthlySeries(): MonthlySeries {
 @Injectable({ providedIn: 'root' })
 export class IncomesService {
   private readonly supabase = inject(SupabaseService);
+  private readonly toastService = inject(ToastService);
 
   private readonly incomes = signal<Income[]>([]);
   private lastLocalMutationTime = 0;
@@ -184,6 +186,7 @@ export class IncomesService {
           found.id = String(data.id);
         }
       }
+      this.toastService.success('Ingreso registrado exitosamente');
     } catch (err: any) {
       console.error('Error de red insertando en Supabase:', err);
     }
@@ -211,7 +214,9 @@ export class IncomesService {
       if (error) {
         console.error('Error actualizando en Supabase:', error);
         this.error.set(error.message);
+        return;
       }
+      this.toastService.success('Ingreso actualizado correctamente');
     } catch (err: any) {
       console.error('Error de red actualizando en Supabase:', err);
     }
@@ -219,8 +224,26 @@ export class IncomesService {
 
   async deleteIncome(id: string): Promise<void> {
     this.lastLocalMutationTime = Date.now();
+    const existing = this.incomes().find((inc) => inc.id === id);
+
     // Actualización optimista local inmediata
     this.incomes.update((list) => list.filter((income) => income.id !== id));
+
+    if (existing) {
+      const backupDraft: IncomeDraft = {
+        date: existing.date,
+        person: existing.person,
+        source: existing.source,
+        description: existing.description,
+        amount: existing.amount,
+      };
+      this.toastService.success('Ingreso eliminado', {
+        label: 'Deshacer',
+        onClick: () => {
+          this.addIncome(backupDraft);
+        },
+      });
+    }
 
     try {
       const { error } = await this.supabase.client

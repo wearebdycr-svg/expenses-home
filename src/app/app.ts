@@ -12,6 +12,8 @@ import { IngresosPage } from './features/ingresos/ingresos';
 import { ResumenPage } from './features/resumen/resumen';
 import { TcPage } from './features/tc-compartida/tc';
 import { Sidebar, type SidebarPageId } from './shared/ui/sidebar/sidebar';
+import { DailyReminderBanner } from './shared/ui/daily-reminder-banner/daily-reminder-banner';
+import { ToastContainer } from './shared/ui/toast-container/toast-container';
 
 export const ACTIVE_PAGE_STORAGE_KEY = 'expenses_home_active_page';
 export const VALID_SIDEBAR_PAGES: readonly SidebarPageId[] = [
@@ -45,7 +47,17 @@ function getInitialPage(): SidebarPageId {
 
 @Component({
   selector: 'app-root',
-  imports: [Sidebar, GastosPage, IngresosPage, ResumenPage, CategoriaPage, DeudasPage, TcPage],
+  imports: [
+    Sidebar,
+    GastosPage,
+    IngresosPage,
+    ResumenPage,
+    CategoriaPage,
+    DeudasPage,
+    TcPage,
+    DailyReminderBanner,
+    ToastContainer,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app.html',
   styleUrl: './app.css',
