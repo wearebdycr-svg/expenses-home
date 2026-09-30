@@ -16,6 +16,8 @@ describe('TcTable', () => {
     fixture = TestBed.createComponent(TcTable);
     component = fixture.componentInstance;
     tcService = TestBed.inject(TcService);
+    tcService.setYear(2026);
+    tcService.setMonth(7);
     fixture.detectChanges();
   });
 

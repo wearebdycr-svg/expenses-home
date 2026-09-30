@@ -11,6 +11,8 @@ describe('TcService - Módulo TC Compartida y Conciliación', () => {
     TestBed.configureTestingModule({});
     expensesService = TestBed.inject(ExpensesService);
     tcService = TestBed.inject(TcService);
+    tcService.setYear(2026);
+    tcService.setMonth(7);
   });
 
   afterEach(() => {
@@ -22,6 +24,35 @@ describe('TcService - Módulo TC Compartida y Conciliación', () => {
     expect(tcService.totalPayments()).toBe(0);
     expect(tcService.pendingDebt()).toBe(0);
     expect(tcService.personFilter()).toBe('Todos');
+  });
+
+  it('filters consumptions and payments by month correctly', () => {
+    tcService.addTcExpense({
+      date: '2026-07-15',
+      person: 'Benny',
+      description: 'Julio gasto',
+      amount: 100_000,
+      category: 'Mercado',
+    });
+    tcService.addTcExpense({
+      date: '2026-08-15',
+      person: 'Charlie',
+      description: 'Agosto gasto',
+      amount: 200_000,
+      category: 'Compras',
+    });
+
+    tcService.setMonth(7);
+    expect(tcService.filteredTcExpenses().length).toBe(1);
+    expect(tcService.totalConsumptions()).toBe(100_000);
+
+    tcService.setMonth(8);
+    expect(tcService.filteredTcExpenses().length).toBe(1);
+    expect(tcService.totalConsumptions()).toBe(200_000);
+
+    tcService.setMonth('Todos');
+    expect(tcService.filteredTcExpenses().length).toBe(2);
+    expect(tcService.totalConsumptions()).toBe(300_000);
   });
 
   it('adds direct TC consumption and updates totalConsumptions and pendingDebt', () => {

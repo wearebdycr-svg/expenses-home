@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Icon } from '../../shared/ui/icon/icon';
+import { TcFilters } from './components/tc-filters/tc-filters';
 import { TcFormModal } from './components/tc-form-modal/tc-form-modal';
 import { TcKpis } from './components/tc-kpis/tc-kpis';
 import { TcPaymentsList } from './components/tc-payments-list/tc-payments-list';
@@ -16,6 +17,7 @@ export type TcViewTab = 'consumptions' | 'payments';
   imports: [
     CommonModule,
     Icon,
+    TcFilters,
     TcKpis,
     TcTable,
     TcPaymentsList,

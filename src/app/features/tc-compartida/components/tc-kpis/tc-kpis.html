@@ -13,7 +13,7 @@
         <span class="kpi-label">Total Consumos Registrados</span>
         <span class="kpi-value">{{ formatCOP(tcService.totalConsumptions()) }}</span>
         <span class="kpi-detail">
-          {{ tcService.allTcExpenses().length }} {{ tcService.allTcExpenses().length === 1 ? 'consumo registrado' : 'consumos registrados' }}
+          {{ tcService.filteredTcExpenses().length }} {{ tcService.filteredTcExpenses().length === 1 ? 'consumo en período' : 'consumos en período' }}
         </span>
       </div>
     </div>
@@ -30,7 +30,7 @@
         <span class="kpi-label">Total Abonos Amortizados</span>
         <span class="kpi-value text-green">{{ formatCOP(tcService.totalPayments()) }}</span>
         <span class="kpi-detail">
-          {{ tcService.payments().length }} {{ tcService.payments().length === 1 ? 'pago desde Gastos Diarios' : 'pagos desde Gastos Diarios' }}
+          {{ tcService.filteredPayments().length }} {{ tcService.filteredPayments().length === 1 ? 'pago en período' : 'pagos en período' }}
         </span>
       </div>
     </div>

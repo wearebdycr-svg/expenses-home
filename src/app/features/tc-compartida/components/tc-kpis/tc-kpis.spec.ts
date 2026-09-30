@@ -19,6 +19,8 @@ describe('TcKpis', () => {
     component = fixture.componentInstance;
     tcService = TestBed.inject(TcService);
     expensesService = TestBed.inject(ExpensesService);
+    tcService.setYear(2026);
+    tcService.setMonth(7);
     fixture.detectChanges();
   });
 

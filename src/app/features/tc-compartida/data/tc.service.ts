@@ -8,6 +8,9 @@ import { generateTcExpenseId } from './tc.model';
 
 const STORAGE_KEY = 'expenses_home_tc_v1';
 
+export type MonthFilter = number | 'Todos';
+export type DayFilter = number | 'Todos';
+
 @Injectable({ providedIn: 'root' })
 export class TcService {
   private readonly supabase = inject(SupabaseService);
@@ -18,9 +21,15 @@ export class TcService {
   readonly loading = signal<boolean>(false);
   readonly error = signal<string | null>(null);
 
-  // Filters
-  readonly personFilter = signal<ExpensePersonFilter>('Todos');
+  // Filtros de fecha y responsable
+  readonly year = signal<number>(new Date().getFullYear());
+  readonly month = signal<MonthFilter>(new Date().getMonth() + 1);
+  readonly day = signal<DayFilter>('Todos');
+  readonly person = signal<ExpensePersonFilter>('Todos');
   readonly searchQuery = signal<string>('');
+
+  // Alias para retrocompatibilidad
+  readonly personFilter = this.person.asReadonly();
 
   constructor() {
     this.loadFromStorage();
@@ -29,9 +38,8 @@ export class TcService {
   }
 
   /**
-   * Abonos y amortizaciones hacia la tarjeta:
+   * Todos los abonos amortizados hacia la tarjeta:
    * Gastos registrados en la vista general de Gastos bajo la categoría "TC-compartida".
-   * Se actualizan automáticamente en tiempo real gracias a la reactividad de ExpensesService.
    */
   readonly payments = computed<Expense[]>(() => {
     return this.expensesService
@@ -40,59 +48,117 @@ export class TcService {
       .sort((a, b) => b.date.localeCompare(a.date));
   });
 
-  /** Consumos filtrados por persona y búsqueda */
+  /**
+   * Consumos de TC filtrados por Año, Mes y Persona
+   */
+  readonly monthlyTcExpenses = computed<TcExpense[]>(() => {
+    const year = this.year();
+    const month = this.month();
+    const person = this.person();
+
+    return this.tcExpenses().filter((exp) => {
+      const [y, m] = exp.date.split('-').map(Number);
+      const matchesYear = y === year;
+      const matchesMonth = month === 'Todos' || m === month;
+      const matchesPerson = person === 'Todos' || exp.person === person;
+      return matchesYear && matchesMonth && matchesPerson;
+    });
+  });
+
+  /**
+   * Abonos filtrados por Año, Mes y Persona
+   */
+  readonly monthlyPayments = computed<Expense[]>(() => {
+    const year = this.year();
+    const month = this.month();
+    const person = this.person();
+
+    return this.payments().filter((p) => {
+      const [y, m] = p.date.split('-').map(Number);
+      const matchesYear = y === year;
+      const matchesMonth = month === 'Todos' || m === month;
+      const matchesPerson = person === 'Todos' || p.person === person;
+      return matchesYear && matchesMonth && matchesPerson;
+    });
+  });
+
+  /** Consumos filtrados por Año, Mes, Día, Persona y búsqueda de texto */
   readonly filteredTcExpenses = computed<TcExpense[]>(() => {
-    const person = this.personFilter();
+    const day = this.day();
     const query = this.searchQuery().trim().toLowerCase();
 
-    return this.tcExpenses()
+    return this.monthlyTcExpenses()
       .filter((exp) => {
-        const matchesPerson = person === 'Todos' || exp.person === person;
+        const [, , d] = exp.date.split('-').map(Number);
+        const matchesDay = day === 'Todos' || d === day;
         const matchesQuery =
           !query ||
           exp.description.toLowerCase().includes(query) ||
           (exp.category && exp.category.toLowerCase().includes(query));
-        return matchesPerson && matchesQuery;
+        return matchesDay && matchesQuery;
       })
       .sort((a, b) => b.date.localeCompare(a.date));
   });
 
-  /** Abonos filtrados por persona */
+  /** Abonos filtrados por Año, Mes, Día y Persona */
   readonly filteredPayments = computed<Expense[]>(() => {
-    const person = this.personFilter();
-    return this.payments().filter((p) => person === 'Todos' || p.person === person);
+    const day = this.day();
+
+    return this.monthlyPayments()
+      .filter((p) => {
+        const [, , d] = p.date.split('-').map(Number);
+        return day === 'Todos' || d === day;
+      })
+      .sort((a, b) => b.date.localeCompare(a.date));
   });
 
-  /** Total acumulado de consumos directos de la TC */
+  /** Total consumos del período seleccionado */
   readonly totalConsumptions = computed<number>(() => {
-    return this.tcExpenses().reduce((sum, item) => sum + item.amount, 0);
+    return this.filteredTcExpenses().reduce((sum, item) => sum + item.amount, 0);
   });
 
-  /** Total de abonos / pagos amortizados desde Gastos Diarios ('TC-compartida') */
+  /** Total abonos del período seleccionado */
   readonly totalPayments = computed<number>(() => {
-    return this.payments().reduce((sum, item) => sum + item.amount, 0);
+    return this.filteredPayments().reduce((sum, item) => sum + item.amount, 0);
   });
 
   /**
-   * Deuda Pendiente TC (Saldo real amortizado):
-   * Deuda Pendiente TC = ∑(Consumos en Gastos TC Compartida) - ∑(Gastos con categoría "TC-compartida" en Vista Gastos)
+   * Deuda Pendiente TC (Saldo real amortizado del período):
    */
   readonly pendingDebt = computed<number>(() => {
     return this.totalConsumptions() - this.totalPayments();
   });
 
-  /** Desglose por responsable/persona */
+  /** Desglose por responsable/persona para el período seleccionado */
   readonly personMetrics = computed<TcPersonMetrics[]>(() => {
-    const totalCons = this.totalConsumptions();
-    const allExpensesList = this.tcExpenses();
-    const allPaymentsList = this.payments();
+    const year = this.year();
+    const month = this.month();
+    const day = this.day();
+
+    const periodExpenses = this.tcExpenses().filter((exp) => {
+      const [y, m, d] = exp.date.split('-').map(Number);
+      const matchesYear = y === year;
+      const matchesMonth = month === 'Todos' || m === month;
+      const matchesDay = day === 'Todos' || d === day;
+      return matchesYear && matchesMonth && matchesDay;
+    });
+
+    const periodPayments = this.payments().filter((p) => {
+      const [y, m, d] = p.date.split('-').map(Number);
+      const matchesYear = y === year;
+      const matchesMonth = month === 'Todos' || m === month;
+      const matchesDay = day === 'Todos' || d === day;
+      return matchesYear && matchesMonth && matchesDay;
+    });
+
+    const totalCons = periodExpenses.reduce((sum, e) => sum + e.amount, 0);
 
     return EXPENSE_PERSONS.map((person: ExpensePerson) => {
-      const consumptions = allExpensesList
+      const consumptions = periodExpenses
         .filter((e) => e.person === person)
         .reduce((sum, e) => sum + e.amount, 0);
 
-      const payments = allPaymentsList
+      const payments = periodPayments
         .filter((p) => p.person === person)
         .reduce((sum, p) => sum + p.amount, 0);
 
@@ -110,8 +176,24 @@ export class TcService {
     });
   });
 
+  setYear(year: number): void {
+    this.year.set(year);
+  }
+
+  setMonth(month: MonthFilter): void {
+    this.month.set(month);
+  }
+
+  setDay(day: DayFilter): void {
+    this.day.set(day);
+  }
+
+  setPerson(person: ExpensePersonFilter): void {
+    this.person.set(person);
+  }
+
   setPersonFilter(person: ExpensePersonFilter): void {
-    this.personFilter.set(person);
+    this.person.set(person);
   }
 
   setSearchQuery(query: string): void {

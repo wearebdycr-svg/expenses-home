@@ -1,0 +1,49 @@
+<section class="filters-card">
+  <div class="filters-row">
+    <app-select
+      label="AÑO"
+      labelStyle="caption"
+      [options]="yearOptions"
+      [value]="tcService.year()"
+      (valueChange)="tcService.setYear($event)"
+    />
+    <app-select
+      label="MES"
+      labelStyle="caption"
+      [options]="monthOptions"
+      [value]="tcService.month()"
+      (valueChange)="tcService.setMonth($event)"
+    />
+    <app-select
+      label="DÍA"
+      labelStyle="caption"
+      [options]="dayOptions"
+      [value]="tcService.day()"
+      (valueChange)="tcService.setDay($event)"
+    />
+    <app-select
+      label="PERSONA"
+      labelStyle="caption"
+      [options]="personOptions"
+      [value]="tcService.person()"
+      (valueChange)="tcService.setPerson($event)"
+    />
+  </div>
+
+  <div class="kpi-group">
+    <div class="kpi-item">
+      <span class="kpi-label">TOTAL CONSUMOS</span>
+      <span class="kpi-value kpi-value--total">{{ formatCOP(tcService.totalConsumptions()) }}</span>
+    </div>
+    <div class="kpi-item">
+      <span class="kpi-label">DEUDA PENDIENTE</span>
+      <span
+        class="kpi-value"
+        [class.kpi-value--debt]="tcService.pendingDebt() > 0"
+        [class.kpi-value--cleared]="tcService.pendingDebt() <= 0"
+      >
+        {{ formatCOP(tcService.pendingDebt() > 0 ? tcService.pendingDebt() : 0) }}
+      </span>
+    </div>
+  </div>
+</section>

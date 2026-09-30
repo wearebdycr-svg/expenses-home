@@ -1,9 +1,21 @@
 import type { Expense, ExpensePerson, ExpensePersonFilter } from '../../gastos/data/expense.model';
-import { EXPENSE_PERSON_COLORS, EXPENSE_PERSONS, formatCOP, formatDisplayDate } from '../../gastos/data/expense.model';
+import {
+  EXPENSE_PERSON_COLORS,
+  EXPENSE_PERSONS,
+  MONTHS,
+  YEARS,
+  formatCOP,
+  formatDisplayDate,
+} from '../../gastos/data/expense.model';
+
+export type MonthFilter = number | 'Todos';
+export type DayFilter = number | 'Todos';
 
 export {
   EXPENSE_PERSON_COLORS,
   EXPENSE_PERSONS,
+  MONTHS,
+  YEARS,
   formatCOP,
   formatDisplayDate,
   type ExpensePerson,
