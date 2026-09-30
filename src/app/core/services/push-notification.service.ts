@@ -54,8 +54,14 @@ export class PushNotificationService {
     // Recuperar suscripción previa de localStorage
     const savedToken = localStorage.getItem(FCM_TOKEN_STORAGE_KEY);
     if (savedToken) {
-      this.currentToken.set(savedToken);
-      this.isSubscribed.set(true);
+      if (savedToken.startsWith('fcm-dev-')) {
+        localStorage.removeItem(FCM_TOKEN_STORAGE_KEY);
+        this.currentToken.set(null);
+        this.isSubscribed.set(false);
+      } else {
+        this.currentToken.set(savedToken);
+        this.isSubscribed.set(true);
+      }
     }
 
     try {
@@ -128,22 +134,27 @@ export class PushNotificationService {
 
       let token: string | null = null;
 
-      // 1. Intentar obtener token oficial de FCM si hay messaging activo
-      if (this.messagingInstance && this.swRegistration) {
+      // 1. Obtener token oficial de FCM desde Google
+      if (this.messagingInstance) {
         try {
+          const swReg = this.swRegistration || (await navigator.serviceWorker.ready);
           const vapidKey = (environment.firebase as any)?.vapidKey;
+          console.log('[PushNotificationService] Solicitando token FCM oficial a Google...');
           token = await getToken(this.messagingInstance, {
-            serviceWorkerRegistration: this.swRegistration,
+            serviceWorkerRegistration: swReg,
             ...(vapidKey ? { vapidKey } : {}),
           });
-        } catch (e) {
-          console.warn('[PushNotificationService] getToken de Firebase falló, generando token de dispositivo:', e);
+          console.log('[PushNotificationService] Token oficial de FCM obtenido con éxito:', token);
+        } catch (e: any) {
+          console.error('[PushNotificationService] Error al obtener getToken de Firebase:', e);
+          this.toastService.error(`Error Firebase: ${e?.message || e}`);
+          return null;
         }
       }
 
-      // Si no hay token de FCM (modo dev / offline), generar identificador único de dispositivo
       if (!token) {
-        token = `fcm-dev-hogar-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        this.toastService.error('No se pudo obtener el token oficial de Firebase.');
+        return null;
       }
 
       // 2. Guardar en localStorage
