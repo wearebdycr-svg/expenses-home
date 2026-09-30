@@ -15,9 +15,10 @@ describe('TcFormModal', () => {
     fixture.detectChanges();
   });
 
-  it('renders modal in create mode by default', () => {
+  it('renders modal in create mode by default with empty person', () => {
     expect((component as any).modalTitle()).toBe('Registrar Consumo con Tarjeta');
     expect((component as any).submitLabel()).toBe('Registrar consumo');
+    expect((component as any).person()).toBe('');
   });
 
   it('emits cancel on cancel click', () => {
@@ -47,13 +48,17 @@ describe('TcFormModal', () => {
     });
   });
 
-  it('does not emit save when required fields are missing', () => {
+  it('does not emit save and sets errors when required fields are missing', () => {
     const saveSpy = vi.spyOn(component.save, 'emit');
 
+    (component as any).person.set('');
     (component as any).description.set('');
     (component as any).amount.set('');
     (component as any).onSubmit();
 
     expect(saveSpy).not.toHaveBeenCalled();
+    expect((component as any).hasErrors()).toBe(true);
+    expect((component as any).errors()['person']).toBe('Debes seleccionar la persona');
+    expect((component as any).errors()['description']).toBe('La descripción es obligatoria');
   });
 });

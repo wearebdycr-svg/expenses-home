@@ -1,10 +1,21 @@
-<label class="field">
+<label class="field" [class.has-error]="hasError()">
   @if (label()) {
     <span class="field-label" [class.field-label--caption]="labelStyle() === 'caption'">{{ label() }}</span>
   }
-  <select class="field-control" [value]="selectedIndex()" (change)="onChange($event)">
+  <select
+    class="field-control"
+    [class.control-error]="hasError()"
+    [value]="selectedIndex()"
+    (change)="onChange($event)"
+  >
+    @if (placeholder()) {
+      <option [value]="-1" [selected]="selectedIndex() === -1" disabled>{{ placeholder() }}</option>
+    }
     @for (option of options(); track $index) {
       <option [value]="$index" [selected]="$index === selectedIndex()">{{ option.label }}</option>
     }
   </select>
+  @if (errorMessage()) {
+    <span class="field-error-msg">{{ errorMessage() }}</span>
+  }
 </label>

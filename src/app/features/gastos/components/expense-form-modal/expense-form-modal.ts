@@ -52,12 +52,27 @@ export class ExpenseFormModal {
   protected readonly submitLabel = computed(() => (this.isEditMode() ? 'Guardar cambios' : 'Agregar gasto'));
 
   protected readonly date = signal(todayIso());
-  protected readonly person = signal<ExpensePerson>('Benny');
+  protected readonly person = signal<ExpensePerson | ''>('');
   protected readonly category = signal<ExpenseCategory>('Mercado');
   protected readonly description = signal('');
   protected readonly amount = signal('');
+  protected readonly hasSubmitted = signal(false);
 
-  protected readonly personOptions: readonly SelectOption<ExpensePerson>[] = EXPENSE_PERSONS.map(
+  protected readonly errors = computed(() => {
+    if (!this.hasSubmitted()) return {};
+    const errs: Record<string, string> = {};
+    if (!this.date()) errs['date'] = 'La fecha es obligatoria';
+    if (!this.person()) errs['person'] = 'Debes seleccionar la persona';
+    if (!this.category()) errs['category'] = 'Debes seleccionar una categoría';
+    if (!this.description().trim()) errs['description'] = 'La descripción es obligatoria';
+    const amountVal = parseThousands(this.amount());
+    if (!this.amount() || amountVal <= 0) errs['amount'] = 'El monto debe ser mayor a 0';
+    return errs;
+  });
+
+  protected readonly hasErrors = computed(() => Object.keys(this.errors()).length > 0);
+
+  protected readonly personOptions: readonly SelectOption<ExpensePerson | ''>[] = EXPENSE_PERSONS.map(
     (person) => ({
       value: person,
       label: person,
@@ -107,10 +122,11 @@ export class ExpenseFormModal {
     effect(() => {
       const existing = this.expense();
       this.date.set(existing?.date ?? todayIso());
-      this.person.set(existing?.person ?? 'Benny');
+      this.person.set(existing?.person ?? '');
       this.category.set(existing?.category ?? 'Mercado');
       this.description.set(existing?.description ?? '');
       this.amount.set(existing ? formatThousands(existing.amount) : '');
+      this.hasSubmitted.set(false);
     });
   }
 
@@ -122,16 +138,18 @@ export class ExpenseFormModal {
   }
 
   protected onSubmit(): void {
+    this.hasSubmitted.set(true);
     const description = this.description().trim().slice(0, 100);
     const amount = parseThousands(this.amount());
+    const person = this.person();
 
-    if (!description || !this.amount() || amount <= 0) {
+    if (!person || !description || !this.amount() || amount <= 0 || !this.date() || !this.category()) {
       return;
     }
 
     this.save.emit({
       date: this.date(),
-      person: this.person(),
+      person: person as ExpensePerson,
       category: this.category(),
       description,
       amount,

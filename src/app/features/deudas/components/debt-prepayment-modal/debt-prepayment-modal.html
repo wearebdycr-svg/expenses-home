@@ -1,5 +1,11 @@
 <app-modal title="Pago Adicional a Capital" (close)="cancel.emit()">
   <form class="prepayment-form" (submit)="$event.preventDefault(); onSubmit()">
+    @if (hasSubmitted() && hasErrors()) {
+      <div class="form-validation-summary">
+        <span>⚠️ Faltan campos obligatorios por completar. Revisa los campos resaltados.</span>
+      </div>
+    }
+
     <p class="prepayment-intro">
       El monto ingresado se descontará directamente del saldo de capital. La proyección se actualizará automáticamente.
     </p>
@@ -9,6 +15,8 @@
         label="Deuda a abonar"
         [options]="debtOptions()"
         [value]="selectedDebtId()"
+        [hasError]="!!errors()['debtId']"
+        [errorMessage]="errors()['debtId'] ?? ''"
         (valueChange)="selectedDebtId.set($event)"
       />
 
@@ -18,26 +26,34 @@
       </div>
     </div>
 
-    <label class="field">
+    <label class="field" [class.has-error]="errors()['amount']">
       <span class="field-label">Monto del abono (COP)</span>
       <input
         class="field-control"
+        [class.control-error]="errors()['amount']"
         type="text"
         inputmode="numeric"
         placeholder="Ej: 500.000"
         [value]="amount()"
         (input)="onAmountInput($event)"
       />
+      @if (errors()['amount']) {
+        <span class="field-error-msg">{{ errors()['amount'] }}</span>
+      }
     </label>
 
-    <label class="field">
+    <label class="field" [class.has-error]="errors()['date']">
       <span class="field-label">Fecha del pago</span>
       <input
         class="field-control"
+        [class.control-error]="errors()['date']"
         type="date"
         [value]="date()"
         (input)="date.set($any($event.target).value)"
       />
+      @if (errors()['date']) {
+        <span class="field-error-msg">{{ errors()['date'] }}</span>
+      }
     </label>
 
     <div class="form-actions">

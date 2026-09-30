@@ -15,9 +15,9 @@ describe('ExpenseFormModal', () => {
     fixture.detectChanges();
   });
 
-  it('defaults to "Nuevo Gasto" with Benny and Mercado preselected', () => {
+  it('defaults to "Nuevo Gasto" with empty person and Mercado preselected', () => {
     expect(fixture.nativeElement.querySelector('.modal-title').textContent).toContain('Nuevo Gasto');
-    expect(component['person']()).toBe('Benny');
+    expect(component['person']()).toBe('');
     expect(component['category']()).toBe('Mercado');
     expect(component['description']()).toBe('');
     expect(component['amount']()).toBe('');
@@ -44,15 +44,20 @@ describe('ExpenseFormModal', () => {
     expect(component['amount']()).toBe('161.657');
   });
 
-  it('blocks submit if required fields are missing', () => {
+  it('blocks submit and shows errors if required fields are missing', () => {
     const spy = vi.fn();
     component.save.subscribe(spy);
 
-    component['description'].set('');
-    component['amount'].set('100000');
+    // Missing person, description, amount
     fixture.nativeElement.querySelector('form').dispatchEvent(new Event('submit'));
     expect(spy).not.toHaveBeenCalled();
+    expect(component['hasErrors']()).toBe(true);
+    expect(component['errors']()['person']).toBe('Debes seleccionar la persona');
+    expect(component['errors']()['description']).toBe('La descripción es obligatoria');
+    expect(component['errors']()['amount']).toBe('El monto debe ser mayor a 0');
 
+    // Missing amount
+    component['person'].set('Benny');
     component['description'].set('Test');
     component['amount'].set('');
     fixture.nativeElement.querySelector('form').dispatchEvent(new Event('submit'));
@@ -63,6 +68,7 @@ describe('ExpenseFormModal', () => {
     const spy = vi.fn();
     component.save.subscribe(spy);
 
+    component['person'].set('Benny');
     component['description'].set('Supermercado');
     component['amount'].set('161657');
     fixture.nativeElement.querySelector('form').dispatchEvent(new Event('submit'));

@@ -42,12 +42,26 @@ export class TcFormModal {
   );
 
   protected readonly date = signal(todayIso());
-  protected readonly person = signal<ExpensePerson>('Benny');
+  protected readonly person = signal<ExpensePerson | ''>('');
   protected readonly category = signal<string>('General');
   protected readonly description = signal('');
   protected readonly amount = signal('');
+  protected readonly hasSubmitted = signal(false);
 
-  protected readonly personOptions: readonly SelectOption<ExpensePerson>[] = EXPENSE_PERSONS.map(
+  protected readonly errors = computed(() => {
+    if (!this.hasSubmitted()) return {};
+    const errs: Record<string, string> = {};
+    if (!this.date()) errs['date'] = 'La fecha es obligatoria';
+    if (!this.person()) errs['person'] = 'Debes seleccionar la persona';
+    if (!this.description().trim()) errs['description'] = 'La descripción es obligatoria';
+    const numAmount = parseThousands(this.amount());
+    if (!this.amount() || numAmount <= 0) errs['amount'] = 'El monto debe ser mayor a 0';
+    return errs;
+  });
+
+  protected readonly hasErrors = computed(() => Object.keys(this.errors()).length > 0);
+
+  protected readonly personOptions: readonly SelectOption<ExpensePerson | ''>[] = EXPENSE_PERSONS.map(
     (person) => ({
       value: person,
       label: person,
@@ -72,11 +86,12 @@ export class TcFormModal {
         this.amount.set(formatThousands(exp.amount));
       } else {
         this.date.set(todayIso());
-        this.person.set('Benny');
+        this.person.set('');
         this.category.set('General');
         this.description.set('');
         this.amount.set('');
       }
+      this.hasSubmitted.set(false);
     });
   }
 
@@ -88,16 +103,18 @@ export class TcFormModal {
   }
 
   protected onSubmit(): void {
+    this.hasSubmitted.set(true);
     const desc = this.description().trim();
     const numAmount = parseThousands(this.amount());
+    const person = this.person();
 
-    if (!desc || !numAmount || numAmount <= 0) {
+    if (!person || !desc || !numAmount || numAmount <= 0 || !this.date()) {
       return;
     }
 
     this.save.emit({
       date: this.date(),
-      person: this.person(),
+      person: person as ExpensePerson,
       category: this.category() || 'General',
       description: desc,
       amount: numAmount,

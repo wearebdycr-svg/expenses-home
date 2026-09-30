@@ -1,47 +1,68 @@
 <app-modal [title]="modalTitle()" (close)="cancel.emit()">
   <form class="debt-form" (submit)="$event.preventDefault(); onSubmit()">
+    @if (hasSubmitted() && hasErrors()) {
+      <div class="form-validation-summary">
+        <span>⚠️ Faltan campos obligatorios por completar. Revisa los campos resaltados.</span>
+      </div>
+    }
+
     <div class="form-row">
       <app-select
         label="Persona"
+        placeholder="Seleccionar persona..."
         [options]="personOptions"
         [value]="person()"
+        [hasError]="!!errors()['person']"
+        [errorMessage]="errors()['person'] ?? ''"
         (valueChange)="person.set($event)"
       />
 
-      <label class="field">
+      <label class="field" [class.has-error]="errors()['startDate']">
         <span class="field-label">Fecha inicio</span>
         <input
           class="field-control"
+          [class.control-error]="errors()['startDate']"
           type="date"
           [value]="startDate()"
           (input)="startDate.set($any($event.target).value)"
         />
+        @if (errors()['startDate']) {
+          <span class="field-error-msg">{{ errors()['startDate'] }}</span>
+        }
       </label>
     </div>
 
-    <label class="field">
+    <label class="field" [class.has-error]="errors()['name']">
       <span class="field-label">Nombre de la deuda</span>
       <input
         class="field-control"
+        [class.control-error]="errors()['name']"
         type="text"
         placeholder="Ej: Hipoteca, Tarjeta crédito..."
         maxlength="100"
         [value]="name()"
         (input)="name.set($any($event.target).value)"
       />
+      @if (errors()['name']) {
+        <span class="field-error-msg">{{ errors()['name'] }}</span>
+      }
     </label>
 
     <div class="form-row">
-      <label class="field">
+      <label class="field" [class.has-error]="errors()['originalAmount']">
         <span class="field-label">Monto original (COP)</span>
         <input
           class="field-control"
+          [class.control-error]="errors()['originalAmount']"
           type="text"
           inputmode="numeric"
           placeholder="Ej: 10.000.000"
           [value]="originalAmount()"
           (input)="onOriginalAmountInput($event)"
         />
+        @if (errors()['originalAmount']) {
+          <span class="field-error-msg">{{ errors()['originalAmount'] }}</span>
+        }
       </label>
 
       <label class="field">
@@ -58,16 +79,20 @@
     </div>
 
     <div class="form-row">
-      <label class="field">
+      <label class="field" [class.has-error]="errors()['monthlyPayment']">
         <span class="field-label">Cuota mensual (COP)</span>
         <input
           class="field-control"
+          [class.control-error]="errors()['monthlyPayment']"
           type="text"
           inputmode="numeric"
           placeholder="Ej: 500.000"
           [value]="monthlyPayment()"
           (input)="onMonthlyPaymentInput($event)"
         />
+        @if (errors()['monthlyPayment']) {
+          <span class="field-error-msg">{{ errors()['monthlyPayment'] }}</span>
+        }
       </label>
 
       <label class="field">
@@ -84,16 +109,20 @@
     </div>
 
     <div class="form-row">
-      <label class="field">
+      <label class="field" [class.has-error]="errors()['currentBalance']">
         <span class="field-label">Saldo actual inicial (COP)</span>
         <input
           class="field-control"
+          [class.control-error]="errors()['currentBalance']"
           type="text"
           inputmode="numeric"
           placeholder="Por defecto igual al monto original"
           [value]="currentBalance()"
           (input)="onCurrentBalanceInput($event)"
         />
+        @if (errors()['currentBalance']) {
+          <span class="field-error-msg">{{ errors()['currentBalance'] }}</span>
+        }
       </label>
     </div>
 

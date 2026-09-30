@@ -55,13 +55,17 @@ describe('DebtPrepaymentModal', () => {
     expect(component['currentBalanceFormatted']()).toContain('3.800.000');
   });
 
-  it('blocks submit if amount is zero or negative', () => {
+  it('blocks submit if amount is zero or negative and displays validation summary', () => {
     const spy = vi.fn();
     component.save.subscribe(spy);
 
     component['amount'].set('0');
     fixture.nativeElement.querySelector('form').dispatchEvent(new Event('submit'));
+    fixture.detectChanges();
+
     expect(spy).not.toHaveBeenCalled();
+    expect(component['hasSubmitted']()).toBe(true);
+    expect(fixture.nativeElement.querySelector('.form-validation-summary')).toBeTruthy();
   });
 
   it('emits save with selected debt and valid amount', () => {

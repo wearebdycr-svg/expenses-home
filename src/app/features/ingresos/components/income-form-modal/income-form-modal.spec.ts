@@ -13,11 +13,11 @@ describe('IncomeFormModal', () => {
     component = fixture.componentInstance;
   });
 
-  it('defaults to "Nuevo Ingreso" with today, Benny and Salario preselected', () => {
+  it('defaults to "Nuevo Ingreso" with empty person and Salario preselected', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('.modal-title').textContent).toContain('Nuevo Ingreso');
-    expect(component['person']()).toBe('Benny');
+    expect(component['person']()).toBe('');
     expect(component['source']()).toBe('Salario');
     expect(component['description']()).toBe('');
     expect(component['amount']()).toBe('');
@@ -43,15 +43,31 @@ describe('IncomeFormModal', () => {
     expect(component['amount']()).toBe('358.668');
   });
 
+  it('does not emit save when person is missing', () => {
+    fixture.detectChanges();
+    const spy = vi.fn();
+    component.save.subscribe(spy);
+
+    component['description'].set('Bono');
+    component['amount'].set('100000');
+    fixture.nativeElement.querySelector('form').dispatchEvent(new Event('submit'));
+
+    expect(spy).not.toHaveBeenCalled();
+    expect(component['hasErrors']()).toBe(true);
+    expect(component['errors']()['person']).toBe('Debes seleccionar la persona');
+  });
+
   it('does not emit save when description is missing', () => {
     fixture.detectChanges();
     const spy = vi.fn();
     component.save.subscribe(spy);
 
+    component['person'].set('Benny');
     component['amount'].set('100000');
     fixture.nativeElement.querySelector('form').dispatchEvent(new Event('submit'));
 
     expect(spy).not.toHaveBeenCalled();
+    expect(component['errors']()['description']).toBe('La descripción es obligatoria');
   });
 
   it('does not emit save when amount is missing', () => {
@@ -59,10 +75,12 @@ describe('IncomeFormModal', () => {
     const spy = vi.fn();
     component.save.subscribe(spy);
 
+    component['person'].set('Benny');
     component['description'].set('Bono');
     fixture.nativeElement.querySelector('form').dispatchEvent(new Event('submit'));
 
     expect(spy).not.toHaveBeenCalled();
+    expect(component['errors']()['amount']).toBe('El monto debe ser mayor a 0');
   });
 
   it('strips non-numeric characters and formats thousands in the amount field', () => {
@@ -79,6 +97,7 @@ describe('IncomeFormModal', () => {
     const spy = vi.fn();
     component.save.subscribe(spy);
 
+    component['person'].set('Benny');
     component['description'].set('Proyecto diseño / consultoría');
     component['amount'].set('358668');
     fixture.nativeElement.querySelector('form').dispatchEvent(new Event('submit'));

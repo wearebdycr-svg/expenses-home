@@ -42,6 +42,19 @@ export class DebtPrepaymentModal {
   protected readonly selectedDebtId = signal<string>('');
   protected readonly amount = signal<string>('500.000');
   protected readonly date = signal<string>(todayIso());
+  protected readonly hasSubmitted = signal(false);
+
+  protected readonly errors = computed(() => {
+    if (!this.hasSubmitted()) return {};
+    const errs: Record<string, string> = {};
+    if (!this.selectedDebtId()) errs['debtId'] = 'Debes seleccionar una deuda';
+    const amountVal = parseThousands(this.amount());
+    if (!this.amount() || amountVal <= 0) errs['amount'] = 'El monto del abono debe ser mayor a 0';
+    if (!this.date()) errs['date'] = 'La fecha del pago es obligatoria';
+    return errs;
+  });
+
+  protected readonly hasErrors = computed(() => Object.keys(this.errors()).length > 0);
 
   protected readonly selectedDebt = computed(() => {
     const id = this.selectedDebtId();
@@ -69,6 +82,7 @@ export class DebtPrepaymentModal {
       } else if (all.length > 0 && (!this.selectedDebtId() || !all.some((d) => d.id === this.selectedDebtId()))) {
         this.selectedDebtId.set(all[0].id);
       }
+      this.hasSubmitted.set(false);
     });
   }
 
@@ -80,6 +94,7 @@ export class DebtPrepaymentModal {
   }
 
   protected onSubmit(): void {
+    this.hasSubmitted.set(true);
     const debtId = this.selectedDebtId();
     const amountVal = parseThousands(this.amount());
 

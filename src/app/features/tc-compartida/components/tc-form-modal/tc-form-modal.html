@@ -1,20 +1,33 @@
 <app-modal [title]="modalTitle()" (close)="cancel.emit()">
   <form class="tc-form" (submit)="$event.preventDefault(); onSubmit()">
+    @if (hasSubmitted() && hasErrors()) {
+      <div class="form-validation-summary">
+        <span>⚠️ Faltan campos obligatorios por completar. Revisa los campos resaltados.</span>
+      </div>
+    }
+
     <div class="form-row">
-      <label class="field">
+      <label class="field" [class.has-error]="errors()['date']">
         <span class="field-label">Fecha del consumo</span>
         <input
           class="field-control"
+          [class.control-error]="errors()['date']"
           type="date"
           [value]="date()"
           (input)="date.set($any($event.target).value)"
         />
+        @if (errors()['date']) {
+          <span class="field-error-msg">{{ errors()['date'] }}</span>
+        }
       </label>
 
       <app-select
         label="Responsable"
+        placeholder="Seleccionar persona..."
         [options]="personOptions"
         [value]="person()"
+        [hasError]="!!errors()['person']"
+        [errorMessage]="errors()['person'] ?? ''"
         (valueChange)="person.set($event)"
       />
     </div>
@@ -27,31 +40,37 @@
         (valueChange)="category.set($event)"
       />
 
-      <label class="field">
+      <label class="field" [class.has-error]="errors()['amount']">
         <span class="field-label">Monto (COP)</span>
         <input
           class="field-control"
+          [class.control-error]="errors()['amount']"
           type="text"
           inputmode="numeric"
           placeholder="Ej: 150.000"
           [value]="amount()"
           (input)="onAmountInput($event)"
-          required
         />
+        @if (errors()['amount']) {
+          <span class="field-error-msg">{{ errors()['amount'] }}</span>
+        }
       </label>
     </div>
 
-    <label class="field">
+    <label class="field" [class.has-error]="errors()['description']">
       <span class="field-label">Descripción del consumo</span>
       <input
         class="field-control"
+        [class.control-error]="errors()['description']"
         type="text"
         placeholder="Ej: Mercado mensual, Pasajes, Cena fin de semana..."
         maxlength="120"
         [value]="description()"
         (input)="description.set($any($event.target).value)"
-        required
       />
+      @if (errors()['description']) {
+        <span class="field-error-msg">{{ errors()['description'] }}</span>
+      }
     </label>
 
     <div class="form-actions">

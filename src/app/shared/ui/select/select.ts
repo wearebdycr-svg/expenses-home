@@ -17,6 +17,9 @@ export class Select<T> {
   labelStyle = input<'default' | 'caption'>('default');
   options = input.required<readonly SelectOption<T>[]>();
   value = model.required<T>();
+  placeholder = input<string>('');
+  hasError = input<boolean>(false);
+  errorMessage = input<string>('');
 
   protected readonly selectedIndex = computed(() =>
     this.options().findIndex((option) => option.value === this.value()),
@@ -24,6 +27,8 @@ export class Select<T> {
 
   protected onChange(event: Event): void {
     const index = Number((event.target as HTMLSelectElement).value);
-    this.value.set(this.options()[index].value);
+    if (index >= 0 && this.options()[index]) {
+      this.value.set(this.options()[index].value);
+    }
   }
 }

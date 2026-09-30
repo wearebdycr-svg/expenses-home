@@ -14,9 +14,9 @@ describe('DebtFormModal', () => {
     fixture.detectChanges();
   });
 
-  it('defaults to "Nueva Deuda" with Benny preselected', () => {
+  it('defaults to "Nueva Deuda" with empty person', () => {
     expect(fixture.nativeElement.querySelector('.modal-title').textContent).toContain('Nueva Deuda');
-    expect(component['person']()).toBe('Benny');
+    expect(component['person']()).toBe('');
     expect(component['name']()).toBe('');
     expect(component['originalAmount']()).toBe('');
     expect(component['currentBalance']()).toBe('');
@@ -53,12 +53,20 @@ describe('DebtFormModal', () => {
     const spy = vi.fn();
     component.save.subscribe(spy);
 
-    // Missing name
-    component['name'].set('');
+    // Missing person
+    component['name'].set('Préstamo');
     component['originalAmount'].set('1000000');
     component['currentBalance'].set('1000000');
     component['monthlyPayment'].set('100000');
     component['annualInterestRate'].set('12');
+    fixture.nativeElement.querySelector('form').dispatchEvent(new Event('submit'));
+    expect(spy).not.toHaveBeenCalled();
+    expect(component['hasErrors']()).toBe(true);
+    expect(component['errors']()['person']).toBe('Debes seleccionar la persona');
+
+    // Missing name
+    component['person'].set('Benny');
+    component['name'].set('');
     fixture.nativeElement.querySelector('form').dispatchEvent(new Event('submit'));
     expect(spy).not.toHaveBeenCalled();
 
@@ -73,6 +81,7 @@ describe('DebtFormModal', () => {
     const spy = vi.fn();
     component.save.subscribe(spy);
 
+    component['person'].set('Benny');
     component['name'].set('Crédito Vehículo');
     component['originalAmount'].set('30000000');
     component['currentBalance'].set('14200000');

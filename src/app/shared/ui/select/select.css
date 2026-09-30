@@ -47,3 +47,19 @@
   border-color: #1b2a4a;
   box-shadow: 0 0 0 3px rgba(27, 42, 74, 0.15);
 }
+
+.control-error {
+  border-color: #ef4444 !important;
+}
+
+.control-error:focus-visible {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
+}
+
+.field-error-msg {
+  font-size: 0.75rem;
+  color: #ef4444;
+  font-weight: 500;
+  margin-top: 0.1rem;
+}

@@ -1,37 +1,75 @@
 <app-modal [title]="modalTitle()" (close)="cancel.emit()">
   <form class="income-form" (submit)="$event.preventDefault(); onSubmit()">
+    @if (hasSubmitted() && hasErrors()) {
+      <div class="form-validation-summary">
+        <span>⚠️ Faltan campos obligatorios por completar. Revisa los campos resaltados.</span>
+      </div>
+    }
+
     <div class="form-row">
-      <label class="field">
+      <label class="field" [class.has-error]="errors()['date']">
         <span class="field-label">Fecha</span>
-        <input class="field-control" type="date" [value]="date()" (input)="date.set($any($event.target).value)" />
+        <input
+          class="field-control"
+          [class.control-error]="errors()['date']"
+          type="date"
+          [value]="date()"
+          (input)="date.set($any($event.target).value)"
+        />
+        @if (errors()['date']) {
+          <span class="field-error-msg">{{ errors()['date'] }}</span>
+        }
       </label>
 
-      <app-select label="Persona" [options]="personOptions" [value]="person()" (valueChange)="person.set($event)" />
+      <app-select
+        label="Persona"
+        placeholder="Seleccionar persona..."
+        [options]="personOptions"
+        [value]="person()"
+        [hasError]="!!errors()['person']"
+        [errorMessage]="errors()['person'] ?? ''"
+        (valueChange)="person.set($event)"
+      />
     </div>
 
-    <app-select label="Fuente" [options]="sourceOptions" [value]="source()" (valueChange)="source.set($event)" />
+    <app-select
+      label="Fuente"
+      [options]="sourceOptions"
+      [value]="source()"
+      [hasError]="!!errors()['source']"
+      [errorMessage]="errors()['source'] ?? ''"
+      (valueChange)="source.set($event)"
+    />
 
-    <label class="field">
+    <label class="field" [class.has-error]="errors()['description']">
       <span class="field-label">Descripción</span>
       <input
         class="field-control"
+        [class.control-error]="errors()['description']"
         type="text"
         placeholder="Ej: Salario enero"
         [value]="description()"
         (input)="description.set($any($event.target).value)"
       />
+      @if (errors()['description']) {
+        <span class="field-error-msg">{{ errors()['description'] }}</span>
+      }
     </label>
 
-    <label class="field">
+    <label class="field" [class.has-error]="errors()['amount']">
       <span class="field-label">Monto (COP)</span>
       <input
         class="field-control"
+        [class.control-error]="errors()['amount']"
         type="text"
         inputmode="numeric"
         placeholder="Ej: 3.500.000"
         [value]="amount()"
         (input)="onAmountInput($event)"
       />
+      @if (errors()['amount']) {
+        <span class="field-error-msg">{{ errors()['amount'] }}</span>
+      }
     </label>
 
     <div class="form-actions">

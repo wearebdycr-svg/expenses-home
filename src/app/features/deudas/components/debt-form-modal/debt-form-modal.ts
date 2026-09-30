@@ -41,7 +41,7 @@ export class DebtFormModal {
   protected readonly modalTitle = computed(() => (this.isEditMode() ? 'Editar Deuda' : 'Nueva Deuda'));
   protected readonly submitLabel = computed(() => (this.isEditMode() ? 'Guardar cambios' : 'Agregar deuda'));
 
-  protected readonly person = signal<DebtPerson>('Benny');
+  protected readonly person = signal<DebtPerson | ''>('');
   protected readonly startDate = signal(todayIso());
   protected readonly name = signal('');
   protected readonly originalAmount = signal('');
@@ -49,8 +49,26 @@ export class DebtFormModal {
   protected readonly currentBalance = signal('');
   protected readonly monthlyPayment = signal('');
   protected readonly annualInterestRate = signal('');
+  protected readonly hasSubmitted = signal(false);
 
-  protected readonly personOptions: readonly SelectOption<ExpensePerson>[] = EXPENSE_PERSONS.map(
+  protected readonly errors = computed(() => {
+    if (!this.hasSubmitted()) return {};
+    const errs: Record<string, string> = {};
+    if (!this.person()) errs['person'] = 'Debes seleccionar la persona';
+    if (!this.name().trim()) errs['name'] = 'El nombre de la deuda es obligatorio';
+    if (!this.startDate()) errs['startDate'] = 'La fecha de inicio es obligatoria';
+    const orig = parseThousands(this.originalAmount());
+    if (!this.originalAmount() || orig <= 0) errs['originalAmount'] = 'El monto original debe ser mayor a 0';
+    const curr = this.currentBalance().trim() !== '' ? parseThousands(this.currentBalance()) : orig;
+    if (curr <= 0) errs['currentBalance'] = 'El saldo actual debe ser mayor a 0';
+    const pay = parseThousands(this.monthlyPayment());
+    if (!this.monthlyPayment() || pay <= 0) errs['monthlyPayment'] = 'La cuota mensual debe ser mayor a 0';
+    return errs;
+  });
+
+  protected readonly hasErrors = computed(() => Object.keys(this.errors()).length > 0);
+
+  protected readonly personOptions: readonly SelectOption<DebtPerson | ''>[] = EXPENSE_PERSONS.map(
     (p) => ({ value: p, label: p }),
   );
 
@@ -67,7 +85,7 @@ export class DebtFormModal {
         this.monthlyPayment.set(formatThousands(existing.monthlyPayment));
         this.annualInterestRate.set(String(existing.annualInterestRate));
       } else {
-        this.person.set('Benny');
+        this.person.set('');
         this.startDate.set(todayIso());
         this.name.set('');
         this.originalAmount.set('');
@@ -76,6 +94,7 @@ export class DebtFormModal {
         this.monthlyPayment.set('');
         this.annualInterestRate.set('');
       }
+      this.hasSubmitted.set(false);
     });
   }
 
@@ -138,20 +157,22 @@ export class DebtFormModal {
   }
 
   protected onSubmit(): void {
+    this.hasSubmitted.set(true);
     const name = this.name().trim();
+    const person = this.person();
     const original = parseThousands(this.originalAmount());
     const months = Number(this.totalMonths()) || undefined;
     const current = this.currentBalance().trim() !== '' ? parseThousands(this.currentBalance()) : original;
     const payment = parseThousands(this.monthlyPayment()) || (months ? Math.round(original / months) : 0);
     const rate = Number(this.annualInterestRate()) || 0;
 
-    if (!name || original <= 0 || current <= 0 || payment <= 0 || isNaN(rate)) {
+    if (!person || !name || original <= 0 || current <= 0 || payment <= 0 || isNaN(rate) || !this.startDate()) {
       return;
     }
 
     this.save.emit({
       name,
-      person: this.person(),
+      person: person as DebtPerson,
       startDate: this.startDate(),
       originalAmount: original,
       currentBalance: current,
