@@ -12,7 +12,10 @@ export type IconName =
   | 'plus'
   | 'pencil'
   | 'trash-2'
-  | 'calendar';
+  | 'calendar'
+  | 'check-circle'
+  | 'alert-circle'
+  | 'wallet';
 
 @Component({
   selector: 'app-icon',
@@ -86,6 +89,19 @@ export type IconName =
           <line x1="16" y1="2" x2="16" y2="6" />
           <line x1="8" y1="2" x2="8" y2="6" />
           <line x1="3" y1="10" x2="21" y2="10" />
+        }
+        @case ('check-circle') {
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+          <polyline points="22 4 12 14.01 9 11.01" />
+        }
+        @case ('alert-circle') {
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
+        }
+        @case ('wallet') {
+          <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" />
+          <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" />
         }
       }
     </svg>

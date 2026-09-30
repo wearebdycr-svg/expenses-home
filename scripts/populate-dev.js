@@ -95,6 +95,28 @@ async function main() {
     { name: 'Préstamo Personal', person: 'Charlie', start_date: '2026-07-01', original_amount: 8000000, current_balance: 5200000, monthly_payment: 350000, annual_interest_rate: 15.5, color: '#10B981' },
   ]);
 
+  // 5. Consumos TC Compartida y Abono de Conciliación
+  console.log('5. Registrando consumos de TC compartida...');
+  try {
+    await sendRequest('/rest/v1/tc_expenses', 'POST', [
+      { date: '2026-07-04', person: 'Benny', description: 'Tiquetes Aéreos Vacaciones', amount: 650000, category: 'Viajes / Transporte' },
+      { date: '2026-07-11', person: 'Charlie', description: 'Cena Aniversario Restaurante', amount: 220000, category: 'Restaurantes' },
+      { date: '2026-07-16', person: 'Compartido', description: 'Compra Smart TV Sala', amount: 1400000, category: 'Tecnología' },
+      { date: '2026-07-24', person: 'Benny', description: 'Mercado Mayorista Alkosto', amount: 380000, category: 'Supermercado' },
+    ]);
+  } catch (err) {
+    console.log('   (Tabla tc_expenses aún no creada en Supabase o error:', err.message, ')');
+  }
+
+  console.log('6. Registrando abono de conciliación en gastos diarios...');
+  try {
+    await sendRequest('/rest/v1/expenses', 'POST', [
+      { date: '2026-07-26', person: 'Charlie', category: 'TC-compartida', description: 'Abono Cuota TC Compartida Bancolombia', amount: 1000000 },
+    ]);
+  } catch (err) {
+    console.log('   (Abono no se pudo registrar:', err.message, ')');
+  }
+
   console.log('✅ Base de datos de PRUEBAS poblada exitosamente.');
 }
 

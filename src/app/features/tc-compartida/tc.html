@@ -1,0 +1,65 @@
+<div class="tc-page">
+  <!-- Encabezado Principal -->
+  <header class="page-header">
+    <div class="header-titles">
+      <h1 class="page-title">Gastos TC Compartida</h1>
+      <p class="page-subtitle">Consumos directos con la tarjeta y conciliación del saldo pendiente</p>
+    </div>
+
+    <button type="button" class="btn btn-primary" (click)="openCreateModal()">
+      <app-icon name="plus" [size]="16" />
+      Registrar Consumo TC
+    </button>
+  </header>
+
+  <!-- Panel de Control y Métricas de Conciliación -->
+  <app-tc-kpis />
+
+  <!-- Selector de Pestañas: Consumos vs Abonos -->
+  <div class="tabs-container">
+    <div class="tabs-bar">
+      <button
+        type="button"
+        class="tab-btn"
+        [class.active]="activeTab() === 'consumptions'"
+        (click)="setActiveTab('consumptions')"
+      >
+        <app-icon name="credit-card" [size]="16" />
+        <span>Consumos de la Tarjeta</span>
+        <span class="tab-badge">{{ tcService.allTcExpenses().length }}</span>
+      </button>
+
+      <button
+        type="button"
+        class="tab-btn"
+        [class.active]="activeTab() === 'payments'"
+        (click)="setActiveTab('payments')"
+      >
+        <app-icon name="check-circle" [size]="16" />
+        <span>Abonos Conciliados (Gastos Diarios)</span>
+        <span class="tab-badge badge-green">{{ tcService.payments().length }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Vista según pestaña activa -->
+  <div class="tab-content">
+    @if (activeTab() === 'consumptions') {
+      <app-tc-table
+        (edit)="openEditModal($event)"
+        (delete)="onDelete($event)"
+      />
+    } @else {
+      <app-tc-payments-list />
+    }
+  </div>
+
+  <!-- Modal de Registro / Edición de Consumo -->
+  @if (isModalOpen()) {
+    <app-tc-form-modal
+      [tcExpense]="editingExpense()"
+      (save)="onSave($event)"
+      (cancel)="closeModal()"
+    />
+  }
+</div>

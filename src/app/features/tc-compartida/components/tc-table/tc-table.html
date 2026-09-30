@@ -1,0 +1,93 @@
+<section class="table-card">
+  <!-- Barra superior con filtros -->
+  <div class="table-toolbar">
+    <div class="table-title-wrap">
+      <h3 class="table-title">Detalle de Consumos con Tarjeta</h3>
+      <span class="table-count">
+        {{ tcService.filteredTcExpenses().length }}
+        {{ tcService.filteredTcExpenses().length === 1 ? 'consumo' : 'consumos' }}
+      </span>
+    </div>
+
+    <div class="toolbar-filters">
+      <div class="search-box">
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Buscar descripción o categoría..."
+          [value]="tcService.searchQuery()"
+          (input)="onSearchInput($event)"
+        />
+      </div>
+
+      <div class="filter-person">
+        <app-select
+          label=""
+          [options]="personFilterOptions"
+          [value]="tcService.personFilter()"
+          (valueChange)="onPersonFilterChange($event)"
+        />
+      </div>
+    </div>
+  </div>
+
+  @if (tcService.filteredTcExpenses().length === 0) {
+    <div class="empty-state">
+      <div class="empty-icon-wrap">
+        <app-icon name="credit-card" [size]="28" />
+      </div>
+      <p class="empty-text">No se encontraron consumos con los filtros seleccionados.</p>
+      <p class="empty-hint">Haz clic en "+ Registrar Consumo TC" para añadir un nuevo gasto directo a la tarjeta.</p>
+    </div>
+  } @else {
+    <div class="table-responsive">
+      <table class="tc-table">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Responsable</th>
+            <th>Categoría</th>
+            <th>Descripción</th>
+            <th class="col-amount">Monto</th>
+            <th class="col-actions" aria-hidden="true"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (expense of tcService.filteredTcExpenses(); track expense.id) {
+            <tr class="tc-row">
+              <td class="col-date">{{ formatDisplayDate(expense.date) }}</td>
+              <td>
+                <app-badge [color]="personColors[expense.person]">{{ expense.person }}</app-badge>
+              </td>
+              <td>
+                <span class="category-chip">{{ expense.category || 'General' }}</span>
+              </td>
+              <td class="col-description">{{ expense.description }}</td>
+              <td class="col-amount amount-value">{{ formatCOP(expense.amount) }}</td>
+              <td class="col-actions">
+                <button
+                  type="button"
+                  class="icon-btn icon-btn--edit"
+                  (click)="onEdit(expense)"
+                  title="Editar consumo"
+                  aria-label="Editar consumo"
+                >
+                  <app-icon name="pencil" [size]="15" />
+                </button>
+                <button
+                  type="button"
+                  class="icon-btn icon-btn--delete"
+                  (click)="onDelete(expense)"
+                  title="Eliminar consumo"
+                  aria-label="Eliminar consumo"
+                >
+                  <app-icon name="trash-2" [size]="15" />
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>

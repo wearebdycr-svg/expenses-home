@@ -1,0 +1,144 @@
+<div class="tc-kpis-container">
+  <!-- Tarjetas Principales de Conciliación -->
+  <div class="kpi-grid">
+    <!-- Card 1: Consumos Totales -->
+    <div class="kpi-card consumptions-card">
+      <div class="kpi-header">
+        <div class="kpi-icon-wrap consumptions-icon">
+          <app-icon name="credit-card" [size]="20" />
+        </div>
+        <span class="kpi-badge">Consumos TC</span>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">Total Consumos Registrados</span>
+        <span class="kpi-value">{{ formatCOP(tcService.totalConsumptions()) }}</span>
+        <span class="kpi-detail">
+          {{ tcService.allTcExpenses().length }} {{ tcService.allTcExpenses().length === 1 ? 'consumo registrado' : 'consumos registrados' }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Card 2: Abonos Amortizados -->
+    <div class="kpi-card payments-card">
+      <div class="kpi-header">
+        <div class="kpi-icon-wrap payments-icon">
+          <app-icon name="check-circle" [size]="20" />
+        </div>
+        <span class="kpi-badge badge-green">Abonos Conciliados</span>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">Total Abonos Amortizados</span>
+        <span class="kpi-value text-green">{{ formatCOP(tcService.totalPayments()) }}</span>
+        <span class="kpi-detail">
+          {{ tcService.payments().length }} {{ tcService.payments().length === 1 ? 'pago desde Gastos Diarios' : 'pagos desde Gastos Diarios' }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Card 3: Deuda Pendiente TC (Saldo Real Amortizado) -->
+    <div
+      class="kpi-card debt-card"
+      [class.debt-cleared]="tcService.pendingDebt() <= 0"
+      [class.debt-pending]="tcService.pendingDebt() > 0"
+    >
+      <div class="kpi-header">
+        <div
+          class="kpi-icon-wrap"
+          [class.debt-icon-cleared]="tcService.pendingDebt() <= 0"
+          [class.debt-icon-pending]="tcService.pendingDebt() > 0"
+        >
+          @if (tcService.pendingDebt() <= 0) {
+            <app-icon name="check-circle" [size]="20" />
+          } @else {
+            <app-icon name="alert-circle" [size]="20" />
+          }
+        </div>
+        <span
+          class="kpi-badge"
+          [class.badge-cleared]="tcService.pendingDebt() <= 0"
+          [class.badge-pending]="tcService.pendingDebt() > 0"
+        >
+          @if (tcService.pendingDebt() <= 0) {
+            Al día
+          } @else {
+            Saldo Pendiente
+          }
+        </span>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">Deuda Pendiente Amortizada</span>
+        <span
+          class="kpi-value"
+          [class.text-cleared]="tcService.pendingDebt() <= 0"
+          [class.text-pending]="tcService.pendingDebt() > 0"
+        >
+          {{ formatCOP(tcService.pendingDebt() > 0 ? tcService.pendingDebt() : 0) }}
+        </span>
+        <span class="kpi-detail">
+          @if (tcService.pendingDebt() <= 0 && tcService.totalConsumptions() > 0) {
+            🎉 Todos los consumos han sido pagados
+          } @else if (tcService.totalConsumptions() === 0) {
+            Sin consumos pendientes
+          } @else {
+            Consumos pendientes por amortizar
+          }
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Desglose por Persona / Responsable -->
+  <div class="people-breakdown-card">
+    <div class="breakdown-header">
+      <div class="breakdown-title-wrap">
+        <h3 class="breakdown-title">Desglose de Consumos y Pagos por Responsable</h3>
+        <p class="breakdown-subtitle">Monitoreo de consumos directos y abonos amortizados de cada persona</p>
+      </div>
+    </div>
+
+    <div class="people-grid">
+      @for (metric of tcService.personMetrics(); track metric.person) {
+        <div class="person-card">
+          <div class="person-card-header">
+            <div class="person-identity">
+              <span class="person-color-dot" [style.background-color]="metric.color"></span>
+              <span class="person-name">{{ metric.person }}</span>
+            </div>
+            <span class="person-percentage">
+              {{ metric.percentageOfConsumptions | number: '1.0-1' }}% del total
+            </span>
+          </div>
+
+          <div class="progress-bar-bg">
+            <div
+              class="progress-bar-fill"
+              [style.width.%]="metric.percentageOfConsumptions"
+              [style.background-color]="metric.color"
+            ></div>
+          </div>
+
+          <div class="person-metrics-list">
+            <div class="person-metric-row">
+              <span class="metric-row-label">Consumos con TC:</span>
+              <span class="metric-row-value">{{ formatCOP(metric.consumptions) }}</span>
+            </div>
+            <div class="person-metric-row">
+              <span class="metric-row-label">Abonos pagados:</span>
+              <span class="metric-row-value text-green">{{ formatCOP(metric.payments) }}</span>
+            </div>
+            <div class="person-metric-row metric-balance-row">
+              <span class="metric-row-label font-bold">Saldo neto individual:</span>
+              <span
+                class="metric-row-value font-bold"
+                [class.text-amber]="metric.netBalance > 0"
+                [class.text-green]="metric.netBalance <= 0"
+              >
+                {{ formatCOP(metric.netBalance) }}
+              </span>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</div>

@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS public.expenses (
     category TEXT NOT NULL CHECK (category IN (
         'Alimentación', 'Transporte', 'Salud', 'Entretenimiento', 'Educación',
         'Ropa', 'Tecnología', 'Restaurantes', 'Cuidado Personal', 'Hogar', 'Servicios',
-        'Ahorro / Inversión', 'Otros'
+        'Ahorro / Inversión', 'TC-compartida', 'Otros'
     )),
     description VARCHAR(100) NOT NULL,
     amount NUMERIC NOT NULL CHECK (amount > 0),

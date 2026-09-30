@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, input, output, signal } from '@angu
 import { environment } from '../../../../environments/environment';
 import { Icon, type IconName } from '../icon/icon';
 
-export type SidebarPageId = 'gastos' | 'ingresos' | 'resumen' | 'categoria' | 'deudas';
+export type SidebarPageId = 'gastos' | 'ingresos' | 'resumen' | 'categoria' | 'deudas' | 'tc-compartida';
 
 interface SidebarNavItem {
   id: SidebarPageId;
@@ -36,7 +36,8 @@ export class Sidebar {
     { id: 'ingresos', label: 'Ingresos', description: 'Registro de entradas', icon: 'trending-up' },
     { id: 'resumen', label: 'Resumen Mensual', description: 'Balance por mes', icon: 'bar-chart-2' },
     { id: 'categoria', label: 'Por Categoría', description: 'Análisis de categorías', icon: 'pie-chart' },
-    { id: 'deudas', label: 'Proyección Deudas', description: 'Pagos y proyecciones', icon: 'credit-card' },
+    { id: 'deudas', label: 'Proyección Deudas', description: 'Pagos y proyecciones', icon: 'wallet' },
+    { id: 'tc-compartida', label: 'TC Compartida', description: 'Consumos y saldo', icon: 'credit-card' },
   ];
 
   protected readonly people: readonly SidebarPerson[] = [

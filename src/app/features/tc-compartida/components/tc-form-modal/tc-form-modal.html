@@ -1,0 +1,62 @@
+<app-modal [title]="modalTitle()" (close)="cancel.emit()">
+  <form class="tc-form" (submit)="$event.preventDefault(); onSubmit()">
+    <div class="form-row">
+      <label class="field">
+        <span class="field-label">Fecha del consumo</span>
+        <input
+          class="field-control"
+          type="date"
+          [value]="date()"
+          (input)="date.set($any($event.target).value)"
+        />
+      </label>
+
+      <app-select
+        label="Responsable"
+        [options]="personOptions"
+        [value]="person()"
+        (valueChange)="person.set($event)"
+      />
+    </div>
+
+    <div class="form-row">
+      <app-select
+        label="Categoría / Tipo"
+        [options]="categoryOptions"
+        [value]="category()"
+        (valueChange)="category.set($event)"
+      />
+
+      <label class="field">
+        <span class="field-label">Monto (COP)</span>
+        <input
+          class="field-control"
+          type="text"
+          inputmode="numeric"
+          placeholder="Ej: 150000"
+          [value]="amount()"
+          (input)="onAmountInput($event)"
+          required
+        />
+      </label>
+    </div>
+
+    <label class="field">
+      <span class="field-label">Descripción del consumo</span>
+      <input
+        class="field-control"
+        type="text"
+        placeholder="Ej: Mercado mensual, Pasajes, Cena fin de semana..."
+        maxlength="120"
+        [value]="description()"
+        (input)="description.set($any($event.target).value)"
+        required
+      />
+    </label>
+
+    <div class="form-actions">
+      <button type="button" class="btn btn-secondary" (click)="cancel.emit()">Cancelar</button>
+      <button type="submit" class="btn btn-primary">{{ submitLabel() }}</button>
+    </div>
+  </form>
+</app-modal>

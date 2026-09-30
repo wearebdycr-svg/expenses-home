@@ -1,0 +1,66 @@
+<section class="payments-card">
+  <!-- Callout explicativo de la conciliación -->
+  <div class="reconciliation-banner">
+    <div class="banner-icon">
+      <app-icon name="check-circle" [size]="20" />
+    </div>
+    <div class="banner-content">
+      <h4 class="banner-title">Conciliación Automática de Abonos</h4>
+      <p class="banner-desc">
+        Estos abonos provienen de los egresos registrados en <strong>Gastos Diarios</strong> con la categoría 
+        <span class="category-badge">TC-compartida</span>. Cada registro amortiza y reduce automáticamente la deuda pendiente acumulada de la tarjeta.
+      </p>
+    </div>
+  </div>
+
+  <div class="table-header">
+    <div class="title-group">
+      <h3 class="table-title">Historial de Abonos Aplicados a la TC</h3>
+      <span class="table-count">
+        {{ tcService.filteredPayments().length }}
+        {{ tcService.filteredPayments().length === 1 ? 'abono' : 'abonos' }}
+      </span>
+    </div>
+    <div class="total-amortized">
+      <span class="amortized-label">Total Amortizado:</span>
+      <span class="amortized-value">{{ formatCOP(tcService.totalPayments()) }}</span>
+    </div>
+  </div>
+
+  @if (tcService.filteredPayments().length === 0) {
+    <div class="empty-state">
+      <div class="empty-icon-wrap">
+        <app-icon name="receipt" [size]="28" />
+      </div>
+      <p class="empty-text">No se han registrado abonos con la categoría "TC-compartida" aún.</p>
+      <p class="empty-hint">
+        Para abonar a esta tarjeta, dirígete a la sección <strong>Gastos Diarios</strong> y registra un gasto asignando la categoría <strong>TC-compartida</strong>.
+      </p>
+    </div>
+  } @else {
+    <div class="table-responsive">
+      <table class="payments-table">
+        <thead>
+          <tr>
+            <th>Fecha del Abono</th>
+            <th>Abonado por</th>
+            <th>Concepto / Descripción</th>
+            <th class="col-amount">Monto Amortizado</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (payment of tcService.filteredPayments(); track payment.id) {
+            <tr class="payment-row">
+              <td class="col-date">{{ formatDisplayDate(payment.date) }}</td>
+              <td>
+                <app-badge [color]="personColors[payment.person]">{{ payment.person }}</app-badge>
+              </td>
+              <td class="col-description">{{ payment.description }}</td>
+              <td class="col-amount text-green font-bold">{{ formatCOP(payment.amount) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>

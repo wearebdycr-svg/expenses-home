@@ -71,5 +71,18 @@ describe('App', () => {
     expect(app['currentPage']()).toBe('deudas');
     expect(fixture.nativeElement.querySelector('app-deudas-page')).toBeTruthy();
   });
+
+  it('navigates to tc-compartida page and renders app-tc-page', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const app = fixture.componentInstance;
+
+    const tcButton = fixture.nativeElement.querySelectorAll('.nav-item')[5] as HTMLButtonElement;
+    tcButton.click();
+    fixture.detectChanges();
+
+    expect(app['currentPage']()).toBe('tc-compartida');
+    expect(fixture.nativeElement.querySelector('app-tc-page')).toBeTruthy();
+  });
 });
 

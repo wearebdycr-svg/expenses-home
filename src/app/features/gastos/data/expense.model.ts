@@ -14,6 +14,7 @@ export type ExpenseCategory =
   | 'Hogar'
   | 'Servicios'
   | 'Ahorro / Inversión'
+  | 'TC-compartida'
   | 'Otros';
 
 export interface Expense {
@@ -81,6 +82,7 @@ export const EXPENSE_CATEGORIES: readonly ExpenseCategory[] = [
   'Hogar',
   'Servicios',
   'Ahorro / Inversión',
+  'TC-compartida',
   'Otros',
 ];
 
@@ -103,6 +105,7 @@ export const EXPENSE_CATEGORY_COLORS: Record<ExpenseCategory, string> = {
   Tecnología: '#6366f1',
   'Cuidado Personal': '#f97316',
   'Ahorro / Inversión': '#14b8a6',
+  'TC-compartida': '#8b5cf6',
   Otros: '#94a3b8',
 };
 

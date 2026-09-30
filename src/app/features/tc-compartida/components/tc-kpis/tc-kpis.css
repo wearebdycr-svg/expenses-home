@@ -1,0 +1,276 @@
+:host {
+  display: block;
+}
+
+.tc-kpis-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.kpi-card {
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem 1.5rem;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+.kpi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.85rem;
+}
+
+.kpi-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+
+.consumptions-icon {
+  background: #f5f3ff;
+  color: #7c3aed;
+}
+
+.payments-icon {
+  background: #ecfdf5;
+  color: #10b981;
+}
+
+.debt-icon-pending {
+  background: #fff1f2;
+  color: #f43f5e;
+}
+
+.debt-icon-cleared {
+  background: #ecfdf5;
+  color: #10b981;
+}
+
+.kpi-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.badge-green {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.badge-pending {
+  background: #fff1f2;
+  color: #e11d48;
+}
+
+.badge-cleared {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.kpi-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.kpi-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.kpi-value {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.text-green {
+  color: #059669;
+}
+
+.text-pending {
+  color: #e11d48;
+}
+
+.text-cleared {
+  color: #059669;
+}
+
+.text-amber {
+  color: #d97706;
+}
+
+.kpi-detail {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin-top: 0.25rem;
+}
+
+/* Card highlight states */
+.debt-card.debt-pending {
+  border-left: 4px solid #f43f5e;
+}
+
+.debt-card.debt-cleared {
+  border-left: 4px solid #10b981;
+}
+
+/* People Breakdown Card */
+.people-breakdown-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+}
+
+.breakdown-header {
+  margin-bottom: 1.25rem;
+}
+
+.breakdown-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.breakdown-subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.82rem;
+  color: #64748b;
+}
+
+.people-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+
+@media (max-width: 800px) {
+  .people-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.person-card {
+  padding: 1.15rem;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.person-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.person-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.person-color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.person-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.person-percentage {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.progress-bar-bg {
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+.person-metrics-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.25rem;
+}
+
+.person-metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+}
+
+.metric-row-label {
+  color: #64748b;
+}
+
+.metric-row-value {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.metric-balance-row {
+  padding-top: 0.5rem;
+  margin-top: 0.25rem;
+  border-top: 1px dashed #cbd5e1;
+}
+
+.font-bold {
+  font-weight: 700;
+}

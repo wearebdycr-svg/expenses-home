@@ -52,6 +52,7 @@ export const CATEGORY_COLORS: Record<ExpenseCategory, string> = {
   'Cuidado Personal': '#f43f5e',
   Tecnología: '#6366f1',
   'Ahorro / Inversión': '#14b8a6',
+  'TC-compartida': '#8b5cf6',
   Otros: '#94a3b8',
 };
 

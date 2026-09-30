@@ -47,3 +47,18 @@ INSERT INTO public.debts (name, person, start_date, original_amount, current_bal
   ('Crédito Vehículo', 'Benny', '2026-07-01', 22000000, 14200000, 450000, 10.2, '#F59E0B'),
   ('Tarjeta de Crédito', 'Charlie', '2026-07-01', 5000000, 3800000, 500000, 24.0, '#EF4444'),
   ('Préstamo Personal', 'Charlie', '2026-07-01', 8000000, 5200000, 350000, 15.5, '#10B981');
+
+-- 6. Insertar Consumos Directos de TC Compartida de Prueba
+DELETE FROM public.tc_expenses;
+INSERT INTO public.tc_expenses (date, person, description, amount, category) VALUES
+  ('2026-07-04', 'Benny', 'Tiquetes Aéreos Vacaciones', 650000, 'Viajes / Transporte'),
+  ('2026-07-11', 'Charlie', 'Cena Aniversario Restaurante', 220000, 'Restaurantes'),
+  ('2026-07-16', 'Compartido', 'Compra Smart TV Sala', 1400000, 'Tecnología'),
+  ('2026-07-24', 'Benny', 'Mercado Mayorista Alkosto', 380000, 'Supermercado');
+
+-- 7. Insertar Abono de Prueba en Gastos Diarios (Categoría TC-compartida)
+-- Total consumos: 650k + 220k + 1.4M + 380k = $2,650,000
+-- Abono: $1,000,000 -> Deuda pendiente amortizada = $1,650,000
+INSERT INTO public.expenses (date, person, category, description, amount) VALUES
+  ('2026-07-26', 'Charlie', 'TC-compartida', 'Abono Cuota TC Compartida Bancolombia', 1000000);
+

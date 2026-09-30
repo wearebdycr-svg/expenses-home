@@ -4,11 +4,12 @@ import { DeudasPage } from './features/deudas/deudas';
 import { GastosPage } from './features/gastos/gastos';
 import { IngresosPage } from './features/ingresos/ingresos';
 import { ResumenPage } from './features/resumen/resumen';
+import { TcPage } from './features/tc-compartida/tc';
 import { Sidebar, type SidebarPageId } from './shared/ui/sidebar/sidebar';
 
 @Component({
   selector: 'app-root',
-  imports: [Sidebar, GastosPage, IngresosPage, ResumenPage, CategoriaPage, DeudasPage],
+  imports: [Sidebar, GastosPage, IngresosPage, ResumenPage, CategoriaPage, DeudasPage, TcPage],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app.html',
   styleUrl: './app.css',
