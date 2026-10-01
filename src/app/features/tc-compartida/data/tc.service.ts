@@ -17,6 +17,51 @@ const CARD_TAG_REGEX = /^\[CARD:([^\]]+)\]\s*(.*)$/i;
 export type MonthFilter = number | 'Todos';
 export type DayFilter = number | 'Todos';
 
+/**
+ * Realiza la amortización FIFO cronológica de consumos con abonos.
+ * Un abono en fecha D_pago SOLO puede amortizar consumos realizados en o antes de D_pago (D_consumo <= D_pago).
+ * Retorna la suma de saldos pendientes de los consumos amortizados que cumplen con el filtro maxDate.
+ */
+export function calculateAmortizedPendingDebt(
+  expenses: readonly { date: string; amount: number }[],
+  payments: readonly { date: string; amount: number }[],
+  maxDate?: string,
+): number {
+  if (expenses.length === 0) return 0;
+
+  // 1. Filtrar y ordenar consumos cronológicamente (más antiguo primero)
+  const sortedExpenses = expenses
+    .filter((e) => !maxDate || e.date <= maxDate)
+    .map((e) => ({ ...e, remaining: e.amount }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  // 2. Filtrar y ordenar abonos cronológicamente
+  const sortedPayments = payments
+    .filter((p) => !maxDate || p.date <= maxDate)
+    .map((p) => ({ ...p, remaining: p.amount }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  // 3. Aplicar cada abono en orden cronológico a los consumos elegibles (fecha consumo <= fecha abono)
+  for (const payment of sortedPayments) {
+    if (payment.remaining <= 0) continue;
+
+    for (const exp of sortedExpenses) {
+      if (exp.remaining <= 0) continue;
+      // Un abono no puede pagar un consumo que ocurrió después del abono
+      if (exp.date > payment.date) continue;
+
+      const deduct = Math.min(payment.remaining, exp.remaining);
+      exp.remaining -= deduct;
+      payment.remaining -= deduct;
+
+      if (payment.remaining <= 0) break;
+    }
+  }
+
+  // 4. La deuda pendiente es la suma de los remanentes de los consumos
+  return sortedExpenses.reduce((sum, exp) => sum + exp.remaining, 0);
+}
+
 @Injectable({ providedIn: 'root' })
 export class TcService {
   private readonly supabase = inject(SupabaseService);
@@ -146,7 +191,8 @@ export class TcService {
   });
 
   /**
-   * Identifica si un gasto de amortización corresponde a una tarjeta dada
+   * Identifica si un gasto de amortización corresponde a una tarjeta dada.
+   * Evita sobre-coincidencia accidental con gastos comunes de la misma entidad o palabras generales.
    */
   isPaymentForCard(expense: Expense, card: TcCard): boolean {
     const expCat = (expense.category || '').trim();
@@ -180,28 +226,55 @@ export class TcService {
     const name = (card.name || '').toLowerCase();
     const digits = (card.lastDigits || '').trim();
 
-    // 2. Por últimos 4 dígitos en descripción
-    if (digits.length >= 4 && desc.includes(digits)) {
-      return true;
-    }
+    const isDebtCategory =
+      expCat === 'Deudas' ||
+      expCat === 'Financiero' ||
+      expCat === 'Tarjetas de Crédito' ||
+      (card.paymentCategory && expCat === card.paymentCategory);
 
-    // 3. Si coincide la categoría de pago configurada (ej. 'Deudas', 'TC-compartida')
-    if (card.paymentCategory && expCat === card.paymentCategory) {
-      if (bank && bank.length >= 3 && desc.includes(bank)) return true;
-      if (name && name.length >= 2 && desc.includes(name)) return true;
-      const words = name.split(/\s+/).filter((w) => w.length >= 2 && w !== 'tc');
-      for (const w of words) {
-        if (desc.includes(w)) return true;
+    // 2. Por últimos 4 dígitos en descripción cuando sea categoría de deudas o mencione pago/abono/tc
+    if (digits.length >= 4 && desc.includes(digits)) {
+      if (
+        isDebtCategory ||
+        desc.includes('pago') ||
+        desc.includes('abono') ||
+        desc.includes('tc') ||
+        desc.includes('tarjeta')
+      ) {
+        return true;
       }
     }
 
-    // 4. Si en la descripción aparece el banco o palabras clave del nombre
-    if (bank && bank.length >= 3 && desc.includes(bank)) {
-      return true;
+    // 3. Si coincide categoría de deuda y menciona banco o nombre de la tarjeta
+    if (isDebtCategory) {
+      if (name && desc.includes(name)) return true;
+      if (bank && bank.length >= 3 && desc.includes(bank)) {
+        if (
+          desc.includes('tc') ||
+          desc.includes('tarjeta') ||
+          desc.includes('pago') ||
+          desc.includes('abono')
+        ) {
+          return true;
+        }
+      }
     }
-    const words = name.split(/\s+/).filter((w) => w.length >= 2 && w !== 'tc');
-    for (const w of words) {
-      if (desc.includes(w)) return true;
+
+    // 4. Si la descripción menciona explícitamente pago/abono de tarjeta
+    const isExplicitCardPayment =
+      desc.includes('pago tc') ||
+      desc.includes('abono tc') ||
+      desc.includes('pago tarjeta') ||
+      desc.includes('abono tarjeta') ||
+      desc.includes('pago cuota tc') ||
+      desc.includes('abono cuota tc');
+
+    if (isExplicitCardPayment) {
+      if (digits.length >= 4 && desc.includes(digits)) return true;
+      if (name && desc.includes(name)) return true;
+      if (bank && bank.length >= 3 && desc.includes(bank)) return true;
+      // Si no menciona otra tarjeta específica y es la tarjeta compartida principal
+      if (card.id === 'tc-compartida' && !desc.includes('nu')) return true;
     }
 
     return false;
@@ -301,9 +374,8 @@ export class TcService {
 
   /**
    * Deuda Pendiente TC (Saldo real acumulado amortizado):
-   * Calcula la deuda pendiente real acumulada de la tarjeta hasta el período seleccionado.
-   * Si en el período se abonó una deuda anterior (ej. extracto del mes pasado),
-   * no anula los consumos nuevos del mes, sino que mantiene el saldo exacto pendiente.
+   * Calcula la deuda pendiente real acumulada de la tarjeta hasta el período seleccionado
+   * aplicando amortización cronológica FIFO (un abono amortiza consumos con fecha <= fecha del abono).
    */
   readonly pendingDebt = computed<number>(() => {
     const card = this.selectedCard();
@@ -327,16 +399,16 @@ export class TcService {
     }
 
     const cardExpenses = this.tcExpenses().filter(
-      (exp) => (exp.cardId || 'tc-compartida') === cardId && exp.date <= maxDate,
+      (exp) => (exp.cardId || 'tc-compartida') === cardId,
     );
 
     const cardPayments = card
       ? this.expensesService
           .allExpenses()
-          .filter((exp) => this.isPaymentForCard(exp, card) && exp.date <= maxDate)
+          .filter((exp) => this.isPaymentForCard(exp, card))
       : this.expensesService
           .allExpenses()
-          .filter((exp) => exp.category === 'TC-compartida' && exp.date <= maxDate);
+          .filter((exp) => exp.category === 'TC-compartida');
 
     const filteredExpenses = cardExpenses.filter(
       (exp) => person === 'Todos' || exp.person === person,
@@ -345,10 +417,7 @@ export class TcService {
       (exp) => person === 'Todos' || exp.person === person,
     );
 
-    const totalCons = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
-    const totalPays = filteredPayments.reduce((sum, p) => sum + p.amount, 0);
-
-    return Math.max(0, totalCons - totalPays);
+    return calculateAmortizedPendingDebt(filteredExpenses, filteredPayments, maxDate);
   });
 
   /**
@@ -437,7 +506,7 @@ export class TcService {
 
     const totalConsumptions = cardExpenses.reduce((sum, e) => sum + e.amount, 0);
     const totalPayments = cardPayments.reduce((sum, p) => sum + p.amount, 0);
-    const pendingDebt = Math.max(0, totalConsumptions - totalPayments);
+    const pendingDebt = calculateAmortizedPendingDebt(cardExpenses, cardPayments);
 
     const countThisMonth = cardExpenses.filter((e) => {
       const [y, m] = e.date.split('-').map(Number);

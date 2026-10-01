@@ -324,5 +324,83 @@ describe('TcService - Módulo TC Compartida y Conciliación', () => {
     // porque el pago de $3.783.314 cubrió el saldo de Julio
     expect(tcService.pendingDebt()).toBe(50_000);
   });
+
+  it('does NOT allow prior-month payments (e.g. from months before TC table existed) to cancel future consumptions', () => {
+    const sharedCard = tcService.cards().find((c) => c.id === 'tc-compartida')!;
+    tcService.selectCard(sharedCard);
+
+    // 1. Pago histórico en Julio ($1.000.000) en Gastos Diarios
+    expensesService.addExpense({
+      date: '2026-07-15',
+      person: 'Charlie',
+      category: 'TC-compartida',
+      description: 'Pago cuota anterior',
+      amount: 1_000_000,
+    });
+
+    // 2. Nuevo consumo en Octubre ($34.320)
+    tcService.addTcExpense({
+      date: '2026-10-01',
+      person: 'Compartido',
+      description: 'Café y compras',
+      amount: 34_320,
+      cardId: 'tc-compartida',
+    });
+
+    tcService.setMonth(10);
+
+    // Consumos en Octubre: 34.320
+    expect(tcService.totalConsumptions()).toBe(34_320);
+
+    // Abonos en Octubre: 0
+    expect(tcService.totalPayments()).toBe(0);
+
+    // Deuda pendiente en Octubre: NO debe ser $0 por el abono de Julio, debe ser $34.320
+    expect(tcService.pendingDebt()).toBe(34_320);
+
+    // Y el grid de tarjetas también debe reflejar $34.320 de deuda pendiente
+    const metrics = tcService.getCardMetrics('tc-compartida');
+    expect(metrics.pendingDebt).toBe(34_320);
+  });
+
+  it('does NOT match unrelated expenses with bank or shared words as credit card payments', () => {
+    const sharedCard = tcService.cards().find((c) => c.id === 'tc-compartida')!;
+
+    // Gasto regular de restaurante con la palabra "compartida"
+    const restaurantExpense = {
+      id: 'e1',
+      date: '2026-10-01',
+      person: 'Charlie' as const,
+      category: 'Restaurantes',
+      description: 'Cena compartida con amigos',
+      amount: 120_000,
+      createdAt: '2026-10-01T00:00:00Z',
+    };
+    expect(tcService.isPaymentForCard(restaurantExpense, sharedCard)).toBe(false);
+
+    // Gasto regular con la palabra "bancolombia" en servicios
+    const transferExpense = {
+      id: 'e2',
+      date: '2026-10-01',
+      person: 'Benny' as const,
+      category: 'Servicios',
+      description: 'Transferencia Bancolombia arriendo',
+      amount: 500_000,
+      createdAt: '2026-10-01T00:00:00Z',
+    };
+    expect(tcService.isPaymentForCard(transferExpense, sharedCard)).toBe(false);
+
+    // Pago legítimo de tarjeta
+    const legitPayment = {
+      id: 'e3',
+      date: '2026-10-01',
+      person: 'Charlie' as const,
+      category: 'TC-compartida',
+      description: 'Pago tarjeta Bancolombia 0066',
+      amount: 34_320,
+      createdAt: '2026-10-01T00:00:00Z',
+    };
+    expect(tcService.isPaymentForCard(legitPayment, sharedCard)).toBe(true);
+  });
 });
 
