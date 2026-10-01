@@ -37,10 +37,12 @@ trigger:tests:
 
 # ------------------------------------------------------------------------------
 # 2. PIPELINE DE DEPLOY Y TODO LO DEMÁS (Independiente)
-# Se ejecuta automáticamente en main tras los tests, o manualmente en develop.
+# Depende estrictamente del éxito de los tests. Si los tests fallan, NO despliega.
 # ------------------------------------------------------------------------------
 trigger:deploy:
   stage: deploy-pipeline
+  needs:
+    - job: trigger:tests
   trigger:
     include: .gitlab/ci/deploy.gitlab-ci.yml
     strategy: depend
@@ -48,7 +50,7 @@ trigger:deploy:
     # Si se solicita explícitamente solo tests, omitir deploy
     - if: $PIPELINE_TARGET == "test_only"
       when: never
-    # En producción (main) se dispara automáticamente
+    # En producción (main) se dispara automáticamente tras superar los tests
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_TAG
     # En rama de desarrollo (develop) disponible para disparo manual

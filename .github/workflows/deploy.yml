@@ -1,14 +1,19 @@
 name: "🚀 Deploy Pipeline"
 
 on:
-  push:
+  workflow_run:
+    workflows: ["🧪 Tests Pipeline"]
     branches: [main]
+    types:
+      - completed
   workflow_dispatch:
 
 jobs:
   build-and-deploy:
     name: "Build & Deploy"
     runs-on: ubuntu-latest
+    # IMPORTANTE: Si los tests fallan, el deploy se cancela automáticamente y NO se ejecuta.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - name: Checkout repository
@@ -22,6 +27,12 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Generate Environment Config
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: npm run config:env
 
       - name: Build Application for Production
         env:

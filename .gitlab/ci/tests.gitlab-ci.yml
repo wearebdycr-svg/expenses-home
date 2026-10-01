@@ -31,6 +31,8 @@ stages:
 test:unit:
   stage: test
   script:
+    - echo "⚙️ [TESTS PIPELINE] Generando configuración de variables de entorno..."
+    - npm run config:env
     - echo "🧪 [TESTS PIPELINE] Ejecutando suite completa de pruebas unitarias..."
     - npm run test:ci
   allow_failure: false
