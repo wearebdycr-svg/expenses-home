@@ -45,6 +45,10 @@ const CONFIG = {
   LABEL_PROCESSED: 'ExpensesHome/Procesado',
   LABEL_ERROR: 'ExpensesHome/Error',
 
+  // Límite de antigüedad para buscar correos en Gmail (ej: '2d' = últimos 2 días)
+  // Evita que el script procese correos históricos de semanas, meses o años pasados
+  MAX_DAYS_AGO: '2d',
+
   // Remitente oficial de Bancolombia
   BANCOLOMBIA_SENDER: 'alertasynotificaciones@notificacionesbancolombia.com',
 };
@@ -107,7 +111,7 @@ const CATEGORY_KEYWORDS = {
  * Función principal que busca correos no procesados y los sincroniza
  */
 function syncBancolombiaEmails() {
-  const query = `from:${CONFIG.BANCOLOMBIA_SENDER} -label:${CONFIG.LABEL_PROCESSED}`;
+  const query = `from:${CONFIG.BANCOLOMBIA_SENDER} -label:${CONFIG.LABEL_PROCESSED} newer_than:${CONFIG.MAX_DAYS_AGO}`;
   const threads = GmailApp.search(query, 0, 25);
 
   if (threads.length === 0) {
@@ -131,6 +135,16 @@ function syncBancolombiaEmails() {
         const parsed = parseBancolombiaEmail(body, subject, date);
 
         if (parsed) {
+          // Filtro de seguridad: ignorar y marcar transacciones con más de 7 días de antigüedad
+          const txDate = new Date(parsed.date + 'T00:00:00');
+          const now = new Date();
+          const diffDays = (now - txDate) / (1000 * 60 * 60 * 24);
+          if (diffDays > 7) {
+            Logger.log(`⏭️ Omitiendo transacción antigua (${parsed.date}): ${parsed.description}`);
+            thread.addLabel(processedLabel);
+            continue;
+          }
+
           Logger.log(`Registro extraído [${parsed.type.toUpperCase()}]: $${parsed.amount} - ${parsed.description} (${parsed.targetTable})`);
           saveRecordToSupabase(parsed);
           thread.addLabel(processedLabel);
