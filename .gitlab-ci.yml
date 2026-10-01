@@ -1,0 +1,69 @@
+# ==============================================================================
+# PIPELINE CI/CD - EXPENSES HOME (GitLab CI)
+# ==============================================================================
+# Este pipeline garantiza que ningún cambio se integre sin pasar:
+# 1. 🧪 Pruebas unitarias automatizadas (Vitest / Angular)
+# 2. 🏗️ Verificación de compilación de producción (AOT, Budgets, TypeScript estricto)
+# ==============================================================================
+
+# Imagen oficial de Node.js LTS
+image: node:22
+
+# Reglas de flujo de trabajo para evitar pipelines duplicados en Merge Requests
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_TAG
+
+# Variables globales para el runner de GitLab
+variables:
+  # Desactivar telemetría interactiva de Angular en CI
+  NG_CLI_ANALYTICS: "false"
+  CI: "true"
+  # Directorio local de caché para npm
+  npm_config_cache: "$CI_PROJECT_DIR/.npm"
+
+# Caché global basado en el hash de package-lock.json
+cache:
+  key:
+    files:
+      - package-lock.json
+  paths:
+    - .npm/
+
+# Scripts que se ejecutan antes de cada trabajo
+before_script:
+  - npm ci --prefer-offline --no-audit
+
+# Etapas del pipeline
+stages:
+  - test
+  - build
+
+# ------------------------------------------------------------------------------
+# 1. ETAPA: Pruebas Unitarias
+# ------------------------------------------------------------------------------
+test:unit:
+  stage: test
+  script:
+    - echo "🧪 Ejecutando suite completa de pruebas unitarias de Expenses Home..."
+    - npm run test:ci
+  allow_failure: false
+
+# ------------------------------------------------------------------------------
+# 2. ETAPA: Verificación de Build de Producción
+# ------------------------------------------------------------------------------
+build:production:
+  stage: build
+  script:
+    - echo "🏗️ Verificando compilación de producción Ahead-Of-Time (AOT)..."
+    - npm run build
+  artifacts:
+    name: "expenses-home-dist-$CI_COMMIT_REF_SLUG"
+    paths:
+      - dist/
+    expire_in: 7 days
+  allow_failure: false
