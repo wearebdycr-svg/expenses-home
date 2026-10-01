@@ -4,7 +4,16 @@
 importScripts('https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging-compat.js');
 
-// Configuración pública de Firebase del proyecto
+// 1. Forzar activación inmediata para que las actualizaciones se apliquen sin cerrar el navegador
+self.addEventListener('install', () => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(clients.claim());
+});
+
+// 2. Configuración pública de Firebase del proyecto
 const firebaseConfig = {
   apiKey: "AIzaSyDP1lZt0Tox16p-JhQuNe6acQC4CnjBqLs",
   authDomain: "expenses-home.firebaseapp.com",
@@ -15,14 +24,14 @@ const firebaseConfig = {
   measurementId: "G-0KE4S739VH"
 };
 
-// 1. Inicialización obligatoria de Firebase en el Service Worker
+// 3. Inicialización oficial de Firebase en el Service Worker
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
 
 const messaging = firebase.messaging();
 
-// 2. Manejador oficial de mensajes en segundo plano de Firebase (Campañas de Firebase Console y Push API)
+// 4. Manejador oficial de mensajes en segundo plano de Firebase (Campañas de Firebase Console y Push API)
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw] Notificación recibida desde Firebase:', payload);
   const title = payload.notification?.title || payload.data?.title || 'FinanzasHogar';
@@ -38,38 +47,7 @@ messaging.onBackgroundMessage((payload) => {
   return self.registration.showNotification(title, options);
 });
 
-// 3. Fallback para eventos Push nativos
-self.addEventListener('push', (event) => {
-  if (!event.data) return;
-
-  try {
-    const payload = event.data.json();
-    const title = payload.notification?.title || payload.data?.title || 'FinanzasHogar';
-    const body = payload.notification?.body || payload.data?.body || '';
-    const icon = payload.notification?.icon || payload.data?.icon || '/favicon.svg';
-
-    const options = {
-      body,
-      icon,
-      badge: '/favicon.svg',
-      data: payload.data || {},
-      vibrate: [200, 100, 200],
-      tag: payload.data?.category_id ? `budget-${payload.data.category_id}` : 'finanzas-hogar',
-    };
-
-    event.waitUntil(self.registration.showNotification(title, options));
-  } catch (err) {
-    const text = event.data.text();
-    event.waitUntil(
-      self.registration.showNotification('FinanzasHogar', {
-        body: text,
-        icon: '/favicon.svg',
-      })
-    );
-  }
-});
-
-// 4. Manejo del clic sobre la notificación (apertura o enfoque de pestaña)
+// 5. Manejo del clic sobre la notificación (apertura o enfoque de pestaña)
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
