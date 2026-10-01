@@ -1,14 +1,15 @@
-name: Build & Test (CI)
+name: "🧪 Tests Pipeline"
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
+  workflow_dispatch:
 
 jobs:
-  build:
-    name: Build Angular App
+  unit-tests:
+    name: "Unit Tests (Vitest)"
     runs-on: ubuntu-latest
 
     steps:
@@ -24,14 +25,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Application
+      - name: Run Unit Tests
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-        run: npm run build
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-dist
-          path: dist/
+        run: npm run test:ci

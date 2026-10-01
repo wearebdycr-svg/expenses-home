@@ -1,0 +1,36 @@
+# ==============================================================================
+# PIPELINE 1: PRUEBAS UNITARIAS (TESTS)
+# ==============================================================================
+# Pipeline dedicado exclusivamente a ejecutar y validar la suite de pruebas
+# unitarias del proyecto con Vitest y Angular Testing Utilities.
+# ==============================================================================
+
+image: node:22
+
+variables:
+  NG_CLI_ANALYTICS: "false"
+  CI: "true"
+  npm_config_cache: "$CI_PROJECT_DIR/.npm"
+
+cache:
+  key:
+    files:
+      - package-lock.json
+  paths:
+    - .npm/
+
+before_script:
+  - npm ci --prefer-offline --no-audit
+
+stages:
+  - test
+
+# ------------------------------------------------------------------------------
+# Trabajo: Ejecución de Tests Unitarios
+# ------------------------------------------------------------------------------
+test:unit:
+  stage: test
+  script:
+    - echo "🧪 [TESTS PIPELINE] Ejecutando suite completa de pruebas unitarias..."
+    - npm run test:ci
+  allow_failure: false
