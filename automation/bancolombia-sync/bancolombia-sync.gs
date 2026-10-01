@@ -386,6 +386,30 @@ function guessCategory(description, fullText, isSharedTC) {
  * Guarda el registro en la tabla correspondiente de Supabase (expenses, tc_expenses o incomes)
  */
 function saveRecordToSupabase(record) {
+  // 1. Verificación anti-duplicados en Supabase (idempotencia)
+  const checkUrl = `${CONFIG.SUPABASE_URL}/rest/v1/${record.targetTable}?date=eq.${record.date}&person=eq.${record.person}&amount=eq.${record.amount}&select=id`;
+  const checkOptions = {
+    method: 'get',
+    headers: {
+      apikey: CONFIG.SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${CONFIG.SUPABASE_ANON_KEY}`,
+    },
+    muteHttpExceptions: true,
+  };
+
+  try {
+    const checkResp = UrlFetchApp.fetch(checkUrl, checkOptions);
+    if (checkResp.getResponseCode() === 200) {
+      const existing = JSON.parse(checkResp.getContentText());
+      if (existing && existing.length > 0) {
+        Logger.log(`⚠️ Registro ya existe en Supabase [${record.targetTable}] ($${record.amount} del ${record.date}). Omitiendo inserción para evitar duplicado.`);
+        return;
+      }
+    }
+  } catch (e) {
+    Logger.log(`Advertencia comprobando duplicados: ${e.message}`);
+  }
+
   const url = `${CONFIG.SUPABASE_URL}/rest/v1/${record.targetTable}`;
   
   let payload;
