@@ -49,8 +49,8 @@ const CONFIG = {
   // Evita que el script procese correos históricos de semanas, meses o años pasados
   MAX_DAYS_AGO: '2d',
 
-  // Remitente oficial de Bancolombia
-  BANCOLOMBIA_SENDER: 'alertasynotificaciones@notificacionesbancolombia.com',
+  // Dominio o remitente oficial de Bancolombia (cubre subdominios como ayn. y an.)
+  BANCOLOMBIA_SENDER: 'notificacionesbancolombia.com',
 };
 
 // ==============================================================================
