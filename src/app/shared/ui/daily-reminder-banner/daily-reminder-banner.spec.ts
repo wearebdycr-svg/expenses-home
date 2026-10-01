@@ -27,7 +27,7 @@ describe('DailyReminderBanner', () => {
 
     const banner = fixture.nativeElement.querySelector('.reminder-banner-card');
     expect(banner).toBeTruthy();
-    expect(banner.textContent).toContain('¿Tuviste gastos hoy?');
+    expect(banner.textContent).toContain(reminderService.reminderMessage());
   });
 
   it('triggers register expense action on button click', () => {

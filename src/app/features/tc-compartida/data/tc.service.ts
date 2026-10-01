@@ -1,7 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseService } from '../../../core/services/supabase.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { PushNotificationService } from '../../../core/services/push-notification.service';
+import { PushNotificationService, getWeekDateRange } from '../../../core/services/push-notification.service';
 import type { Expense, ExpensePerson, ExpensePersonFilter } from '../../gastos/data/expense.model';
 import { EXPENSE_PERSON_COLORS, EXPENSE_PERSONS } from '../../gastos/data/expense.model';
 import { ExpensesService } from '../../gastos/data/expenses.service';
@@ -132,6 +132,16 @@ export class TcService {
    */
   readonly pendingDebt = computed<number>(() => {
     return this.totalConsumptions() - this.totalPayments();
+  });
+
+  /**
+   * Consumos acumulados de TC en la semana en curso (Lunes a Domingo)
+   */
+  readonly currentWeekTotal = computed<number>(() => {
+    const { mondayStr, sundayStr } = getWeekDateRange();
+    return this.tcExpenses()
+      .filter((e) => e.date >= mondayStr && e.date <= sundayStr)
+      .reduce((sum, e) => sum + e.amount, 0);
   });
 
   /** Desglose por responsable/persona para el período seleccionado */
@@ -288,6 +298,7 @@ export class TcService {
         });
       }
       this.toastService.success('Consumo de TC registrado');
+      this.pushNotificationService.handleTcExpenseCreated(draft, this.tcExpenses());
     } catch (err: any) {
       console.error('Error de red al insertar consumo TC:', err);
     }

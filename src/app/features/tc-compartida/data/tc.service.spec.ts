@@ -223,4 +223,22 @@ describe('TcService - Módulo TC Compartida y Conciliación', () => {
     expect(tcService.allTcExpenses().length).toBe(0);
     expect(tcService.totalConsumptions()).toBe(0);
   });
+
+  it('calculates currentWeekTotal correctly for expenses in the current week', () => {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const d = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${y}-${m}-${d}`;
+
+    tcService.addTcExpense({
+      date: todayStr,
+      person: 'Benny',
+      description: 'Supermercado semana',
+      amount: 120_000,
+      category: 'Mercado',
+    });
+
+    expect(tcService.currentWeekTotal()).toBe(120_000);
+  });
 });

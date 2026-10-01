@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Icon } from '../../../../shared/ui/icon/icon';
 import { TcService } from '../../data/tc.service';
+import { RemoteConfigService } from '../../../../core/services/remote-config.service';
 import { formatCOP } from '../../data/tc.model';
 
 @Component({
@@ -14,6 +15,7 @@ import { formatCOP } from '../../data/tc.model';
 })
 export class TcKpis {
   protected readonly tcService = inject(TcService);
+  protected readonly remoteConfig = inject(RemoteConfigService);
 
   protected formatCOP(amount: number): string {
     return formatCOP(amount);

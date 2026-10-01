@@ -3,6 +3,9 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage, Messaging } from 'firebase/messaging';
 import { environment } from '../../../environments/environment';
 import type { Expense, ExpenseDraft, ExpensePerson } from '../../features/gastos/data/expense.model';
+import type { TcExpense, TcExpenseDraft } from '../../features/tc-compartida/data/tc.model';
+import type { IncomeDraft } from '../../features/ingresos/data/income.model';
+import type { DebtDraft } from '../../features/deudas/data/debt.model';
 import { formatCOP } from '../../features/categoria/data/categoria.model';
 import { RemoteConfigService } from './remote-config.service';
 import { SupabaseService } from './supabase.service';
@@ -10,6 +13,30 @@ import { ToastService } from './toast.service';
 
 export const FCM_TOKEN_STORAGE_KEY = 'fcm_device_token';
 export const FCM_PERSON_STORAGE_KEY = 'fcm_registered_person';
+
+export function getWeekDateRange(refDate: Date = new Date()): { mondayStr: string; sundayStr: string } {
+  const d = new Date(refDate);
+  const day = d.getDay(); // 0 is Sunday, 1 is Monday...
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+
+  const monday = new Date(d);
+  monday.setDate(d.getDate() + diffToMonday);
+
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+
+  const toStr = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const dayStr = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${dayStr}`;
+  };
+
+  return {
+    mondayStr: toStr(monday),
+    sundayStr: toStr(sunday),
+  };
+}
 
 export interface PushNotificationMessage {
   title: string;
@@ -262,6 +289,121 @@ export class PushNotificationService {
   }
 
   /**
+   * Dispara notificación al crear consumo de TC y evalúa el tope semanal de $100.000 COP (o configurado en Remote Config)
+   */
+  async handleTcExpenseCreated(newExpense: TcExpenseDraft, allTcExpenses: readonly TcExpense[]): Promise<void> {
+    const isPushEnabled = this.remoteConfig.enablePushAlerts();
+    if (!isPushEnabled) {
+      return;
+    }
+
+    const creator = newExpense.person || 'Alguien';
+    const desc = newExpense.description || newExpense.category || 'Consumo';
+    const tcMessage: PushNotificationMessage = {
+      title: `💳 ${creator} usó la TC Compartida`,
+      body: `${formatCOP(newExpense.amount)} - ${desc}`,
+      icon: '/favicon.svg',
+      data: {
+        url: '/#tc-compartida',
+        type: 'tc_expense',
+      },
+      targetPerson: 'all',
+    };
+
+    await this.dispatchPushNotification(tcMessage);
+
+    // Evaluación de tope semanal de TC Compartida
+    const tcWeeklyBudget = this.remoteConfig.tcWeeklyBudget();
+    if (tcWeeklyBudget > 0) {
+      const { mondayStr, sundayStr } = getWeekDateRange();
+      const currentWeekExpenses = allTcExpenses.filter(
+        (e) => e.date >= mondayStr && e.date <= sundayStr
+      );
+      const weeklyAccumulated = currentWeekExpenses.reduce((sum, e) => sum + e.amount, 0) + newExpense.amount;
+
+      if (weeklyAccumulated >= tcWeeklyBudget) {
+        const alertMessage: PushNotificationMessage = {
+          title: '🚨 Tope Semanal TC Compartida Superado',
+          body: `Los consumos con la TC esta semana suman ${formatCOP(weeklyAccumulated)}, superando el límite semanal de ${formatCOP(tcWeeklyBudget)}.`,
+          icon: '/favicon.svg',
+          data: {
+            url: '/#tc-compartida',
+            type: 'tc_weekly_budget_exceeded',
+          },
+          targetPerson: 'all',
+        };
+        await this.dispatchPushNotification(alertMessage);
+      } else {
+        const thresholdPct = this.remoteConfig.alertThresholdPct();
+        const thresholdAmount = tcWeeklyBudget * (thresholdPct / 100);
+        if (weeklyAccumulated >= thresholdAmount) {
+          const pct = (weeklyAccumulated / tcWeeklyBudget) * 100;
+          const warningMessage: PushNotificationMessage = {
+            title: '⚠️ Tope Semanal TC en Riesgo',
+            body: `Los consumos de TC esta semana han consumido el ${pct.toFixed(0)}% del límite (${formatCOP(weeklyAccumulated)} de ${formatCOP(tcWeeklyBudget)}).`,
+            icon: '/favicon.svg',
+            data: {
+              url: '/#tc-compartida',
+              type: 'tc_weekly_budget_warning',
+            },
+            targetPerson: 'all',
+          };
+          await this.dispatchPushNotification(warningMessage);
+        }
+      }
+    }
+  }
+
+  /**
+   * Dispara notificación cuando se registra un nuevo ingreso
+   */
+  async handleIncomeCreated(newIncome: IncomeDraft): Promise<void> {
+    const isPushEnabled = this.remoteConfig.enablePushAlerts();
+    if (!isPushEnabled) {
+      return;
+    }
+
+    const person = newIncome.person || 'Alguien';
+    const descText = newIncome.description ? ` (${newIncome.description})` : '';
+    const incomeMessage: PushNotificationMessage = {
+      title: `💰 ${person} registró un ingreso`,
+      body: `${formatCOP(newIncome.amount)} en ${newIncome.source}${descText}`,
+      icon: '/favicon.svg',
+      data: {
+        url: '/#ingresos',
+        type: 'income',
+      },
+      targetPerson: 'all',
+    };
+
+    await this.dispatchPushNotification(incomeMessage);
+  }
+
+  /**
+   * Dispara notificación cuando se crea una nueva deuda
+   */
+  async handleDebtCreated(newDebt: DebtDraft): Promise<void> {
+    const isPushEnabled = this.remoteConfig.enablePushAlerts();
+    if (!isPushEnabled) {
+      return;
+    }
+
+    const person = newDebt.person || 'Compartido';
+    const debtMessage: PushNotificationMessage = {
+      title: `📋 Nueva deuda registrada: ${newDebt.name}`,
+      body: `${formatCOP(newDebt.originalAmount)} (${person}) - Cuota: ${formatCOP(newDebt.monthlyPayment)}`,
+      icon: '/favicon.svg',
+      data: {
+        url: '/#deudas',
+        type: 'debt',
+      },
+      targetPerson: 'all',
+    };
+
+    await this.dispatchPushNotification(debtMessage);
+  }
+
+  /**
    * Despacha la notificación Push vía backend serverless para los demás dispositivos del hogar
    */
   async dispatchPushNotification(message: PushNotificationMessage): Promise<void> {
@@ -304,6 +446,30 @@ export class PushNotificationService {
     const body = `${formatCOP(expense.amount)} - ${desc}`;
 
     this.showSystemNotification(title, body, '/#tc-compartida');
+  }
+
+  /**
+   * Dispara una alerta cuando otro dispositivo registra un ingreso
+   */
+  notifyIncomingIncome(income: { person?: string; amount: number; source?: string; description?: string }): void {
+    const person = income.person || 'Alguien';
+    const descText = income.description ? ` (${income.description})` : '';
+    const title = `💰 ${person} registró un ingreso`;
+    const body = `${formatCOP(income.amount)} en ${income.source || 'Ingreso'}${descText}`;
+
+    this.showSystemNotification(title, body, '/#ingresos');
+  }
+
+  /**
+   * Dispara una alerta cuando otro dispositivo registra una nueva deuda
+   */
+  notifyIncomingDebt(debt: { name?: string; original_amount?: number; originalAmount?: number; person?: string; monthly_payment?: number; monthlyPayment?: number }): void {
+    const title = `📋 Nueva deuda registrada: ${debt.name || 'Deuda'}`;
+    const amount = Number(debt.original_amount ?? debt.originalAmount ?? 0);
+    const quota = Number(debt.monthly_payment ?? debt.monthlyPayment ?? 0);
+    const body = `${formatCOP(amount)} (${debt.person || 'Compartido'})${quota > 0 ? ` - Cuota: ${formatCOP(quota)}` : ''}`;
+
+    this.showSystemNotification(title, body, '/#deudas');
   }
 
   /**

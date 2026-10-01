@@ -10,11 +10,11 @@
 
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 1.25rem;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 640px) {
   .kpi-grid {
     grid-template-columns: 1fr;
   }
@@ -94,6 +94,31 @@
 .badge-cleared {
   background: #ecfdf5;
   color: #059669;
+}
+
+.badge-warning {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.weekly-icon {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.weekly-exceeded .weekly-icon {
+  background: #fff1f2;
+  color: #e11d48;
+}
+
+.weekly-card.weekly-exceeded {
+  border-color: #fecdd3;
+  background: linear-gradient(180deg, #fff5f5 0%, #ffffff 100%);
+}
+
+.weekly-card.weekly-warning {
+  border-color: #fde68a;
+  background: linear-gradient(180deg, #fffbeb 0%, #ffffff 100%);
 }
 
 .kpi-body {

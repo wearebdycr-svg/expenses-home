@@ -1,6 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseService } from '../../../core/services/supabase.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { PushNotificationService } from '../../../core/services/push-notification.service';
 import { ExpensesService } from '../../gastos/data/expenses.service';
 import type {
   Debt,
@@ -71,6 +72,7 @@ export class DebtsService {
   private readonly supabase = inject(SupabaseService);
   private readonly expensesService = inject(ExpensesService);
   private readonly toastService = inject(ToastService);
+  private readonly pushNotificationService = inject(PushNotificationService);
   private lastLocalMutationTime = 0;
 
   readonly debts = signal<Debt[]>([]);
@@ -390,6 +392,7 @@ export class DebtsService {
         this.persistLocal(this.debts());
       }
       this.toastService.success('Deuda registrada exitosamente');
+      this.pushNotificationService.handleDebtCreated(draft);
     } catch (err: any) {
       console.error('Error de red insertando deuda en Supabase:', err);
     }
@@ -533,11 +536,14 @@ export class DebtsService {
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'debts' },
-          () => {
+          (payload: any) => {
             if (Date.now() - this.lastLocalMutationTime < 2500) {
               return;
             }
             this.loadDebts();
+            if (payload?.eventType === 'INSERT' && payload?.new) {
+              this.pushNotificationService.notifyIncomingDebt(payload.new);
+            }
           },
         )
         .subscribe();

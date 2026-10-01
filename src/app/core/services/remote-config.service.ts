@@ -10,7 +10,12 @@ import { environment } from '../../../environments/environment';
 
 export interface RemoteConfigValues {
   daily_reminder_hour: number;
+  daily_reminder_morning_hour: number;
+  daily_reminder_evening_hour: number;
   daily_reminder_message: string;
+  daily_reminder_morning_message: string;
+  daily_reminder_evening_message: string;
+  tc_weekly_budget: number;
   budget_hogar: number;
   budget_alimentacion: number;
   budget_restaurantes: number;
@@ -22,7 +27,12 @@ export interface RemoteConfigValues {
 
 export const DEFAULT_REMOTE_CONFIG: RemoteConfigValues = {
   daily_reminder_hour: 20,
+  daily_reminder_morning_hour: 9,
+  daily_reminder_evening_hour: 21,
   daily_reminder_message: '¿Tuviste gastos hoy? No olvides reportar los gastos de hoy',
+  daily_reminder_morning_message: '☀️ ¡Buenos días! No olvides reportar los gastos que tengas hoy o pendientes de ayer',
+  daily_reminder_evening_message: '🌙 ¡Buenas noches! Recuerda registrar todos tus gastos de hoy para mantener las cuentas al día',
+  tc_weekly_budget: 100_000,
   budget_hogar: 2_500_000,
   budget_alimentacion: 2_000_000,
   budget_restaurantes: 1_000_000,
@@ -41,7 +51,12 @@ export class RemoteConfigService {
   // Signals reactivos para el estado global (Criterio 1.1 y 2.1)
   readonly isLoaded = signal<boolean>(false);
   readonly dailyReminderHour = signal<number>(DEFAULT_REMOTE_CONFIG.daily_reminder_hour);
+  readonly dailyReminderMorningHour = signal<number>(DEFAULT_REMOTE_CONFIG.daily_reminder_morning_hour);
+  readonly dailyReminderEveningHour = signal<number>(DEFAULT_REMOTE_CONFIG.daily_reminder_evening_hour);
   readonly dailyReminderMessage = signal<string>(DEFAULT_REMOTE_CONFIG.daily_reminder_message);
+  readonly dailyReminderMorningMessage = signal<string>(DEFAULT_REMOTE_CONFIG.daily_reminder_morning_message);
+  readonly dailyReminderEveningMessage = signal<string>(DEFAULT_REMOTE_CONFIG.daily_reminder_evening_message);
+  readonly tcWeeklyBudget = signal<number>(DEFAULT_REMOTE_CONFIG.tc_weekly_budget);
   readonly budgetHogar = signal<number>(DEFAULT_REMOTE_CONFIG.budget_hogar);
   readonly budgetAlimentacion = signal<number>(DEFAULT_REMOTE_CONFIG.budget_alimentacion);
   readonly budgetRestaurantes = signal<number>(DEFAULT_REMOTE_CONFIG.budget_restaurantes);
@@ -104,14 +119,19 @@ export class RemoteConfigService {
       await fetchAndActivate(rc);
 
       // Criterio 2.1: Actualizar signals desde Remote Config
-      this.dailyReminderHour.set(getValue(rc, 'daily_reminder_hour').asNumber());
-      this.dailyReminderMessage.set(getValue(rc, 'daily_reminder_message').asString());
-      this.budgetHogar.set(getValue(rc, 'budget_hogar').asNumber());
-      this.budgetAlimentacion.set(getValue(rc, 'budget_alimentacion').asNumber());
-      this.budgetRestaurantes.set(getValue(rc, 'budget_restaurantes').asNumber());
-      this.budgetTransporte.set(getValue(rc, 'budget_transporte').asNumber());
-      this.budgetEntretenimiento.set(getValue(rc, 'budget_entretenimiento').asNumber());
-      this.alertThresholdPct.set(getValue(rc, 'alert_threshold_pct').asNumber());
+      this.dailyReminderHour.set(getValue(rc, 'daily_reminder_hour').asNumber() || DEFAULT_REMOTE_CONFIG.daily_reminder_hour);
+      this.dailyReminderMorningHour.set(getValue(rc, 'daily_reminder_morning_hour').asNumber() || DEFAULT_REMOTE_CONFIG.daily_reminder_morning_hour);
+      this.dailyReminderEveningHour.set(getValue(rc, 'daily_reminder_evening_hour').asNumber() || DEFAULT_REMOTE_CONFIG.daily_reminder_evening_hour);
+      this.dailyReminderMessage.set(getValue(rc, 'daily_reminder_message').asString() || DEFAULT_REMOTE_CONFIG.daily_reminder_message);
+      this.dailyReminderMorningMessage.set(getValue(rc, 'daily_reminder_morning_message').asString() || DEFAULT_REMOTE_CONFIG.daily_reminder_morning_message);
+      this.dailyReminderEveningMessage.set(getValue(rc, 'daily_reminder_evening_message').asString() || DEFAULT_REMOTE_CONFIG.daily_reminder_evening_message);
+      this.tcWeeklyBudget.set(getValue(rc, 'tc_weekly_budget').asNumber() || DEFAULT_REMOTE_CONFIG.tc_weekly_budget);
+      this.budgetHogar.set(getValue(rc, 'budget_hogar').asNumber() || DEFAULT_REMOTE_CONFIG.budget_hogar);
+      this.budgetAlimentacion.set(getValue(rc, 'budget_alimentacion').asNumber() || DEFAULT_REMOTE_CONFIG.budget_alimentacion);
+      this.budgetRestaurantes.set(getValue(rc, 'budget_restaurantes').asNumber() || DEFAULT_REMOTE_CONFIG.budget_restaurantes);
+      this.budgetTransporte.set(getValue(rc, 'budget_transporte').asNumber() || DEFAULT_REMOTE_CONFIG.budget_transporte);
+      this.budgetEntretenimiento.set(getValue(rc, 'budget_entretenimiento').asNumber() || DEFAULT_REMOTE_CONFIG.budget_entretenimiento);
+      this.alertThresholdPct.set(getValue(rc, 'alert_threshold_pct').asNumber() || DEFAULT_REMOTE_CONFIG.alert_threshold_pct);
       this.enablePushAlerts.set(getValue(rc, 'enable_push_alerts').asBoolean());
 
       this.isLoaded.set(true);
@@ -124,7 +144,12 @@ export class RemoteConfigService {
 
   private applyConfigValues(values: RemoteConfigValues): void {
     this.dailyReminderHour.set(values.daily_reminder_hour);
+    this.dailyReminderMorningHour.set(values.daily_reminder_morning_hour);
+    this.dailyReminderEveningHour.set(values.daily_reminder_evening_hour);
     this.dailyReminderMessage.set(values.daily_reminder_message);
+    this.dailyReminderMorningMessage.set(values.daily_reminder_morning_message);
+    this.dailyReminderEveningMessage.set(values.daily_reminder_evening_message);
+    this.tcWeeklyBudget.set(values.tc_weekly_budget);
     this.budgetHogar.set(values.budget_hogar);
     this.budgetAlimentacion.set(values.budget_alimentacion);
     this.budgetRestaurantes.set(values.budget_restaurantes);

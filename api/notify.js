@@ -59,7 +59,35 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Método no permitido' });
   }
 
-  const { title, body, icon, data, senderToken } = req.body || {};
+  let { title, body, icon, data, senderToken } = req.body || {};
+
+  // Soporte para Webhook nativo de Supabase Database (si se dispara directo desde la BD)
+  if (!title && req.body?.type === 'INSERT' && req.body?.table && req.body?.record) {
+    const record = req.body.record;
+    const table = req.body.table;
+    const formatNumber = (num) => `$${Math.round(Number(num) || 0).toLocaleString('es-CO')}`;
+
+    if (table === 'expenses') {
+      const creator = record.person || 'Alguien';
+      title = creator === 'Compartido' ? '💸 Nuevo Gasto Compartido' : `💸 ${creator} registró un gasto`;
+      body = `${formatNumber(record.amount)} en ${record.category || 'Varios'}${record.description ? ` (${record.description})` : ''}`;
+      data = { url: '/#gastos', type: 'expense' };
+    } else if (table === 'tc_expenses') {
+      const creator = record.person || 'Alguien';
+      title = `💳 ${creator} usó la TC Compartida`;
+      body = `${formatNumber(record.amount)} - ${record.description || record.category || 'Consumo'}`;
+      data = { url: '/#tc-compartida', type: 'tc_expense' };
+    } else if (table === 'incomes') {
+      const person = record.person || 'Alguien';
+      title = `💰 ${person} registró un ingreso`;
+      body = `${formatNumber(record.amount)} en ${record.source || 'Ingreso'}${record.description ? ` (${record.description})` : ''}`;
+      data = { url: '/#ingresos', type: 'income' };
+    } else if (table === 'debts') {
+      title = `📋 Nueva deuda registrada: ${record.name || 'Deuda'}`;
+      body = `${formatNumber(record.original_amount || record.originalAmount)} (${record.person || 'Compartido'})`;
+      data = { url: '/#deudas', type: 'debt' };
+    }
+  }
 
   if (!title || !body) {
     return res.status(400).json({ error: 'Título y cuerpo son requeridos' });

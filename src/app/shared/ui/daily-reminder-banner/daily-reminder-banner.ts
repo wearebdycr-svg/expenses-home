@@ -23,6 +23,7 @@ export class DailyReminderBanner {
 
   protected readonly show = this.reminderService.showBanner;
   protected readonly message = this.reminderService.reminderMessage;
+  protected readonly icon = this.reminderService.reminderIcon;
 
   protected onRegisterClick(): void {
     this.expensesService.requestOpenCreateModal();

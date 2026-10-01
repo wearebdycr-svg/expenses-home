@@ -85,6 +85,48 @@
         </span>
       </div>
     </div>
+
+    <!-- Card 4: Tope Semanal TC Compartida ($100.000 COP) -->
+    <div
+      class="kpi-card weekly-card"
+      [class.weekly-exceeded]="tcService.currentWeekTotal() >= remoteConfig.tcWeeklyBudget()"
+      [class.weekly-warning]="tcService.currentWeekTotal() >= remoteConfig.tcWeeklyBudget() * (remoteConfig.alertThresholdPct() / 100) && tcService.currentWeekTotal() < remoteConfig.tcWeeklyBudget()"
+      [class.weekly-ok]="tcService.currentWeekTotal() < remoteConfig.tcWeeklyBudget() * (remoteConfig.alertThresholdPct() / 100)"
+    >
+      <div class="kpi-header">
+        <div class="kpi-icon-wrap weekly-icon">
+          <app-icon name="alert-circle" [size]="20" />
+        </div>
+        <span
+          class="kpi-badge"
+          [class.badge-cleared]="tcService.currentWeekTotal() < remoteConfig.tcWeeklyBudget() * (remoteConfig.alertThresholdPct() / 100)"
+          [class.badge-warning]="tcService.currentWeekTotal() >= remoteConfig.tcWeeklyBudget() * (remoteConfig.alertThresholdPct() / 100) && tcService.currentWeekTotal() < remoteConfig.tcWeeklyBudget()"
+          [class.badge-pending]="tcService.currentWeekTotal() >= remoteConfig.tcWeeklyBudget()"
+        >
+          @if (tcService.currentWeekTotal() >= remoteConfig.tcWeeklyBudget()) {
+            Tope Excedido
+          } @else if (tcService.currentWeekTotal() >= remoteConfig.tcWeeklyBudget() * (remoteConfig.alertThresholdPct() / 100)) {
+            En Riesgo
+          } @else {
+            Controlado
+          }
+        </span>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">Gasto Semanal (Tope: {{ formatCOP(remoteConfig.tcWeeklyBudget()) }})</span>
+        <span
+          class="kpi-value"
+          [class.text-pending]="tcService.currentWeekTotal() >= remoteConfig.tcWeeklyBudget()"
+          [class.text-amber]="tcService.currentWeekTotal() >= remoteConfig.tcWeeklyBudget() * (remoteConfig.alertThresholdPct() / 100) && tcService.currentWeekTotal() < remoteConfig.tcWeeklyBudget()"
+          [class.text-green]="tcService.currentWeekTotal() < remoteConfig.tcWeeklyBudget() * (remoteConfig.alertThresholdPct() / 100)"
+        >
+          {{ formatCOP(tcService.currentWeekTotal()) }}
+        </span>
+        <span class="kpi-detail">
+          {{ (tcService.currentWeekTotal() / (remoteConfig.tcWeeklyBudget() || 1)) * 100 | number: '1.0-0' }}% del límite semanal consumido
+        </span>
+      </div>
+    </div>
   </div>
 
   <!-- Desglose por Persona / Responsable -->

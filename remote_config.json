@@ -56,6 +56,27 @@
       "valueType": "NUMBER",
       "description": "Porcentaje sobre el tope para disparar la alerta preventiva."
     },
+    "tc_weekly_budget": {
+      "defaultValue": {
+        "value": "100000"
+      },
+      "valueType": "NUMBER",
+      "description": "Tope semanal máximo para consumos de Tarjeta Compartida (COP)."
+    },
+    "daily_reminder_morning_hour": {
+      "defaultValue": {
+        "value": "9"
+      },
+      "valueType": "NUMBER",
+      "description": "Hora militar para el recordatorio matutino (9 = 9:00 AM)."
+    },
+    "daily_reminder_evening_hour": {
+      "defaultValue": {
+        "value": "21"
+      },
+      "valueType": "NUMBER",
+      "description": "Hora militar para el recordatorio nocturno (21 = 9:00 PM)."
+    },
     "enable_push_alerts": {
       "defaultValue": {
         "value": "true"

@@ -1,6 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseService } from '../../../core/services/supabase.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { PushNotificationService } from '../../../core/services/push-notification.service';
 import type { Income, IncomeDraft, IncomeSource, Person, PersonFilter } from './income.model';
 import { generateId } from './income.model';
 
@@ -31,6 +32,7 @@ function emptyMonthlySeries(): MonthlySeries {
 export class IncomesService {
   private readonly supabase = inject(SupabaseService);
   private readonly toastService = inject(ToastService);
+  private readonly pushNotificationService = inject(PushNotificationService);
 
   private readonly incomes = signal<Income[]>([]);
   private lastLocalMutationTime = 0;
@@ -187,6 +189,7 @@ export class IncomesService {
         }
       }
       this.toastService.success('Ingreso registrado exitosamente');
+      this.pushNotificationService.handleIncomeCreated(draft);
     } catch (err: any) {
       console.error('Error de red insertando en Supabase:', err);
     }
@@ -272,11 +275,14 @@ export class IncomesService {
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'incomes' },
-          () => {
+          (payload: any) => {
             if (Date.now() - this.lastLocalMutationTime < 2500) {
               return;
             }
             this.loadIncomes(false);
+            if (payload?.eventType === 'INSERT' && payload?.new) {
+              this.pushNotificationService.notifyIncomingIncome(payload.new);
+            }
           }
         )
         .subscribe();
