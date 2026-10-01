@@ -95,18 +95,14 @@ export class PushNotificationService {
 
         // Escuchar notificaciones en primer plano
         onMessage(this.messagingInstance, (payload) => {
-          console.log('[PushNotificationService] Notificación en primer plano:', payload);
+          console.log('[PushNotificationService] Notificación en primer plano recibida:', payload);
           const title = payload.notification?.title || payload.data?.['title'] || 'FinanzasHogar';
           const body = payload.notification?.body || payload.data?.['body'] || '';
 
-          this.toastService.warning(`${title}: ${body}`, {
-            label: 'Ver',
-            onClick: () => {
-              if (window.location.hash !== '#categoria') {
-                window.location.hash = 'categoria';
-              }
-            },
-          });
+          // Disparar banner del sistema operativo (macOS, Windows, Android)
+          this.showSystemNotification(title, body, payload.data?.['url'] || '/#gastos');
+
+          this.toastService.info(`${title}: ${body}`);
         });
       }
     } catch (err) {
