@@ -1,18 +1,39 @@
 {
   "parameters": {
-    "daily_reminder_hour": {
+    "tc_weekly_budget": {
       "defaultValue": {
-        "value": "20"
+        "value": "100000"
       },
       "valueType": "NUMBER",
-      "description": "Hora militar para el disparador del recordatorio diario (ej.: 20 = 8:00 PM)."
+      "description": "Tope semanal máximo para consumos de Tarjeta Compartida (COP)."
     },
-    "daily_reminder_message": {
+    "daily_reminder_morning_hour": {
       "defaultValue": {
-        "value": "¿Tuviste gastos hoy? No olvides reportar los gastos de hoy"
+        "value": "9"
+      },
+      "valueType": "NUMBER",
+      "description": "Hora militar para el recordatorio matutino (9 = 9:00 AM)."
+    },
+    "daily_reminder_evening_hour": {
+      "defaultValue": {
+        "value": "21"
+      },
+      "valueType": "NUMBER",
+      "description": "Hora militar para el recordatorio nocturno (21 = 9:00 PM)."
+    },
+    "daily_reminder_morning_message": {
+      "defaultValue": {
+        "value": "☀️ ¡Buenos días! No olvides reportar los gastos que tengas hoy o pendientes de ayer"
       },
       "valueType": "STRING",
-      "description": "Texto personalizable para la alerta del recordatorio."
+      "description": "Mensaje para el recordatorio matutino."
+    },
+    "daily_reminder_evening_message": {
+      "defaultValue": {
+        "value": "🌙 ¡Buenas noches! Recuerda registrar todos tus gastos de hoy para mantener las cuentas al día"
+      },
+      "valueType": "STRING",
+      "description": "Mensaje para el recordatorio nocturno."
     },
     "budget_hogar": {
       "defaultValue": {
@@ -54,28 +75,7 @@
         "value": "80"
       },
       "valueType": "NUMBER",
-      "description": "Porcentaje sobre el tope para disparar la alerta preventiva."
-    },
-    "tc_weekly_budget": {
-      "defaultValue": {
-        "value": "100000"
-      },
-      "valueType": "NUMBER",
-      "description": "Tope semanal máximo para consumos de Tarjeta Compartida (COP)."
-    },
-    "daily_reminder_morning_hour": {
-      "defaultValue": {
-        "value": "9"
-      },
-      "valueType": "NUMBER",
-      "description": "Hora militar para el recordatorio matutino (9 = 9:00 AM)."
-    },
-    "daily_reminder_evening_hour": {
-      "defaultValue": {
-        "value": "21"
-      },
-      "valueType": "NUMBER",
-      "description": "Hora militar para el recordatorio nocturno (21 = 9:00 PM)."
+      "description": "Porcentaje sobre el tope para disparar la alerta preventiva (80%)."
     },
     "enable_push_alerts": {
       "defaultValue": {

@@ -9,9 +9,9 @@ import {
 import { environment } from '../../../environments/environment';
 
 export interface RemoteConfigValues {
-  daily_reminder_hour: number;
   daily_reminder_morning_hour: number;
   daily_reminder_evening_hour: number;
+  daily_reminder_hour?: number;
   daily_reminder_message: string;
   daily_reminder_morning_message: string;
   daily_reminder_evening_message: string;
@@ -26,7 +26,7 @@ export interface RemoteConfigValues {
 }
 
 export const DEFAULT_REMOTE_CONFIG: RemoteConfigValues = {
-  daily_reminder_hour: 20,
+  daily_reminder_hour: 21,
   daily_reminder_morning_hour: 9,
   daily_reminder_evening_hour: 21,
   daily_reminder_message: '¿Tuviste gastos hoy? No olvides reportar los gastos de hoy',
@@ -50,7 +50,7 @@ export class RemoteConfigService {
 
   // Signals reactivos para el estado global (Criterio 1.1 y 2.1)
   readonly isLoaded = signal<boolean>(false);
-  readonly dailyReminderHour = signal<number>(DEFAULT_REMOTE_CONFIG.daily_reminder_hour);
+  readonly dailyReminderHour = signal<number>(DEFAULT_REMOTE_CONFIG.daily_reminder_hour ?? DEFAULT_REMOTE_CONFIG.daily_reminder_evening_hour);
   readonly dailyReminderMorningHour = signal<number>(DEFAULT_REMOTE_CONFIG.daily_reminder_morning_hour);
   readonly dailyReminderEveningHour = signal<number>(DEFAULT_REMOTE_CONFIG.daily_reminder_evening_hour);
   readonly dailyReminderMessage = signal<string>(DEFAULT_REMOTE_CONFIG.daily_reminder_message);
@@ -119,9 +119,9 @@ export class RemoteConfigService {
       await fetchAndActivate(rc);
 
       // Criterio 2.1: Actualizar signals desde Remote Config
-      this.dailyReminderHour.set(getValue(rc, 'daily_reminder_hour').asNumber() || DEFAULT_REMOTE_CONFIG.daily_reminder_hour);
       this.dailyReminderMorningHour.set(getValue(rc, 'daily_reminder_morning_hour').asNumber() || DEFAULT_REMOTE_CONFIG.daily_reminder_morning_hour);
       this.dailyReminderEveningHour.set(getValue(rc, 'daily_reminder_evening_hour').asNumber() || DEFAULT_REMOTE_CONFIG.daily_reminder_evening_hour);
+      this.dailyReminderHour.set(this.dailyReminderEveningHour());
       this.dailyReminderMessage.set(getValue(rc, 'daily_reminder_message').asString() || DEFAULT_REMOTE_CONFIG.daily_reminder_message);
       this.dailyReminderMorningMessage.set(getValue(rc, 'daily_reminder_morning_message').asString() || DEFAULT_REMOTE_CONFIG.daily_reminder_morning_message);
       this.dailyReminderEveningMessage.set(getValue(rc, 'daily_reminder_evening_message').asString() || DEFAULT_REMOTE_CONFIG.daily_reminder_evening_message);
@@ -143,7 +143,7 @@ export class RemoteConfigService {
   }
 
   private applyConfigValues(values: RemoteConfigValues): void {
-    this.dailyReminderHour.set(values.daily_reminder_hour);
+    this.dailyReminderHour.set(values.daily_reminder_hour ?? values.daily_reminder_evening_hour);
     this.dailyReminderMorningHour.set(values.daily_reminder_morning_hour);
     this.dailyReminderEveningHour.set(values.daily_reminder_evening_hour);
     this.dailyReminderMessage.set(values.daily_reminder_message);
