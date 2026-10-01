@@ -65,20 +65,9 @@ export class PushNotificationService {
     }
 
     try {
-      // Registrar el Service Worker de FCM con los parámetros de configuración
       const firebaseConfig = environment.firebase;
-      let swUrl = '/firebase-messaging-sw.js';
-      if (firebaseConfig?.apiKey && firebaseConfig?.projectId) {
-        const params = new URLSearchParams({
-          apiKey: firebaseConfig.apiKey,
-          projectId: firebaseConfig.projectId,
-          messagingSenderId: firebaseConfig.messagingSenderId || '',
-          appId: firebaseConfig.appId || '',
-        });
-        swUrl = `/firebase-messaging-sw.js?${params.toString()}`;
-      }
-
-      this.swRegistration = await navigator.serviceWorker.register(swUrl);
+      // Registrar el Service Worker estándar de FCM
+      this.swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
       console.log('[PushNotificationService] Service Worker registrado:', this.swRegistration.scope);
 
       if (this.swRegistration.active && firebaseConfig?.apiKey) {

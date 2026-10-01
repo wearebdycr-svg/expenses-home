@@ -1,79 +1,44 @@
-// Service Worker para Firebase Cloud Messaging (FCM) y Web Push en segundo plano
-// Compatible con Android, iOS 16.4+ (PWA) y Desktop (Windows/macOS/Linux)
+// Service Worker oficial para Firebase Cloud Messaging (FCM) y Web Push
+// Compatible con Desktop (Chrome, Edge, Firefox, Safari) y Mobile (Android, iOS PWA)
 
 importScripts('https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging-compat.js');
 
-// 1. Inicialización inmediata al arrancar el Service Worker desde los parámetros de URL
-try {
-  const urlParams = new URLSearchParams(self.location.search);
-  const apiKey = urlParams.get('apiKey');
-  const projectId = urlParams.get('projectId');
-  const messagingSenderId = urlParams.get('messagingSenderId');
-  const appId = urlParams.get('appId');
+// Configuración pública de Firebase del proyecto
+const firebaseConfig = {
+  apiKey: "AIzaSyDP1lZt0Tox16p-JhQuNe6acQC4CnjBqLs",
+  authDomain: "expenses-home.firebaseapp.com",
+  projectId: "expenses-home",
+  storageBucket: "expenses-home.firebasestorage.app",
+  messagingSenderId: "917054655548",
+  appId: "1:917054655548:web:17fd4a6c4b66dba98a4739",
+  measurementId: "G-0KE4S739VH"
+};
 
-  if (apiKey && projectId) {
-    if (!firebase.apps.length) {
-      firebase.initializeApp({
-        apiKey,
-        authDomain: `${projectId}.firebaseapp.com`,
-        projectId,
-        storageBucket: `${projectId}.firebasestorage.app`,
-        messagingSenderId,
-        appId,
-      });
-    }
-
-    const messaging = firebase.messaging();
-    messaging.onBackgroundMessage((payload) => {
-      console.log('[firebase-messaging-sw] Mensaje en segundo plano recibido desde Firebase:', payload);
-      const title = payload.notification?.title || payload.data?.title || 'FinanzasHogar';
-      const options = {
-        body: payload.notification?.body || payload.data?.body || '',
-        icon: payload.notification?.icon || payload.data?.icon || '/favicon.svg',
-        badge: '/favicon.svg',
-        data: payload.data || {},
-        vibrate: [200, 100, 200],
-        tag: payload.data?.category_id ? `budget-${payload.data.category_id}` : 'finanzas-hogar',
-      };
-
-      return self.registration.showNotification(title, options);
-    });
-  }
-} catch (e) {
-  console.warn('[firebase-messaging-sw] Inicialización por URL params falló:', e);
+// 1. Inicialización obligatoria de Firebase en el Service Worker
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
 }
 
-// 2. Escuchar mensaje del hilo principal con la configuración de Firebase como respaldo
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'INIT_FIREBASE_MESSAGING') {
-    try {
-      if (!firebase.apps.length && event.data.config) {
-        firebase.initializeApp(event.data.config);
-        const messaging = firebase.messaging();
+const messaging = firebase.messaging();
 
-        messaging.onBackgroundMessage((payload) => {
-          console.log('[firebase-messaging-sw] Mensaje en segundo plano recibido:', payload);
-          const title = payload.notification?.title || payload.data?.title || 'FinanzasHogar';
-          const options = {
-            body: payload.notification?.body || payload.data?.body || '',
-            icon: payload.notification?.icon || payload.data?.icon || '/favicon.svg',
-            badge: '/favicon.svg',
-            data: payload.data || {},
-            vibrate: [200, 100, 200],
-            tag: payload.data?.category_id ? `budget-${payload.data.category_id}` : 'finanzas-hogar',
-          };
+// 2. Manejador oficial de mensajes en segundo plano de Firebase (Campañas de Firebase Console y Push API)
+messaging.onBackgroundMessage((payload) => {
+  console.log('[firebase-messaging-sw] Notificación recibida desde Firebase:', payload);
+  const title = payload.notification?.title || payload.data?.title || 'FinanzasHogar';
+  const options = {
+    body: payload.notification?.body || payload.data?.body || '',
+    icon: payload.notification?.icon || payload.data?.icon || '/favicon.svg',
+    badge: '/favicon.svg',
+    data: payload.data || {},
+    vibrate: [200, 100, 200],
+    tag: payload.data?.category_id ? `budget-${payload.data.category_id}` : 'finanzas-hogar',
+  };
 
-          return self.registration.showNotification(title, options);
-        });
-      }
-    } catch (e) {
-      console.warn('[firebase-messaging-sw] Error al inicializar messaging en SW por postMessage:', e);
-    }
-  }
+  return self.registration.showNotification(title, options);
 });
 
-// Listener nativo de Push para máxima compatibilidad (incluido iOS Safari PWA)
+// 3. Fallback para eventos Push nativos
 self.addEventListener('push', (event) => {
   if (!event.data) return;
 
@@ -94,7 +59,6 @@ self.addEventListener('push', (event) => {
 
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (err) {
-    // Si no es JSON plano, mostrar texto recibido
     const text = event.data.text();
     event.waitUntil(
       self.registration.showNotification('FinanzasHogar', {
@@ -105,18 +69,17 @@ self.addEventListener('push', (event) => {
   }
 });
 
-// Manejo del clic sobre la notificación (Criterio 3.2: Redirección al destino)
+// 4. Manejo del clic sobre la notificación (apertura o enfoque de pestaña)
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
   const clickAction =
     event.notification.data?.click_action ||
     event.notification.data?.url ||
-    '/#categoria';
+    '/#gastos';
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      // 1. Si ya hay una ventana abierta de la app, enfocarla y navegar a la sección
       for (const client of windowClients) {
         if (client.url.includes(self.registration.scope) && 'focus' in client) {
           if ('navigate' in client && clickAction) {
@@ -125,7 +88,6 @@ self.addEventListener('notificationclick', (event) => {
           return client.focus();
         }
       }
-      // 2. Si no hay ventana abierta, abrir una nueva
       if (clients.openWindow) {
         return clients.openWindow(clickAction);
       }
