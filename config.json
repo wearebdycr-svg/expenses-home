@@ -1,0 +1,88 @@
+{
+  "parameters": {
+    "tc_weekly_budget": {
+      "defaultValue": {
+        "value": "100000"
+      },
+      "valueType": "NUMBER",
+      "description": "Tope semanal máximo para consumos de Tarjeta Compartida (COP)."
+    },
+    "daily_reminder_morning_hour": {
+      "defaultValue": {
+        "value": "9"
+      },
+      "valueType": "NUMBER",
+      "description": "Hora militar para el recordatorio matutino (9 = 9:00 AM)."
+    },
+    "daily_reminder_evening_hour": {
+      "defaultValue": {
+        "value": "21"
+      },
+      "valueType": "NUMBER",
+      "description": "Hora militar para el recordatorio nocturno (21 = 9:00 PM)."
+    },
+    "daily_reminder_morning_message": {
+      "defaultValue": {
+        "value": "☀️ ¡Buenos días! No olvides reportar los gastos que tengas hoy o pendientes de ayer"
+      },
+      "valueType": "STRING",
+      "description": "Mensaje para el recordatorio matutino."
+    },
+    "daily_reminder_evening_message": {
+      "defaultValue": {
+        "value": "🌙 ¡Buenas noches! Recuerda registrar todos tus gastos de hoy para mantener las cuentas al día"
+      },
+      "valueType": "STRING",
+      "description": "Mensaje para el recordatorio nocturno."
+    },
+    "budget_hogar": {
+      "defaultValue": {
+        "value": "2500000"
+      },
+      "valueType": "NUMBER",
+      "description": "Límite mensual máximo para el rubro Hogar."
+    },
+    "budget_alimentacion": {
+      "defaultValue": {
+        "value": "2000000"
+      },
+      "valueType": "NUMBER",
+      "description": "Límite mensual para Supermercado / Alimentación."
+    },
+    "budget_restaurantes": {
+      "defaultValue": {
+        "value": "1000000"
+      },
+      "valueType": "NUMBER",
+      "description": "Límite mensual para Salidas y Restaurantes."
+    },
+    "budget_transporte": {
+      "defaultValue": {
+        "value": "800000"
+      },
+      "valueType": "NUMBER",
+      "description": "Límite mensual para Gasolina / Transporte."
+    },
+    "budget_entretenimiento": {
+      "defaultValue": {
+        "value": "500000"
+      },
+      "valueType": "NUMBER",
+      "description": "Límite mensual para Cine / Ocio."
+    },
+    "alert_threshold_pct": {
+      "defaultValue": {
+        "value": "80"
+      },
+      "valueType": "NUMBER",
+      "description": "Porcentaje sobre el tope para disparar la alerta preventiva (80%)."
+    },
+    "enable_push_alerts": {
+      "defaultValue": {
+        "value": "true"
+      },
+      "valueType": "BOOLEAN",
+      "description": "Interruptor global para encender o pausar las alertas push."
+    }
+  }
+}

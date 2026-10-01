@@ -166,13 +166,12 @@ function parseBancolombiaEmail(body, subject, emailDate) {
     if (pat.test(text)) return null;
   }
 
-  // 2. Extraer Monto ($ 45.000,00 o $45.000)
+  // 2. Extraer Monto ($ 45.000,00, $45.000, $100,000.00 o $100,000)
   const amountMatch = text.match(/(?:por|valor:?)\s*\$\s*([\d\.,]+)/i) || text.match(/\$\s*([\d\.,]+)/);
   if (!amountMatch) return null;
 
   const rawAmount = amountMatch[1];
-  const normalizedAmount = rawAmount.replace(/\./g, '').split(',')[0].replace(/[^\d]/g, '');
-  const amount = Number(normalizedAmount);
+  const amount = parseAmount(rawAmount);
   if (!amount || amount <= 0) return null;
 
   // 3. Extraer Fecha (YYYY-MM-DD)
@@ -282,6 +281,74 @@ function cleanMerchantName(name) {
 }
 
 /**
+ * Parsea de forma robusta cualquier formato numérico de moneda (Bancolombia)
+ * Maneja miles con coma o punto, y decimales con punto o coma.
+ * Ejemplos:
+ * "100,000.00" -> 100000
+ * "100.000,00" -> 100000
+ * "100,000"    -> 100000
+ * "100.000"    -> 100000
+ * "3.500.000"  -> 3500000
+ * "3,500,000"  -> 3500000
+ * "18.500"     -> 18500
+ * "60,000"     -> 60000
+ */
+function parseAmount(rawStr) {
+  if (!rawStr) return 0;
+  // Conservar solo dígitos, puntos y comas
+  const str = rawStr.replace(/[^\d,\.]/g, '').trim();
+  if (!str) return 0;
+
+  const lastDot = str.lastIndexOf('.');
+  const lastComma = str.lastIndexOf(',');
+
+  // Caso 1: Tiene tanto punto como coma (ej: 100,000.00 o 100.000,00)
+  if (lastDot !== -1 && lastComma !== -1) {
+    if (lastDot > lastComma) {
+      // El punto está al final -> el punto es decimal (ej: 100,000.00)
+      const integerPart = str.substring(0, lastDot).replace(/[^\d]/g, '');
+      const decimalPart = str.substring(lastDot + 1).replace(/[^\d]/g, '');
+      const decVal = decimalPart ? Number(decimalPart) / Math.pow(10, decimalPart.length) : 0;
+      return Math.round(Number(integerPart) + decVal);
+    } else {
+      // La coma está al final -> la coma es decimal (ej: 100.000,00)
+      const integerPart = str.substring(0, lastComma).replace(/[^\d]/g, '');
+      const decimalPart = str.substring(lastComma + 1).replace(/[^\d]/g, '');
+      const decVal = decimalPart ? Number(decimalPart) / Math.pow(10, decimalPart.length) : 0;
+      return Math.round(Number(integerPart) + decVal);
+    }
+  }
+
+  // Caso 2: Solo punto O solo coma
+  const sep = lastDot !== -1 ? '.' : (lastComma !== -1 ? ',' : null);
+  if (!sep) {
+    // Solo dígitos
+    return Number(str);
+  }
+
+  const parts = str.split(sep);
+  // Si hay más de un separador (ej: 3.500.000 o 3,500,000) -> definitivamente son separadores de miles
+  if (parts.length > 2) {
+    return Number(parts.join(''));
+  }
+
+  // Hay exactamente un separador: parts[0] y parts[1]
+  // Si la parte derecha tiene exactamente 3 dígitos (ej: 100,000 o 60.000 o 18.500) -> en pesos colombianos son miles
+  if (parts[1].length === 3) {
+    return Number(parts[0] + parts[1]);
+  }
+
+  // Si tiene 1 o 2 dígitos después del separador (ej: 100000.00 o 60000,00) -> son decimales (centavos)
+  if (parts[1].length <= 2) {
+    const intVal = Number(parts[0]);
+    const decVal = Number(parts[1]) / Math.pow(10, parts[1].length);
+    return Math.round(intVal + decVal);
+  }
+
+  return Number(str.replace(/[^\d]/g, ''));
+}
+
+/**
  * Clasifica automáticamente el gasto en una de las 15 categorías oficiales
  */
 function guessCategory(description, fullText, isSharedTC) {
@@ -289,7 +356,10 @@ function guessCategory(description, fullText, isSharedTC) {
 
   for (const [cat, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
     for (const kw of keywords) {
-      if (combined.includes(kw)) {
+      // Usar límites de palabra \b para evitar falsos positivos (ej: 'para' matching 'ara' -> Mercado)
+      const escaped = kw.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+      const regex = new RegExp(`\\b${escaped}\\b`, 'i');
+      if (regex.test(combined)) {
         return cat;
       }
     }
@@ -382,6 +452,14 @@ function testWithSampleEmail() {
     {
       sub: 'Bancolombia: Compra con tarjeta de crédito compartida',
       body: 'Bancolombia le informa compra con su tarjeta *1234 por $89.000 en RESTAURANTE WOK el 30/09/2026.',
+    },
+    {
+      sub: 'Bancolombia: Transferencia enviada',
+      body: 'Bancolombia le informa transferencia por $100,000.00 a la cuenta 987654321 el 30/09/2026.',
+    },
+    {
+      sub: 'Bancolombia: Transferencia enviada',
+      body: 'Bancolombia le informa transferencia por $60,000 a la cuenta 123456789 el 30/09/2026.',
     },
   ];
 
