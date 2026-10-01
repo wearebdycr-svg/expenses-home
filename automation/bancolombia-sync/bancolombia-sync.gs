@@ -180,8 +180,9 @@ function parseBancolombiaEmail(body, subject, emailDate) {
     if (pat.test(text)) return null;
   }
 
-  // 2. Extraer Monto ($ 45.000,00, $45.000, $100,000.00 o $100,000)
-  const amountMatch = text.match(/(?:por|valor:?)\s*\$\s*([\d\.,]+)/i) || text.match(/\$\s*([\d\.,]+)/);
+  // 2. Extraer Monto ($ o COP, ej: COP34.320,00, $34.320,00, COP 50.000, etc.)
+  const amountMatch = text.match(/(?:\$|COP)\s*([\d\.,]+)/i) ||
+                      text.match(/(?:por|valor:?|compraste|pagaste|transferiste)\s*(?:\$|COP)?\s*([\d\.,]+)/i);
   if (!amountMatch) return null;
 
   const rawAmount = amountMatch[1];
@@ -277,13 +278,14 @@ function parseBancolombiaEmail(body, subject, emailDate) {
 
   // Clasificar categoría evaluando SOLO el comercio/destinatario para evitar falsos positivos
   const category = guessCategory(description, isSharedTC);
+  const person = isSharedTC ? 'Compartido' : CONFIG.PERSON;
 
   return {
     type: 'expense',
     targetTable,
     amount,
     date: recordDate,
-    person: CONFIG.PERSON,
+    person,
     category,
     description,
   };
@@ -514,7 +516,7 @@ function testWithSampleEmail() {
     },
     {
       sub: 'Alertas y Notificaciones Bancolombia',
-      body: 'Bancolombia: Recibiste un pago de Nomina de LANDSOFT SAS por $6,292,980.00 en tu cuenta de Ahorros el 30/09/2026 a las 01:22. Si tienes dudas, llamanos al 018000931987. A tu lado siempre.',
+      body: 'Bancolombia: Compraste COP34.320,00 en TIENDA D1 CHAPINERO con tu T.Cred *0066, el 01/10/2026 a las 08:09. Si tienes dudas, encuentranos aqui: 6045109095 o 018000931987. Estamos cerca.',
     },
   ];
 
