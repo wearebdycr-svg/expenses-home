@@ -196,26 +196,32 @@ function parseBancolombiaEmail(body, subject, emailDate) {
   }
 
   // ============================================================================
-  // 4. DETECCIÓN DE INGRESOS (Salarios, Transferencias recibidas, Consignaciones)
+  // 4. DETECCIÓN DE INGRESOS (Nómina, Salarios, Transferencias recibidas, Consignaciones)
   // ============================================================================
-  const isIncome = /transferencia recibida|consignaci[oó]n|n[oó]mina|abono a su cuenta/i.test(text);
+  const isIncome = /recibiste|transferencia recibida|consignaci[oó]n|abono a su cuenta|abono de n[oó]mina/i.test(text);
   if (isIncome) {
     let source = 'Otros';
-    if (/n[oó]mina|salario/i.test(text)) {
+    if (/n[oó]mina|salario|sueldo/i.test(text)) {
       source = 'Salario';
     } else if (/inversi[oó]n|rendimiento|interes/i.test(text)) {
       source = 'Inversiones';
-    } else if (/honorario/i.test(text)) {
-      source = 'Honorarios';
+    } else if (/honorario|freelance/i.test(text)) {
+      source = 'Freelance';
+    } else if (/arriendo|alquiler/i.test(text)) {
+      source = 'Arriendo';
     }
 
     let description = 'Ingreso Bancolombia';
-    const senderMatch = text.match(/de\s+([A-Za-z0-9\s\.\*\-]+?)(?:\s+el|\s+a\s+la|\.|$)/i);
-    if (senderMatch && senderMatch[1] && senderMatch[1].length < 40) {
-      description = `De: ${cleanMerchantName(senderMatch[1].trim())}`;
+    const pagoDeMatch = text.match(/recibiste\s+(?:un\s+)?pago\s+(?:de\s+)?([A-Za-z0-9\s\.\*\-]+?)(?:\s+por|\s+en\s+tu|\.|$)/i);
+    const deMatch = text.match(/(?:de|desde)\s+([A-Za-z0-9\s\.\*\-]+?)(?:\s+el|\s+a\s+la|\s+por|\.|$)/i);
+
+    if (pagoDeMatch && pagoDeMatch[1] && pagoDeMatch[1].trim().length < 60) {
+      description = cleanMerchantName(pagoDeMatch[1].trim());
+    } else if (deMatch && deMatch[1] && deMatch[1].trim().length < 60) {
+      description = `De: ${cleanMerchantName(deMatch[1].trim())}`;
     } else if (/n[oó]mina/i.test(text)) {
       description = 'Pago de Nómina';
-    } else if (/transferencia/i.test(text)) {
+    } else {
       description = 'Transferencia recibida';
     }
 
@@ -231,28 +237,29 @@ function parseBancolombiaEmail(body, subject, emailDate) {
   }
 
   // ============================================================================
-  // 5. DETECCIÓN DE GASTOS (Compras Débito/Crédito, PSE, Transferencias enviadas)
+  // 5. DETECCIÓN DE GASTOS (Compras Débito/Crédito, Pagos, PSE, Transferencias enviadas)
   // ============================================================================
   let description = 'Compra Bancolombia';
 
-  // Caso A: Pago por PSE (ej: "pago por PSE a ENEL CODENSA por $...")
+  // Caso A: Pagaste a / Transferiste a (ej: "Pagaste $9,111.92 a NU Compania de Financiamiento desde tu producto...")
+  const pagasteMatch = text.match(/(?:pagaste|transferiste)\s+(?:\$\s*[\d\.,]+\s+)?a\s+([A-Za-z0-9\s\.\*\-]+?)(?:\s+desde|\s+el|\.|$)/i);
+  // Caso B: Pago por PSE (ej: "pago por PSE a ENEL CODENSA por $...")
   const pseMatch = text.match(/PSE\s+(?:a|en)\s+([A-Za-z0-9\s\.\*\-]+?)(?:\s+por|\s+desde|\s+el)/i);
-  if (pseMatch && pseMatch[1]) {
+  // Caso C: Compra en Comercio (ej: "en EXITO CALLE 80 con...", "en D1 con t.deb...")
+  const enMatch = text.match(/\ben\s+([A-Za-z0-9\s\.\*\-]+?)(?:\s+con|\s+el|\s+desde|\s+por)/i);
+  // Caso D: Transferencia enviada a otra cuenta
+  const transMatch = text.match(/a\s+la\s+cuenta\s+([A-Za-z0-9\*\-]+)/i);
+
+  if (pagasteMatch && pagasteMatch[1]) {
+    description = cleanMerchantName(pagasteMatch[1].trim());
+  } else if (pseMatch && pseMatch[1]) {
     description = cleanMerchantName(pseMatch[1].trim());
-  } else {
-    // Caso B: Compra en Comercio (ej: "en EXITO CALLE 80 con...", "en D1 con t.deb...")
-    const enMatch = text.match(/\ben\s+([A-Za-z0-9\s\.\*\-]+?)(?:\s+con|\s+el|\s+desde|\s+por)/i);
-    if (enMatch && enMatch[1]) {
-      description = cleanMerchantName(enMatch[1].trim());
-    } else {
-      // Caso C: Transferencia enviada a otra cuenta
-      const transMatch = text.match(/a\s+la\s+cuenta\s+([A-Za-z0-9\*\-]+)/i);
-      if (transMatch && transMatch[1]) {
-        description = `Transferencia a cta ${transMatch[1].trim()}`;
-      } else if (/transferencia/i.test(text)) {
-        description = 'Transferencia enviada';
-      }
-    }
+  } else if (enMatch && enMatch[1]) {
+    description = cleanMerchantName(enMatch[1].trim());
+  } else if (transMatch && transMatch[1]) {
+    description = `Transferencia a cta ${transMatch[1].trim()}`;
+  } else if (/transferencia/i.test(text)) {
+    description = 'Transferencia enviada';
   }
 
   // Detección de Tarjeta Compartida vs Tarjetas Personales
@@ -268,7 +275,8 @@ function parseBancolombiaEmail(body, subject, emailDate) {
     }
   }
 
-  const category = guessCategory(description, text, isSharedTC);
+  // Clasificar categoría evaluando SOLO el comercio/destinatario para evitar falsos positivos
+  const category = guessCategory(description, isSharedTC);
 
   return {
     type: 'expense',
@@ -282,15 +290,22 @@ function parseBancolombiaEmail(body, subject, emailDate) {
 }
 
 /**
- * Limpia y da formato Title Case a nombres de comercios
+ * Limpia y da formato Title Case a nombres de comercios y destinatarios
  */
 function cleanMerchantName(name) {
-  let cleaned = name.replace(/[\*\#\_\d]{4,}/g, '').trim();
+  let cleaned = name.replace(/[\*\#\_]{2,}/g, '').trim();
+  const keepUpper = ['SAS', 'SA', 'LTDA', 'PSE', 'NU', 'AFC', 'EPS', 'D1'];
+  const lowerWords = ['de', 'la', 'el', 'los', 'las', 'en', 'a', 'por', 'y', 'del'];
+
   return cleaned
-    .toLowerCase()
-    .split(' ')
+    .split(/\s+/)
     .filter(Boolean)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .map((word) => {
+      const upper = word.toUpperCase();
+      if (keepUpper.includes(upper)) return upper;
+      if (lowerWords.includes(word.toLowerCase())) return word.toLowerCase();
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
     .join(' ');
 }
 
@@ -363,22 +378,24 @@ function parseAmount(rawStr) {
 }
 
 /**
- * Clasifica automáticamente el gasto en una de las 15 categorías oficiales
+ * Clasifica automáticamente el gasto evaluando SOLO el comercio o descripción
+ * Evita falsos positivos causados por links en el pie del correo (Google Play, etc.)
  */
-function guessCategory(description, fullText, isSharedTC) {
-  const combined = `${description} ${fullText}`.toLowerCase();
+function guessCategory(description, isSharedTC) {
+  const desc = (description || '').toLowerCase();
 
   for (const [cat, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
     for (const kw of keywords) {
-      // Usar límites de palabra \b para evitar falsos positivos (ej: 'para' matching 'ara' -> Mercado)
+      // Usar límites de palabra \b para evitar falsos positivos
       const escaped = kw.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
       const regex = new RegExp(`\\b${escaped}\\b`, 'i');
-      if (regex.test(combined)) {
+      if (regex.test(desc)) {
         return cat;
       }
     }
   }
 
+  // Si no coincide con ninguna palabra clave, asigna Otros (o General si es TC Compartida)
   return isSharedTC ? 'General' : 'Otros';
 }
 
@@ -492,12 +509,12 @@ function testWithSampleEmail() {
       body: 'Bancolombia le informa compra con su tarjeta *1234 por $89.000 en RESTAURANTE WOK el 30/09/2026.',
     },
     {
-      sub: 'Bancolombia: Transferencia enviada',
-      body: 'Bancolombia le informa transferencia por $100,000.00 a la cuenta 987654321 el 30/09/2026.',
+      sub: 'Alertas y Notificaciones Bancolombia',
+      body: 'Bancolombia: Pagaste $9,111.92 a NU Compania de Financiamiento desde tu producto 4312 el 30/09/2026 21:06:43. ¿Dudas? Llamanos al 6045109095. Estamos cerca',
     },
     {
-      sub: 'Bancolombia: Transferencia enviada',
-      body: 'Bancolombia le informa transferencia por $60,000 a la cuenta 123456789 el 30/09/2026.',
+      sub: 'Alertas y Notificaciones Bancolombia',
+      body: 'Bancolombia: Recibiste un pago de Nomina de LANDSOFT SAS por $6,292,980.00 en tu cuenta de Ahorros el 30/09/2026 a las 01:22. Si tienes dudas, llamanos al 018000931987. A tu lado siempre.',
     },
   ];
 
