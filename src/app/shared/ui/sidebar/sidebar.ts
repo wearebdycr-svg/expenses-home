@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
 import { environment } from '../../../../environments/environment';
 import { PushNotificationService } from '../../../core/services/push-notification.service';
-import { ToastService } from '../../../core/services/toast.service';
 import type { ExpensePerson } from '../../../features/gastos/data/expense.model';
 import { Icon, type IconName } from '../icon/icon';
 
@@ -31,7 +30,6 @@ export class Sidebar {
   navigate = output<SidebarPageId>();
 
   protected readonly pushService = inject(PushNotificationService);
-  protected readonly toastService = inject(ToastService);
   protected readonly isProduction = environment.production;
   protected readonly mobileOpen = signal(false);
   protected readonly currentYear = new Date().getFullYear();
@@ -66,23 +64,5 @@ export class Sidebar {
 
   protected onSubscribePush(): void {
     this.pushService.requestSubscription();
-  }
-
-  protected onTestPush(): void {
-    this.pushService.sendTestNotification();
-  }
-
-  protected async onCopyToken(): Promise<void> {
-    const token = this.pushService.currentToken();
-    if (token) {
-      try {
-        await navigator.clipboard.writeText(token);
-        this.toastService.success('Token copiado al portapapeles');
-      } catch {
-        this.toastService.info('Token listo en consola');
-      }
-    } else {
-      this.toastService.warning('Aún no hay token registrado en este equipo');
-    }
   }
 }
