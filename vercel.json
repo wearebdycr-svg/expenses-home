@@ -11,8 +11,12 @@
   ],
   "crons": [
     {
-      "path": "/api/cron-reminder",
-      "schedule": "0 2,14 * * *"
+      "path": "/api/cron-reminder?time=morning",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron-reminder?time=evening",
+      "schedule": "0 2 * * *"
     }
   ],
   "headers": [
