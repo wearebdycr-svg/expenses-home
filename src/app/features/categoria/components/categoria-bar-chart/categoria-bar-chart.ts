@@ -11,6 +11,7 @@ import type { ChartConfiguration, TooltipModel } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 import { formatAxisCurrencyK, formatCOP } from '../../data/categoria.model';
 import { CategoriaService } from '../../data/categoria.service';
+import { escapeHtml } from '../../../../shared/utils/security.util';
 
 @Component({
   selector: 'app-categoria-bar-chart',
@@ -122,15 +123,15 @@ export class CategoriaBarChart {
           const color = (point.dataset as any).backgroundColor ?? '#000';
           return `
             <div class="stacked-tooltip-row">
-              <span class="stacked-tooltip-label" style="color: ${color}">${label}</span>
-              <span class="stacked-tooltip-val">${formatCOP(val)}</span>
+              <span class="stacked-tooltip-label" style="color: ${escapeHtml(color)}">${escapeHtml(label)}</span>
+              <span class="stacked-tooltip-val">${escapeHtml(formatCOP(val))}</span>
             </div>
           `;
         })
         .join('');
 
       tooltipEl.innerHTML = `
-        <div class="stacked-tooltip-title">${catTitle}</div>
+        <div class="stacked-tooltip-title">${escapeHtml(catTitle)}</div>
         ${rowsHtml}
       `;
     }

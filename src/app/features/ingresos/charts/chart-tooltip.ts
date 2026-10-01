@@ -1,4 +1,5 @@
 import type { Chart, TooltipModel } from 'chart.js';
+import { escapeHtml } from '../../../shared/utils/security.util';
 
 export interface TooltipRow {
   label: string;
@@ -50,15 +51,15 @@ export function externalTooltipHandler(buildContent: (tooltip: TooltipModel<any>
         .map(
           (row) => `
             <div class="chartjs-tooltip-row">
-              <span class="chartjs-tooltip-label" style="color:${row.color}">${row.label}</span>
-              <span class="chartjs-tooltip-value">${row.value}</span>
+              <span class="chartjs-tooltip-label" style="color:${escapeHtml(row.color)}">${escapeHtml(row.label)}</span>
+              <span class="chartjs-tooltip-value">${escapeHtml(row.value)}</span>
             </div>
           `,
         )
         .join('');
 
       tooltipEl.innerHTML = `
-        <div class="chartjs-tooltip-title">${title}</div>
+        <div class="chartjs-tooltip-title">${escapeHtml(title)}</div>
         ${rowsHtml}
         ${
           total
@@ -66,7 +67,7 @@ export function externalTooltipHandler(buildContent: (tooltip: TooltipModel<any>
           <div class="chartjs-tooltip-divider"></div>
           <div class="chartjs-tooltip-row chartjs-tooltip-total">
             <span class="chartjs-tooltip-label">Total</span>
-            <span class="chartjs-tooltip-value">${total}</span>
+            <span class="chartjs-tooltip-value">${escapeHtml(total)}</span>
           </div>
         `
             : ''

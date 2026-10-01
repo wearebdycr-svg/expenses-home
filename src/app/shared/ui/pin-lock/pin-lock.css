@@ -1,0 +1,396 @@
+:host {
+  display: block;
+}
+
+/* ==============================================================================
+   BACKDROP & CARD
+   ============================================================================== */
+.pin-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 999990;
+  background: radial-gradient(circle at 50% 20%, #0f172a 0%, #090d16 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  overflow-y: auto;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.pin-backdrop.success {
+  opacity: 0;
+  transform: scale(1.03);
+  pointer-events: none;
+}
+
+.pin-card {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  background: rgba(30, 41, 59, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  border-radius: 28px;
+  padding: 2.25rem 2rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: cardEnter 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes cardEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.pin-card.shake {
+  animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes shake {
+  10%, 90% { transform: translate3d(-3px, 0, 0); }
+  20%, 80% { transform: translate3d(5px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+  40%, 60% { transform: translate3d(6px, 0, 0); }
+}
+
+/* ==============================================================================
+   HEADER & EMBLEM
+   ============================================================================== */
+.pin-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.pin-emblem {
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  box-shadow: 0 8px 20px -3px rgba(234, 88, 12, 0.4);
+  margin-bottom: 0.75rem;
+}
+
+.pin-title {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #f8fafc;
+  letter-spacing: -0.02em;
+}
+
+.pin-subtitle {
+  margin: 0.3rem 0 0;
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+/* ==============================================================================
+   DOTS INDICATOR
+   ============================================================================== */
+.pin-dots-container {
+  display: flex;
+  gap: 0.85rem;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+  min-height: 24px;
+}
+
+.pin-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: transparent;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.pin-dot.filled {
+  background: #f97316;
+  border-color: #f97316;
+  box-shadow: 0 0 10px rgba(249, 115, 22, 0.6);
+  transform: scale(1.15);
+}
+
+/* ==============================================================================
+   MESSAGES & ALERTS
+   ============================================================================== */
+.pin-hint {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-bottom: 1.25rem;
+}
+
+.pin-hint strong {
+  color: #f97316;
+}
+
+.pin-alert {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0.5rem 0.85rem;
+  border-radius: 12px;
+  margin-bottom: 1.25rem;
+  width: 100%;
+}
+
+.error-alert {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.lockout-alert {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fcd34d;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.success-alert {
+  background: rgba(16, 185, 129, 0.15);
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+/* ==============================================================================
+   KEYPAD GRID
+   ============================================================================== */
+.pin-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 280px;
+  margin-bottom: 1.25rem;
+}
+
+.key-btn {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #f8fafc;
+  font-size: 1.35rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.key-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+}
+
+.key-btn:active:not(:disabled) {
+  background: rgba(249, 115, 22, 0.3);
+  transform: scale(0.92);
+}
+
+.key-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.action-key {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #94a3b8;
+  border-radius: 20px;
+}
+
+.backspace-key {
+  font-size: 1.15rem;
+}
+
+/* ==============================================================================
+   FOOTER
+   ============================================================================== */
+.pin-footer {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 1rem;
+}
+
+.remember-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+.remember-checkbox-label input {
+  accent-color: #f97316;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.btn-change-pin-link {
+  background: transparent;
+  border: none;
+  color: #f97316;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-change-pin-link:hover {
+  text-decoration: underline;
+  color: #fb923c;
+}
+
+/* ==============================================================================
+   MODAL CONFIGURAR PIN
+   ============================================================================== */
+.change-pin-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 999995;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.change-pin-modal {
+  width: 100%;
+  max-width: 400px;
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  padding: 1.75rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  text-align: left;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  color: #f8fafc;
+}
+
+.btn-close-modal {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.4rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.modal-desc {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin-bottom: 1.25rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  margin-bottom: 0.35rem;
+  font-weight: 500;
+}
+
+.pin-input-field {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 1rem;
+  letter-spacing: 0.25em;
+  text-align: center;
+}
+
+.pin-input-field:focus {
+  outline: none;
+  border-color: #f97316;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.25);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.btn-cancel {
+  padding: 0.55rem 1rem;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.btn-save-pin {
+  padding: 0.55rem 1.25rem;
+  background: #f97316;
+  border: none;
+  color: #ffffff;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background 0.2s ease;
+}
+
+.btn-save-pin:hover {
+  background: #ea580c;
+}

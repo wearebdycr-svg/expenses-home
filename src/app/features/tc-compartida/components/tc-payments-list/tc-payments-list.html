@@ -8,7 +8,7 @@
       <h4 class="banner-title">Conciliación Automática de Abonos</h4>
       <p class="banner-desc">
         Estos abonos provienen de los egresos registrados en <strong>Gastos Diarios</strong> con la categoría 
-        <span class="category-badge">TC-compartida</span>. Cada registro amortiza y reduce automáticamente la deuda pendiente acumulada de la tarjeta.
+        <span class="category-badge">{{ targetCategoryName() }}</span>. Cada registro amortiza y reduce automáticamente la deuda pendiente acumulada de la tarjeta.
       </p>
     </div>
   </div>
@@ -32,9 +32,9 @@
       <div class="empty-icon-wrap">
         <app-icon name="receipt" [size]="28" />
       </div>
-      <p class="empty-text">No se han registrado abonos con la categoría "TC-compartida" aún.</p>
+      <p class="empty-text">No se han registrado abonos con la categoría "{{ targetCategoryName() }}" aún.</p>
       <p class="empty-hint">
-        Para abonar a esta tarjeta, dirígete a la sección <strong>Gastos Diarios</strong> y registra un gasto asignando la categoría <strong>TC-compartida</strong>.
+        Para abonar a esta tarjeta, dirígete a la sección <strong>Gastos Diarios</strong> y registra un gasto asignando la categoría <strong>{{ targetCategoryName() }}</strong>.
       </p>
     </div>
   } @else {

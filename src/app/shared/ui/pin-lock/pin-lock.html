@@ -1,0 +1,183 @@
+<div
+  class="pin-backdrop"
+  [class.success]="isSuccess()"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Desbloqueo de Seguridad Expenses Home"
+>
+  <!-- Tarjeta Central de Desbloqueo -->
+  <div class="pin-card" [class.shake]="isShaking()">
+    <!-- Cabecera con Icono de Candado / Hogar -->
+    <div class="pin-header">
+      <div class="pin-emblem">
+        <app-icon name="lock" [size]="28" />
+      </div>
+      <h1 class="pin-title">Expenses Home</h1>
+      <p class="pin-subtitle">Control de Finanzas del Hogar · Charlie & Benny</p>
+    </div>
+
+    <!-- Indicador de Dígitos (Dots) -->
+    <div class="pin-dots-container">
+      <div class="pin-dot" [class.filled]="pin().length >= 1"></div>
+      <div class="pin-dot" [class.filled]="pin().length >= 2"></div>
+      <div class="pin-dot" [class.filled]="pin().length >= 3"></div>
+      <div class="pin-dot" [class.filled]="pin().length >= 4"></div>
+      @if (pin().length > 4) {
+        <div class="pin-dot" [class.filled]="pin().length >= 5"></div>
+      }
+      @if (pin().length > 5) {
+        <div class="pin-dot" [class.filled]="pin().length >= 6"></div>
+      }
+    </div>
+
+    <!-- Mensaje de Error o Penalización -->
+    @if (authPinService.isLockedOut()) {
+      <div class="pin-alert lockout-alert">
+        <app-icon name="alert-circle" [size]="16" />
+        <span>Bloqueado por seguridad. Espera {{ authPinService.lockoutRemainingSecs() }}s.</span>
+      </div>
+    } @else if (errorMessage()) {
+      <div class="pin-alert error-alert">
+        <app-icon name="alert-circle" [size]="16" />
+        <span>{{ errorMessage() }}</span>
+      </div>
+    } @else {
+      <div class="pin-hint">
+        <span>Ingresa tu PIN de seguridad</span>
+      </div>
+    }
+
+    <!-- Teclado Numérico Virtual -->
+    <div class="pin-keypad">
+      @for (num of ['1', '2', '3', '4', '5', '6', '7', '8', '9']; track num) {
+        <button
+          type="button"
+          class="key-btn"
+          [disabled]="authPinService.isLockedOut() || isSubmitting()"
+          (click)="appendDigit(num)"
+        >
+          {{ num }}
+        </button>
+      }
+
+      <!-- Fila inferior: Limpiar, 0, Borrar -->
+      <button
+        type="button"
+        class="key-btn action-key"
+        [disabled]="authPinService.isLockedOut() || isSubmitting() || pin().length === 0"
+        (click)="clearPin()"
+        title="Limpiar"
+      >
+        Limpiar
+      </button>
+
+      <button
+        type="button"
+        class="key-btn"
+        [disabled]="authPinService.isLockedOut() || isSubmitting()"
+        (click)="appendDigit('0')"
+      >
+        0
+      </button>
+
+      <button
+        type="button"
+        class="key-btn action-key backspace-key"
+        [disabled]="authPinService.isLockedOut() || isSubmitting() || pin().length === 0"
+        (click)="deleteDigit()"
+        title="Borrar dígito"
+      >
+        ⌫
+      </button>
+    </div>
+
+    <!-- Opciones inferiores -->
+    <div class="pin-footer">
+      <label class="remember-checkbox-label">
+        <input
+          type="checkbox"
+          [checked]="rememberDevice()"
+          (change)="rememberDevice.set($any($event.target).checked)"
+        />
+        <span>Recordar este equipo (30 días)</span>
+      </label>
+
+      <button type="button" class="btn-change-pin-link" (click)="openChangeModal()">
+        ⚙️ Cambiar o personalizar PIN
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal para Configurar / Cambiar PIN -->
+  @if (showChangeModal()) {
+    <div class="change-pin-modal-backdrop" (click)="closeChangeModal()">
+      <div class="change-pin-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>Configurar PIN Familiar</h2>
+          <button type="button" class="btn-close-modal" (click)="closeChangeModal()">×</button>
+        </div>
+
+        <div class="modal-body">
+          <p class="modal-desc">
+            Define un nuevo PIN de 4 a 6 dígitos para proteger las cuentas del hogar.
+          </p>
+
+          @if (changeError()) {
+            <div class="pin-alert error-alert">{{ changeError() }}</div>
+          }
+          @if (changeSuccess()) {
+            <div class="pin-alert success-alert">{{ changeSuccess() }}</div>
+          }
+
+          <div class="form-group">
+            <label for="currentPinInput">PIN Actual:</label>
+            <input
+              id="currentPinInput"
+              type="password"
+              maxlength="6"
+              class="pin-input-field"
+              placeholder="••••"
+              [value]="changeCurrentPin()"
+              (input)="changeCurrentPin.set($any($event.target).value)"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="newPinInput">Nuevo PIN (4 a 6 dígitos):</label>
+            <input
+              id="newPinInput"
+              type="password"
+              maxlength="6"
+              class="pin-input-field"
+              placeholder="••••"
+              [value]="changeNewPin()"
+              (input)="changeNewPin.set($any($event.target).value)"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="confirmPinInput">Confirmar Nuevo PIN:</label>
+            <input
+              id="confirmPinInput"
+              type="password"
+              maxlength="6"
+              class="pin-input-field"
+              placeholder="••••"
+              [value]="changeConfirmPin()"
+              (input)="changeConfirmPin.set($any($event.target).value)"
+            />
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" (click)="closeChangeModal()">
+            Cancelar
+          </button>
+          <button type="button" class="btn-save-pin" (click)="submitChangePin()">
+            Guardar Nuevo PIN
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

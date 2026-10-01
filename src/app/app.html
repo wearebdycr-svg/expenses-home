@@ -1,30 +1,42 @@
-<div class="app-shell">
-  <app-sidebar [currentPage]="currentPage()" (navigate)="onNavigate($event)" />
-  <main class="app-content">
-    <app-daily-reminder-banner (registerExpenseClicked)="onNavigate('gastos')" />
-    @switch (currentPage()) {
-      @case ('gastos') {
-        <app-gastos-page />
+@if (showSplash()) {
+  <app-splash-screen (completed)="onSplashCompleted()" />
+}
+
+@if (!authPinService.isUnlocked()) {
+  <app-pin-lock (unlocked)="onAppUnlocked()" />
+} @else {
+  <div class="app-shell">
+    <app-sidebar
+      [currentPage]="currentPage()"
+      (navigate)="onNavigate($event)"
+      (lockApp)="onLockApp()"
+    />
+    <main class="app-content">
+      <app-daily-reminder-banner (registerExpenseClicked)="onNavigate('gastos')" />
+      @switch (currentPage()) {
+        @case ('gastos') {
+          <app-gastos-page />
+        }
+        @case ('ingresos') {
+          <app-ingresos-page />
+        }
+        @case ('resumen') {
+          <app-resumen-page />
+        }
+        @case ('categoria') {
+          <app-categoria-page />
+        }
+        @case ('deudas') {
+          <app-deudas-page />
+        }
+        @case ('tc-compartida') {
+          <app-tc-page />
+        }
+        @default {
+          <div class="page-placeholder">Próximamente</div>
+        }
       }
-      @case ('ingresos') {
-        <app-ingresos-page />
-      }
-      @case ('resumen') {
-        <app-resumen-page />
-      }
-      @case ('categoria') {
-        <app-categoria-page />
-      }
-      @case ('deudas') {
-        <app-deudas-page />
-      }
-      @case ('tc-compartida') {
-        <app-tc-page />
-      }
-      @default {
-        <div class="page-placeholder">Próximamente</div>
-      }
-    }
-  </main>
-</div>
+    </main>
+  </div>
+}
 <app-toast-container />

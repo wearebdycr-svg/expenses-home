@@ -1,68 +1,132 @@
 <div class="tc-page">
-  <!-- Encabezado Principal -->
-  <header class="page-header">
-    <div class="header-titles">
-      <h1 class="page-title">Gastos TC Compartida</h1>
-      <p class="page-subtitle">Consumos directos con la tarjeta y conciliación del saldo pendiente</p>
-    </div>
+  @if (tcService.selectedCard() === null) {
+    <!-- VISTA 1: DASHBOARD DE TODAS LAS TARJETAS (CARDS GRID) -->
+    <app-tc-cards-grid
+      (createCard)="openCreateCardModal()"
+      (editCard)="openEditCardModal($event)"
+      (selectCard)="selectCard($event)"
+    />
+  } @else {
+    <!-- VISTA 2: DETALLE Y CONCILIACIÓN DE LA TARJETA SELECCIONADA -->
+    @let card = tcService.selectedCard()!;
 
-    <button type="button" class="btn btn-primary" (click)="openCreateModal()">
-      <app-icon name="plus" [size]="16" />
-      Registrar Consumo TC
-    </button>
-  </header>
-
-  <!-- Filtros de Período (Año, Mes, Día, Persona) -->
-  <app-tc-filters />
-
-  <!-- Panel de Control y Métricas de Conciliación -->
-  <app-tc-kpis />
-
-  <!-- Selector de Pestañas: Consumos vs Abonos -->
-  <div class="tabs-container">
-    <div class="tabs-bar">
-      <button
-        type="button"
-        class="tab-btn"
-        [class.active]="activeTab() === 'consumptions'"
-        (click)="setActiveTab('consumptions')"
-      >
-        <app-icon name="credit-card" [size]="16" />
-        <span>Consumos de la Tarjeta</span>
-        <span class="tab-badge">{{ tcService.allTcExpenses().length }}</span>
+    <!-- Barra de Navegación y Conmutador Rápido de Tarjetas -->
+    <nav class="card-detail-navbar">
+      <button type="button" class="btn-back" (click)="goBackToCards()">
+        <app-icon name="arrow-left" [size]="16" />
+        <span>Volver a TCs</span>
       </button>
 
-      <button
-        type="button"
-        class="tab-btn"
-        [class.active]="activeTab() === 'payments'"
-        (click)="setActiveTab('payments')"
-      >
-        <app-icon name="check-circle" [size]="16" />
-        <span>Abonos Conciliados (Gastos Diarios)</span>
-        <span class="tab-badge badge-green">{{ tcService.payments().length }}</span>
-      </button>
-    </div>
-  </div>
+      <div class="card-pills-bar">
+        @for (c of tcService.cards(); track c.id) {
+          <button
+            type="button"
+            class="card-pill-btn"
+            [class.active]="c.id === card.id"
+            (click)="selectCard(c)"
+          >
+            <span class="card-pill-dot" [style.background]="c.color"></span>
+            <span class="card-pill-name">{{ c.name }}</span>
+            <span class="card-pill-digits">•••• {{ c.lastDigits }}</span>
+          </button>
+        }
+      </div>
 
-  <!-- Vista según pestaña activa -->
-  <div class="tab-content">
-    @if (activeTab() === 'consumptions') {
-      <app-tc-table
-        (edit)="openEditModal($event)"
-        (delete)="onDelete($event)"
-      />
-    } @else {
-      <app-tc-payments-list />
-    }
-  </div>
+      <div class="card-nav-actions" style="display: flex; gap: 0.5rem;">
+        <button type="button" class="btn btn-outline-sm" (click)="openEditCardModal(card)">
+          <app-icon name="pencil" [size]="14" />
+          <span>Editar Tarjeta</span>
+        </button>
+        <button type="button" class="btn btn-outline-sm btn-outline-danger" (click)="onDeleteCard(card)" title="Eliminar tarjeta">
+          <app-icon name="trash-2" [size]="14" />
+          <span>Eliminar</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Encabezado Principal de la Tarjeta Seleccionada -->
+    <header class="page-header">
+      <div class="header-titles">
+        <div class="card-title-row">
+          <span class="card-title-badge" [style.background]="card.gradient"></span>
+          <h1 class="page-title">{{ card.name }}</h1>
+          <span class="card-person-tag">{{ card.person }}</span>
+        </div>
+        <p class="page-subtitle">
+          {{ card.bank }} &bull; Terminada en {{ card.lastDigits }} &bull; Consumos directos y conciliación amortizada
+          @if (card.quota) {
+            &bull; Cupo límite: {{ card.quota | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}
+          }
+        </p>
+      </div>
+
+      <button type="button" class="btn btn-primary" (click)="openCreateExpenseModal()">
+        <app-icon name="plus" [size]="16" />
+        Registrar Consumo
+      </button>
+    </header>
+
+    <!-- Filtros de Período (Año, Mes, Día, Persona) -->
+    <app-tc-filters />
+
+    <!-- Panel de Control y Métricas de Conciliación -->
+    <app-tc-kpis />
+
+    <!-- Selector de Pestañas: Consumos vs Abonos -->
+    <div class="tabs-container">
+      <div class="tabs-bar">
+        <button
+          type="button"
+          class="tab-btn"
+          [class.active]="activeTab() === 'consumptions'"
+          (click)="setActiveTab('consumptions')"
+        >
+          <app-icon name="credit-card" [size]="16" />
+          <span>Consumos de la Tarjeta</span>
+          <span class="tab-badge">{{ tcService.currentCardExpenses().length }}</span>
+        </button>
+
+        <button
+          type="button"
+          class="tab-btn"
+          [class.active]="activeTab() === 'payments'"
+          (click)="setActiveTab('payments')"
+        >
+          <app-icon name="check-circle" [size]="16" />
+          <span>Abonos Conciliados (Gastos Diarios)</span>
+          <span class="tab-badge badge-green">{{ tcService.payments().length }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Vista según pestaña activa -->
+    <div class="tab-content">
+      @if (activeTab() === 'consumptions') {
+        <app-tc-table
+          (edit)="openEditExpenseModal($event)"
+          (delete)="onDeleteExpense($event)"
+        />
+      } @else {
+        <app-tc-payments-list />
+      }
+    </div>
+  }
 
   <!-- Modal de Registro / Edición de Consumo -->
-  @if (isModalOpen()) {
+  @if (isExpenseModalOpen()) {
     <app-tc-form-modal
       [tcExpense]="editingExpense()"
-      (save)="onSave($event)"
-      (cancel)="closeModal()"
+      (save)="onSaveExpense($event)"
+      (cancel)="closeExpenseModal()"
+    />
+  }
+
+  <!-- Modal de Creación / Edición de Tarjeta de Crédito -->
+  @if (isCardModalOpen()) {
+    <app-tc-card-modal
+      [card]="editingCard()"
+      (save)="onSaveCard($event)"
+      (cancel)="closeCardModal()"
     />
   }
 </div>

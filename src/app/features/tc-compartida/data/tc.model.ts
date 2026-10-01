@@ -22,6 +22,8 @@ export {
   type ExpensePersonFilter,
 };
 
+export * from './tc-card.model';
+
 export interface TcExpense {
   id: string;
   /** ISO date, yyyy-MM-dd */
@@ -30,6 +32,7 @@ export interface TcExpense {
   description: string;
   amount: number;
   category?: string;
+  cardId?: string;
   createdAt?: string;
 }
 

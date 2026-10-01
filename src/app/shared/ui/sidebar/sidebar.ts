@@ -28,6 +28,7 @@ interface SidebarPerson {
 export class Sidebar {
   currentPage = input<SidebarPageId>('gastos');
   navigate = output<SidebarPageId>();
+  lockApp = output<void>();
 
   protected readonly pushService = inject(PushNotificationService);
   protected readonly isProduction = environment.production;
@@ -40,7 +41,7 @@ export class Sidebar {
     { id: 'resumen', label: 'Resumen Mensual', description: 'Balance por mes', icon: 'bar-chart-2' },
     { id: 'categoria', label: 'Por Categoría', description: 'Análisis de categorías', icon: 'pie-chart' },
     { id: 'deudas', label: 'Proyección Deudas', description: 'Pagos y proyecciones', icon: 'wallet' },
-    { id: 'tc-compartida', label: 'TC Compartida', description: 'Consumos y saldo', icon: 'credit-card' },
+    { id: 'tc-compartida', label: 'TCs', description: 'Tarjetas de crédito', icon: 'credit-card' },
   ];
 
   protected readonly people: readonly SidebarPerson[] = [
@@ -64,5 +65,10 @@ export class Sidebar {
 
   protected onSubscribePush(): void {
     this.pushService.requestSubscription();
+  }
+
+  protected onLockApp(): void {
+    this.lockApp.emit();
+    this.closeMobileMenu();
   }
 }

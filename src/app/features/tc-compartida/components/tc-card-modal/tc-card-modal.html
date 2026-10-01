@@ -1,0 +1,198 @@
+<app-modal [title]="modalTitle()" (close)="cancel.emit()">
+  <form class="card-form" (submit)="$event.preventDefault(); onSubmit()">
+    @if (hasSubmitted() && hasErrors()) {
+      <div class="form-validation-summary">
+        <span>⚠️ Completa los campos obligatorios para guardar la tarjeta.</span>
+      </div>
+    }
+
+    <!-- Live Preview de la Tarjeta -->
+    <div class="card-preview-container">
+      <div
+        class="card-mockup"
+        [style.background]="selectedTheme().gradient"
+        [style.color]="selectedTheme().textColor"
+      >
+        <div class="card-mockup-top">
+          <div class="card-chip-container">
+            <div class="card-emv-chip"></div>
+            <!-- Contactless Icon -->
+            <svg class="contactless-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M8.5 16.5a5 5 0 0 1 0-9" />
+              <path d="M12 19a8.5 8.5 0 0 1 0-14" />
+              <path d="M15.5 21.5a12 12 0 0 1 0-19" />
+            </svg>
+          </div>
+          <span class="card-bank-badge">{{ bank() || 'Banco Emisor' }}</span>
+        </div>
+
+        <div class="card-mockup-middle">
+          <span class="card-number-display">•••• •••• •••• {{ lastDigits() ? lastDigits() : '0000' }}</span>
+        </div>
+
+        <div class="card-mockup-bottom">
+          <div class="card-holder-info">
+            <span class="card-label-small">NOMBRE DE TARJETA</span>
+            <span class="card-holder-name">{{ name() || 'Mi Tarjeta de Crédito' }}</span>
+          </div>
+          <div class="card-person-pill">
+            <span>{{ person() }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Selector de Tema / Color -->
+    <div class="field-theme-group">
+      <span class="field-label">Color y estilo visual</span>
+      <div class="themes-selector">
+        @for (th of themes; track th.id) {
+          <button
+            type="button"
+            class="theme-color-btn"
+            [class.active]="themeId() === th.id"
+            [style.background]="th.gradient"
+            [title]="th.name"
+            (click)="selectTheme(th.id)"
+          >
+            @if (themeId() === th.id) {
+              <app-icon name="check-circle" [size]="16" />
+            }
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Campos de Identificación -->
+    <div class="form-row">
+      <label class="field" [class.has-error]="errors()['name']">
+        <span class="field-label">Nombre de la tarjeta</span>
+        <input
+          class="field-control"
+          [class.control-error]="errors()['name']"
+          type="text"
+          placeholder="Ej: TC Nu Charlie, Bancolombia Benny..."
+          maxlength="40"
+          [value]="name()"
+          (input)="name.set($any($event.target).value)"
+        />
+        @if (errors()['name']) {
+          <span class="field-error-msg">{{ errors()['name'] }}</span>
+        }
+      </label>
+
+      <label class="field" [class.has-error]="errors()['bank']">
+        <span class="field-label">Banco o Entidad emisora</span>
+        <input
+          class="field-control"
+          [class.control-error]="errors()['bank']"
+          type="text"
+          placeholder="Ej: Nu Colombia, Bancolombia, Davivienda..."
+          maxlength="40"
+          [value]="bank()"
+          (input)="bank.set($any($event.target).value)"
+        />
+        @if (errors()['bank']) {
+          <span class="field-error-msg">{{ errors()['bank'] }}</span>
+        }
+      </label>
+    </div>
+
+    <div class="form-row">
+      <label class="field" [class.has-error]="errors()['lastDigits']">
+        <span class="field-label">Últimos 4 dígitos</span>
+        <input
+          class="field-control"
+          [class.control-error]="errors()['lastDigits']"
+          type="text"
+          inputmode="numeric"
+          placeholder="Ej: 4312"
+          maxlength="4"
+          [value]="lastDigits()"
+          (input)="onDigitsInput($event)"
+        />
+        @if (errors()['lastDigits']) {
+          <span class="field-error-msg">{{ errors()['lastDigits'] }}</span>
+        }
+      </label>
+
+      <div class="field" [class.has-error]="errors()['person']">
+        <span class="field-label">Tipo de Tarjeta / Titular</span>
+        <div class="person-type-selector">
+          <button
+            type="button"
+            class="person-type-btn"
+            [class.active]="person() === 'Compartido'"
+            (click)="person.set('Compartido')"
+          >
+            <span class="type-icon">👥</span>
+            <span class="type-title">Compartida</span>
+          </button>
+
+          <button
+            type="button"
+            class="person-type-btn"
+            [class.active]="person() === 'Charlie'"
+            (click)="person.set('Charlie')"
+          >
+            <span class="type-icon">👤</span>
+            <span class="type-title">Charlie</span>
+          </button>
+
+          <button
+            type="button"
+            class="person-type-btn"
+            [class.active]="person() === 'Benny'"
+            (click)="person.set('Benny')"
+          >
+            <span class="type-icon">👤</span>
+            <span class="type-title">Benny</span>
+          </button>
+        </div>
+        @if (errors()['person']) {
+          <span class="field-error-msg">{{ errors()['person'] }}</span>
+        }
+      </div>
+    </div>
+
+
+    <div class="form-row">
+      <label class="field">
+        <span class="field-label">Cupo Total / Límite de crédito (Opcional)</span>
+        <input
+          class="field-control"
+          type="text"
+          inputmode="numeric"
+          placeholder="Ej: 3.000.000"
+          [value]="quota()"
+          (input)="onQuotaInput($event)"
+        />
+        <span class="field-hint">Sirve para calcular el cupo disponible</span>
+      </label>
+
+      <app-select
+        label="Categoría de abonos en Gastos"
+        [options]="categoryOptions"
+        [value]="paymentCategory()"
+        (valueChange)="paymentCategory.set($event)"
+      />
+    </div>
+
+    <label class="field">
+      <span class="field-label">Descripción o notas (Opcional)</span>
+      <input
+        class="field-control"
+        type="text"
+        placeholder="Ej: Tarjeta compartida para mercado y salidas..."
+        maxlength="120"
+        [value]="description()"
+        (input)="description.set($any($event.target).value)"
+      />
+    </label>
+
+    <div class="form-actions">
+      <button type="button" class="btn btn-secondary" (click)="cancel.emit()">Cancelar</button>
+      <button type="submit" class="btn btn-primary">{{ submitLabel() }}</button>
+    </div>
+  </form>
+</app-modal>

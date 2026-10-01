@@ -15,7 +15,10 @@ export type IconName =
   | 'calendar'
   | 'check-circle'
   | 'alert-circle'
-  | 'wallet';
+  | 'arrow-left'
+  | 'wallet'
+  | 'lock'
+  | 'unlock';
 
 @Component({
   selector: 'app-icon',
@@ -99,9 +102,21 @@ export type IconName =
           <line x1="12" y1="8" x2="12" y2="12" />
           <line x1="12" y1="16" x2="12.01" y2="16" />
         }
+        @case ('arrow-left') {
+          <line x1="19" y1="12" x2="5" y2="12" />
+          <polyline points="12 19 5 12 12 5" />
+        }
         @case ('wallet') {
           <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" />
           <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" />
+        }
+        @case ('lock') {
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        }
+        @case ('unlock') {
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+          <path d="M7 11V7a5 5 0 0 1 9.9-1" />
         }
       }
     </svg>

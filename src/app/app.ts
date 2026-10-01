@@ -11,9 +11,13 @@ import { GastosPage } from './features/gastos/gastos';
 import { IngresosPage } from './features/ingresos/ingresos';
 import { ResumenPage } from './features/resumen/resumen';
 import { TcPage } from './features/tc-compartida/tc';
+import { TcService } from './features/tc-compartida/data/tc.service';
 import { Sidebar, type SidebarPageId } from './shared/ui/sidebar/sidebar';
 import { DailyReminderBanner } from './shared/ui/daily-reminder-banner/daily-reminder-banner';
+import { SplashScreen } from './shared/ui/splash-screen/splash-screen';
 import { ToastContainer } from './shared/ui/toast-container/toast-container';
+import { PinLock } from './shared/ui/pin-lock/pin-lock';
+import { AuthPinService } from './core/services/auth-pin.service';
 
 export const ACTIVE_PAGE_STORAGE_KEY = 'expenses_home_active_page';
 export const VALID_SIDEBAR_PAGES: readonly SidebarPageId[] = [
@@ -56,7 +60,9 @@ function getInitialPage(): SidebarPageId {
     DeudasPage,
     TcPage,
     DailyReminderBanner,
+    SplashScreen,
     ToastContainer,
+    PinLock,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app.html',
@@ -64,7 +70,23 @@ function getInitialPage(): SidebarPageId {
 })
 export class App {
   private readonly destroyRef = inject(DestroyRef);
+  private readonly tcService = inject(TcService);
+  protected readonly authPinService = inject(AuthPinService);
   protected readonly currentPage = signal<SidebarPageId>(getInitialPage());
+  protected readonly showSplash = signal<boolean>(this.authPinService.isUnlocked());
+
+  protected onSplashCompleted(): void {
+    this.showSplash.set(false);
+  }
+
+  protected onLockApp(): void {
+    this.authPinService.lock();
+    this.showSplash.set(false);
+  }
+
+  protected onAppUnlocked(): void {
+    this.showSplash.set(true);
+  }
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -79,6 +101,9 @@ export class App {
         const hash = window.location.hash.replace('#', '') as SidebarPageId;
         if (VALID_SIDEBAR_PAGES.includes(hash) && hash !== this.currentPage()) {
           this.currentPage.set(hash);
+          if (hash === 'tc-compartida') {
+            this.tcService.selectCard(null);
+          }
           try {
             localStorage.setItem(ACTIVE_PAGE_STORAGE_KEY, hash);
           } catch {}
@@ -93,6 +118,9 @@ export class App {
   }
 
   protected onNavigate(pageId: SidebarPageId): void {
+    if (pageId === 'tc-compartida') {
+      this.tcService.selectCard(null);
+    }
     this.currentPage.set(pageId);
     if (typeof window !== 'undefined') {
       try {

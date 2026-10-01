@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Badge } from '../../../../shared/ui/badge/badge';
 import { Icon } from '../../../../shared/ui/icon/icon';
@@ -17,6 +17,14 @@ export class TcPaymentsList {
   protected readonly tcService = inject(TcService);
   protected readonly personColors = EXPENSE_PERSON_COLORS;
 
+  protected readonly targetCategoryName = computed<string>(() => {
+    const card = this.tcService.selectedCard();
+    if (!card || card.id === 'tc-compartida') {
+      return 'TC-compartida';
+    }
+    return `TC: ${card.name}`;
+  });
+
   protected formatDisplayDate(isoDate: string): string {
     return formatDisplayDate(isoDate);
   }
@@ -25,3 +33,4 @@ export class TcPaymentsList {
     return formatCOP(amount);
   }
 }
+

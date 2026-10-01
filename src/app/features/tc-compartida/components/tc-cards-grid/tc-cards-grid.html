@@ -1,0 +1,157 @@
+<div class="cards-dashboard">
+  <!-- Encabezado de la Sección -->
+  <header class="dashboard-header">
+    <div class="dashboard-titles">
+      <h1 class="dashboard-title">Tarjetas de Crédito</h1>
+      <p class="dashboard-subtitle">
+        Gestiona todas tus tarjetas de crédito (Compartida, Nu, personales), registra consumos y concilia los saldos amortizados
+      </p>
+    </div>
+
+    <button type="button" class="btn btn-primary" (click)="createCard.emit()">
+      <app-icon name="plus" [size]="16" />
+      Nueva Tarjeta
+    </button>
+  </header>
+
+  <!-- Resumen Global de Tarjetas -->
+  <div class="summary-kpis-grid">
+    <div class="summary-kpi-card">
+      <div class="summary-kpi-icon-wrap icon-purple">
+        <app-icon name="credit-card" [size]="20" />
+      </div>
+      <div class="summary-kpi-content">
+        <span class="summary-kpi-label">Tarjetas Activas</span>
+        <span class="summary-kpi-value">{{ tcService.allCardsSummary().totalCards }}</span>
+        <span class="summary-kpi-detail">En monitoreo y control</span>
+      </div>
+    </div>
+
+    <div class="summary-kpi-card">
+      <div class="summary-kpi-icon-wrap icon-blue">
+        <app-icon name="trending-up" [size]="20" />
+      </div>
+      <div class="summary-kpi-content">
+        <span class="summary-kpi-label">Consumos Este Mes (Total)</span>
+        <span class="summary-kpi-value">{{ formatCOP(tcService.allCardsSummary().totalConsumptionsMonth) }}</span>
+        <span class="summary-kpi-detail">En todas las tarjetas</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cuadrícula de Tarjetas -->
+  <div class="cards-grid">
+    @for (card of tcService.cards(); track card.id) {
+      @let metrics = getCardMetrics(card.id);
+      <div class="card-item-container" (click)="onSelect(card)">
+        <!-- Mockup Visual de la Tarjeta -->
+        <div
+          class="card-mockup"
+          [style.background]="card.gradient"
+        >
+          <div class="card-mockup-top">
+            <div class="card-chip-container">
+              <div class="card-emv-chip"></div>
+              <svg class="contactless-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M8.5 16.5a5 5 0 0 1 0-9" />
+                <path d="M12 19a8.5 8.5 0 0 1 0-14" />
+                <path d="M15.5 21.5a12 12 0 0 1 0-19" />
+              </svg>
+            </div>
+            <span class="card-bank-badge">{{ card.bank }}</span>
+          </div>
+
+          <div class="card-mockup-middle">
+            <span class="card-number-display">•••• •••• •••• {{ card.lastDigits }}</span>
+          </div>
+
+          <div class="card-mockup-bottom">
+            <div class="card-holder-info">
+              <span class="card-label-small">TARJETA</span>
+              <span class="card-holder-name">{{ card.name }}</span>
+            </div>
+            <div class="card-person-pill">
+              <span>{{ card.person }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Métricas Rápidas de la Tarjeta -->
+        <div class="card-metrics-box">
+          <div class="card-metric-row">
+            <span class="metric-label">Consumos este mes:</span>
+            <span class="metric-val font-semibold">{{ formatCOP(metrics.consumptionsThisMonth) }}</span>
+          </div>
+
+          <div class="card-metric-row">
+            <span class="metric-label">Saldo pendiente:</span>
+            <span
+              class="metric-val font-bold"
+              [class.text-green]="metrics.pendingDebt <= 0"
+              [class.text-amber]="metrics.pendingDebt > 0"
+            >
+              {{ formatCOP(metrics.pendingDebt) }}
+            </span>
+          </div>
+
+          @if (card.quota) {
+            <div class="card-metric-row">
+              <span class="metric-label">Cupo disponible:</span>
+              <span class="metric-val text-slate font-medium">
+                {{ formatCOP(metrics.quotaRemaining ?? 0) }}
+              </span>
+            </div>
+          }
+
+          <div class="card-metric-row sub-row">
+            <span class="metric-sub">{{ metrics.totalCount }} consumos registrados</span>
+            @if (card.isDefault) {
+              <span class="badge-default">Principal</span>
+            }
+          </div>
+        </div>
+
+        <!-- Acciones de la Tarjeta -->
+        <div class="card-actions-bar">
+          <button type="button" class="btn btn-enter" (click)="onSelect(card)">
+            <span>Ver consumos y conciliar</span>
+            <span class="arrow-glyph">→</span>
+          </button>
+
+          <div class="card-icon-actions">
+            <button
+              type="button"
+              class="btn-icon"
+              title="Editar tarjeta"
+              (click)="onEdit($event, card)"
+            >
+              <app-icon name="pencil" [size]="15" />
+            </button>
+
+            <button
+              type="button"
+              class="btn-icon btn-icon-danger"
+              title="Eliminar tarjeta"
+              (click)="onDelete($event, card)"
+            >
+              <app-icon name="trash-2" [size]="15" />
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Card de Agregar Nueva Tarjeta -->
+    <div class="add-card-placeholder" (click)="createCard.emit()">
+      <div class="add-card-inner">
+        <div class="add-card-icon-wrap">
+          <app-icon name="plus" [size]="24" />
+        </div>
+        <span class="add-card-title">Agregar otra tarjeta</span>
+        <p class="add-card-desc">
+          Registra una tarjeta Nu, tarjeta personal de Charlie o Benny para conciliar
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

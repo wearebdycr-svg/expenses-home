@@ -10,6 +10,7 @@ import type { ChartConfiguration, TooltipModel } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 import { formatCOP } from '../../data/expense.model';
 import { ExpensesService } from '../../data/expenses.service';
+import { escapeHtml } from '../../../../shared/utils/security.util';
 
 @Component({
   selector: 'app-expense-category-chart',
@@ -111,7 +112,7 @@ export class ExpenseCategoryChart {
       const amount = Number(point.raw) || 0;
 
       // Estilo exacto a HU03-Gastos-4.png: "Hogar : $ 1.800.000"
-      tooltipEl.innerHTML = `<span class="donut-tooltip-text">${category} : ${formatCOP(amount)}</span>`;
+      tooltipEl.innerHTML = `<span class="donut-tooltip-text">${escapeHtml(category)} : ${escapeHtml(formatCOP(amount))}</span>`;
     }
 
     tooltipEl.style.opacity = '1';

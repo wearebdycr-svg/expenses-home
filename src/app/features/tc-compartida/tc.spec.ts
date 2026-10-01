@@ -81,6 +81,7 @@ describe('TcPage', () => {
       category: 'Entretenimiento/salidas',
       description: 'Cena',
       amount: 80_000,
+      cardId: 'tc-compartida',
     });
     expect((component as any).isModalOpen()).toBe(false);
   });
@@ -97,5 +98,16 @@ describe('TcPage', () => {
 
     (component as any).onDelete(mockExpense);
     expect(deleteSpy).toHaveBeenCalledWith('tc-999');
+  });
+
+  it('navigates into card detail view and goes back to cards grid', () => {
+    expect(tcService.selectedCard()).toBeNull();
+    const defaultCard = tcService.cards()[0];
+
+    (component as any).selectCard(defaultCard);
+    expect(tcService.selectedCard()).toEqual(defaultCard);
+
+    (component as any).goBackToCards();
+    expect(tcService.selectedCard()).toBeNull();
   });
 });

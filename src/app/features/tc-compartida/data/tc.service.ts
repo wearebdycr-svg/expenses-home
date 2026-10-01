@@ -5,10 +5,14 @@ import { PushNotificationService, getWeekDateRange } from '../../../core/service
 import type { Expense, ExpensePerson, ExpensePersonFilter } from '../../gastos/data/expense.model';
 import { EXPENSE_PERSON_COLORS, EXPENSE_PERSONS } from '../../gastos/data/expense.model';
 import { ExpensesService } from '../../gastos/data/expenses.service';
+import type { TcCard, TcCardDraft, TcCardMetrics, TcCardsSummary } from './tc-card.model';
+import { DEFAULT_TC_CARDS, TC_CARD_THEMES, generateCardId } from './tc-card.model';
 import type { TcExpense, TcExpenseDraft, TcPersonMetrics } from './tc.model';
 import { generateTcExpenseId } from './tc.model';
 
 const STORAGE_KEY = 'expenses_home_tc_v1';
+const STORAGE_CARDS_KEY = 'expenses_home_tc_cards_v1';
+const CARD_TAG_REGEX = /^\[CARD:([^\]]+)\]\s*(.*)$/i;
 
 export type MonthFilter = number | 'Todos';
 export type DayFilter = number | 'Todos';
@@ -20,8 +24,17 @@ export class TcService {
   private readonly toastService = inject(ToastService);
   private readonly pushNotificationService = inject(PushNotificationService);
 
+  // Tarjetas registradas
+  private readonly cardsSignal = signal<TcCard[]>(this.loadCardsFromStorage());
+  readonly cards = this.cardsSignal.asReadonly();
+
+  // Tarjeta seleccionada actualmente (null = Vista General de Cards)
+  readonly selectedCard = signal<TcCard | null>(null);
+
+  // Consumos cargados (todos)
   private readonly tcExpenses = signal<TcExpense[]>([]);
   readonly allTcExpenses = this.tcExpenses.asReadonly();
+
   readonly loading = signal<boolean>(false);
   readonly error = signal<string | null>(null);
   private lastLocalMutationTime = 0;
@@ -42,14 +55,173 @@ export class TcService {
     this.setupRealtime();
   }
 
+  // ==========================================
+  // GESTIÓN DE TARJETAS (CARDS)
+  // ==========================================
+
+  selectCard(card: TcCard | null): void {
+    this.selectedCard.set(card);
+    if (card) {
+      // Si la tarjeta pertenece a una persona específica (no Compartido), podemos orientar el filtro
+      if (card.person !== 'Compartido') {
+        this.person.set('Todos');
+      }
+    }
+  }
+
+  addCard(draft: TcCardDraft): TcCard {
+    const theme = TC_CARD_THEMES.find((t) => t.id === draft.themeId) ?? TC_CARD_THEMES[0];
+    const newCard: TcCard = {
+      ...draft,
+      id: generateCardId(draft.name),
+      color: theme.primaryColor,
+      gradient: theme.gradient,
+      isDefault: false,
+      createdAt: new Date().toISOString(),
+    };
+
+    this.cardsSignal.update((list) => {
+      const updated = [...list, newCard];
+      this.saveCardsToStorage(updated);
+      return updated;
+    });
+
+    this.toastService.success(`Tarjeta "${newCard.name}" creada con éxito`);
+    return newCard;
+  }
+
+  updateCard(id: string, draft: TcCardDraft): void {
+    const theme = TC_CARD_THEMES.find((t) => t.id === draft.themeId) ?? TC_CARD_THEMES[0];
+    this.cardsSignal.update((list) => {
+      const updated = list.map((card) => {
+        if (card.id === id) {
+          return {
+            ...card,
+            ...draft,
+            color: theme.primaryColor,
+            gradient: theme.gradient,
+          };
+        }
+        return card;
+      });
+      this.saveCardsToStorage(updated);
+      return updated;
+    });
+
+    if (this.selectedCard()?.id === id) {
+      const updatedCard = this.cardsSignal().find((c) => c.id === id) ?? null;
+      this.selectedCard.set(updatedCard);
+    }
+    this.toastService.success('Tarjeta actualizada');
+  }
+
+  deleteCard(id: string): void {
+    const card = this.cardsSignal().find((c) => c.id === id);
+    if (!card) return;
+
+    this.cardsSignal.update((list) => {
+      const updated = list.filter((c) => c.id !== id);
+      this.saveCardsToStorage(updated);
+      return updated;
+    });
+
+    if (this.selectedCard()?.id === id) {
+      this.selectedCard.set(null);
+    }
+    this.toastService.success(`Tarjeta "${card.name}" eliminada`);
+  }
+
+  // ==========================================
+  // FILTRADO Y COMPUTED SEGÚN TARJETA ACTIVA
+  // ==========================================
+
   /**
-   * Todos los abonos amortizados hacia la tarjeta:
-   * Gastos registrados en la vista general de Gastos bajo la categoría "TC-compartida".
+   * Consumos correspondientes a la tarjeta actualmente seleccionada
+   * (o todos si no hay tarjeta seleccionada)
+   */
+  readonly currentCardExpenses = computed<TcExpense[]>(() => {
+    const card = this.selectedCard();
+    if (!card) return this.tcExpenses();
+    return this.tcExpenses().filter((exp) => (exp.cardId || 'tc-compartida') === card.id);
+  });
+
+  /**
+   * Identifica si un gasto de amortización corresponde a una tarjeta dada
+   */
+  isPaymentForCard(expense: Expense, card: TcCard): boolean {
+    const expCat = (expense.category || '').trim();
+
+    // 1. Coincidencia directa por categoría seleccionada en Gastos Diarios
+    if (card.id === 'tc-compartida') {
+      if (
+        expCat === 'TC-compartida' ||
+        expCat === card.name ||
+        expCat === `TC: ${card.name}` ||
+        expCat === `Tarjeta: ${card.name}`
+      ) {
+        return true;
+      }
+    } else {
+      if (
+        expCat === `TC: ${card.name}` ||
+        expCat === card.name ||
+        expCat === card.id ||
+        (card.paymentCategory &&
+          card.paymentCategory !== 'TC-compartida' &&
+          card.paymentCategory !== 'Deudas' &&
+          expCat === card.paymentCategory)
+      ) {
+        return true;
+      }
+    }
+
+    const desc = (expense.description || '').toLowerCase();
+    const bank = (card.bank || '').toLowerCase();
+    const name = (card.name || '').toLowerCase();
+    const digits = (card.lastDigits || '').trim();
+
+    // 2. Por últimos 4 dígitos en descripción
+    if (digits.length >= 4 && desc.includes(digits)) {
+      return true;
+    }
+
+    // 3. Si coincide la categoría de pago configurada (ej. 'Deudas', 'TC-compartida')
+    if (card.paymentCategory && expCat === card.paymentCategory) {
+      if (bank && bank.length >= 3 && desc.includes(bank)) return true;
+      if (name && name.length >= 2 && desc.includes(name)) return true;
+      const words = name.split(/\s+/).filter((w) => w.length >= 2 && w !== 'tc');
+      for (const w of words) {
+        if (desc.includes(w)) return true;
+      }
+    }
+
+    // 4. Si en la descripción aparece el banco o palabras clave del nombre
+    if (bank && bank.length >= 3 && desc.includes(bank)) {
+      return true;
+    }
+    const words = name.split(/\s+/).filter((w) => w.length >= 2 && w !== 'tc');
+    for (const w of words) {
+      if (desc.includes(w)) return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Todos los abonos amortizados hacia la tarjeta seleccionada:
+   * (Si no hay tarjeta seleccionada, usa la categoría general "TC-compartida" para retrocompatibilidad)
    */
   readonly payments = computed<Expense[]>(() => {
-    return this.expensesService
-      .allExpenses()
-      .filter((exp) => exp.category === 'TC-compartida')
+    const card = this.selectedCard();
+    const all = this.expensesService.allExpenses();
+    if (!card) {
+      return all
+        .filter((exp) => exp.category === 'TC-compartida')
+        .sort((a, b) => b.date.localeCompare(a.date));
+    }
+
+    return all
+      .filter((exp) => this.isPaymentForCard(exp, card))
       .sort((a, b) => b.date.localeCompare(a.date));
   });
 
@@ -61,7 +233,7 @@ export class TcService {
     const month = this.month();
     const person = this.person();
 
-    return this.tcExpenses().filter((exp) => {
+    return this.currentCardExpenses().filter((exp) => {
       const [y, m] = exp.date.split('-').map(Number);
       const matchesYear = y === year;
       const matchesMonth = month === 'Todos' || m === month;
@@ -128,10 +300,55 @@ export class TcService {
   });
 
   /**
-   * Deuda Pendiente TC (Saldo real amortizado del período):
+   * Deuda Pendiente TC (Saldo real acumulado amortizado):
+   * Calcula la deuda pendiente real acumulada de la tarjeta hasta el período seleccionado.
+   * Si en el período se abonó una deuda anterior (ej. extracto del mes pasado),
+   * no anula los consumos nuevos del mes, sino que mantiene el saldo exacto pendiente.
    */
   readonly pendingDebt = computed<number>(() => {
-    return this.totalConsumptions() - this.totalPayments();
+    const card = this.selectedCard();
+    const cardId = card?.id || 'tc-compartida';
+    const year = this.year();
+    const month = this.month();
+    const day = this.day();
+    const person = this.person();
+
+    // Fecha límite superior según los filtros seleccionados
+    let maxDate = `${year}-12-31`;
+    if (month !== 'Todos') {
+      const monthStr = String(month).padStart(2, '0');
+      if (day !== 'Todos') {
+        const dayStr = String(day).padStart(2, '0');
+        maxDate = `${year}-${monthStr}-${dayStr}`;
+      } else {
+        const lastDay = new Date(year, Number(month), 0).getDate();
+        maxDate = `${year}-${monthStr}-${String(lastDay).padStart(2, '0')}`;
+      }
+    }
+
+    const cardExpenses = this.tcExpenses().filter(
+      (exp) => (exp.cardId || 'tc-compartida') === cardId && exp.date <= maxDate,
+    );
+
+    const cardPayments = card
+      ? this.expensesService
+          .allExpenses()
+          .filter((exp) => this.isPaymentForCard(exp, card) && exp.date <= maxDate)
+      : this.expensesService
+          .allExpenses()
+          .filter((exp) => exp.category === 'TC-compartida' && exp.date <= maxDate);
+
+    const filteredExpenses = cardExpenses.filter(
+      (exp) => person === 'Todos' || exp.person === person,
+    );
+    const filteredPayments = cardPayments.filter(
+      (exp) => person === 'Todos' || exp.person === person,
+    );
+
+    const totalCons = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalPays = filteredPayments.reduce((sum, p) => sum + p.amount, 0);
+
+    return Math.max(0, totalCons - totalPays);
   });
 
   /**
@@ -139,7 +356,7 @@ export class TcService {
    */
   readonly currentWeekTotal = computed<number>(() => {
     const { mondayStr, sundayStr } = getWeekDateRange();
-    return this.tcExpenses()
+    return this.currentCardExpenses()
       .filter((e) => e.date >= mondayStr && e.date <= sundayStr)
       .reduce((sum, e) => sum + e.amount, 0);
   });
@@ -150,7 +367,7 @@ export class TcService {
     const month = this.month();
     const day = this.day();
 
-    const periodExpenses = this.tcExpenses().filter((exp) => {
+    const periodExpenses = this.currentCardExpenses().filter((exp) => {
       const [y, m, d] = exp.date.split('-').map(Number);
       const matchesYear = y === year;
       const matchesMonth = month === 'Todos' || m === month;
@@ -191,6 +408,93 @@ export class TcService {
     });
   });
 
+  // ==========================================
+  // MÉTRICAS PARA EL GRID DE TARJETAS
+  // ==========================================
+
+  getCardMetrics(cardId: string): TcCardMetrics {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+
+    const card = this.cardsSignal().find((c) => c.id === cardId);
+    const cardExpenses = this.tcExpenses().filter(
+      (exp) => (exp.cardId || 'tc-compartida') === cardId,
+    );
+
+    const cardPayments = card
+      ? this.expensesService
+          .allExpenses()
+          .filter((exp) => this.isPaymentForCard(exp, card))
+      : [];
+
+    const consumptionsThisMonth = cardExpenses
+      .filter((e) => {
+        const [y, m] = e.date.split('-').map(Number);
+        return y === currentYear && m === currentMonth;
+      })
+      .reduce((sum, e) => sum + e.amount, 0);
+
+    const totalConsumptions = cardExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalPayments = cardPayments.reduce((sum, p) => sum + p.amount, 0);
+    const pendingDebt = Math.max(0, totalConsumptions - totalPayments);
+
+    const countThisMonth = cardExpenses.filter((e) => {
+      const [y, m] = e.date.split('-').map(Number);
+      return y === currentYear && m === currentMonth;
+    }).length;
+
+    return {
+      consumptionsThisMonth,
+      totalConsumptions,
+      totalPayments,
+      pendingDebt,
+      countThisMonth,
+      totalCount: cardExpenses.length,
+      quota: card?.quota,
+      quotaRemaining:
+        card?.quota !== undefined ? Math.max(0, card.quota - pendingDebt) : undefined,
+    };
+  }
+
+  readonly allCardsSummary = computed<TcCardsSummary>(() => {
+    const cards = this.cardsSignal();
+    let totalConsumptionsMonth = 0;
+    let totalPendingDebt = 0;
+
+    for (const card of cards) {
+      const metrics = this.getCardMetrics(card.id);
+      totalConsumptionsMonth += metrics.consumptionsThisMonth;
+      totalPendingDebt += metrics.pendingDebt;
+    }
+
+    const now = new Date();
+    const curY = now.getFullYear();
+    const curM = now.getMonth() + 1;
+
+    const allMonthlyPayments = this.expensesService
+      .allExpenses()
+      .filter((exp) => {
+        const [y, m] = exp.date.split('-').map(Number);
+        const isThisMonth = y === curY && m === curM;
+        if (!isThisMonth) return false;
+        return cards.some((c) => this.isPaymentForCard(exp, c));
+      })
+      .reduce((sum, e) => sum + e.amount, 0);
+
+    return {
+      totalCards: cards.length,
+      totalConsumptionsMonth,
+      totalPendingDebt,
+      totalPaymentsMonth: allMonthlyPayments,
+      totalExpensesCount: this.tcExpenses().length,
+    };
+  });
+
+  // ==========================================
+  // SETTERS DE FILTROS
+  // ==========================================
+
   setYear(year: number): void {
     this.year.set(year);
   }
@@ -215,6 +519,10 @@ export class TcService {
     this.searchQuery.set(query);
   }
 
+  // ==========================================
+  // OPERACIONES CRUD EN SUPABASE & STORAGE
+  // ==========================================
+
   async loadTcExpenses(): Promise<void> {
     this.loading.set(true);
     try {
@@ -229,20 +537,32 @@ export class TcService {
           error.message,
         );
         this.error.set(error.message);
-        // Si hay error en Supabase, conservamos lo que esté en localStorage
         return;
       }
 
       if (data) {
-        const mapped: TcExpense[] = data.map((item: any) => ({
-          id: String(item.id),
-          date: String(item.date),
-          person: item.person as ExpensePerson,
-          description: String(item.description),
-          amount: Number(item.amount),
-          category: item.category ? String(item.category) : 'General',
-          createdAt: item.created_at ? String(item.created_at) : undefined,
-        }));
+        const mapped: TcExpense[] = data.map((item: any) => {
+          const rawDesc = String(item.description || '');
+          const match = rawDesc.match(CARD_TAG_REGEX);
+          let cardId = 'tc-compartida';
+          let cleanDesc = rawDesc;
+          if (match) {
+            cardId = match[1];
+            cleanDesc = match[2];
+          }
+
+          return {
+            id: String(item.id),
+            date: String(item.date),
+            person: item.person as ExpensePerson,
+            description: cleanDesc,
+            amount: Number(item.amount),
+            category: item.category ? String(item.category) : 'General',
+            cardId,
+            createdAt: item.created_at ? String(item.created_at) : undefined,
+          };
+        });
+
         this.tcExpenses.set(mapped);
         this.saveToStorage(mapped);
         this.error.set(null);
@@ -258,14 +578,20 @@ export class TcService {
   async addTcExpense(draft: TcExpenseDraft): Promise<void> {
     this.lastLocalMutationTime = Date.now();
     const tempId = generateTcExpenseId();
-    const optimisticItem: TcExpense = { ...draft, id: tempId };
+    const cardId = draft.cardId || this.selectedCard()?.id || 'tc-compartida';
+    const optimisticItem: TcExpense = { ...draft, cardId, id: tempId };
 
-    // Actualización optimista
+    // Actualización optimista local
     this.tcExpenses.update((list) => {
       const updated = [optimisticItem, ...list];
       this.saveToStorage(updated);
       return updated;
     });
+
+    const dbDescription =
+      cardId === 'tc-compartida'
+        ? draft.description
+        : `[CARD:${cardId}] ${draft.description}`;
 
     try {
       const { data, error } = await this.supabase.client
@@ -274,7 +600,7 @@ export class TcService {
           {
             date: draft.date,
             person: draft.person,
-            description: draft.description,
+            description: dbDescription,
             amount: draft.amount,
             category: draft.category || 'General',
           },
@@ -305,12 +631,20 @@ export class TcService {
   }
 
   async updateTcExpense(id: string, draft: TcExpenseDraft): Promise<void> {
+    const existing = this.tcExpenses().find((item) => item.id === id);
+    const cardId = draft.cardId || existing?.cardId || this.selectedCard()?.id || 'tc-compartida';
+
     // Actualización optimista
     this.tcExpenses.update((list) => {
-      const updated = list.map((item) => (item.id === id ? { ...draft, id } : item));
+      const updated = list.map((item) => (item.id === id ? { ...draft, cardId, id } : item));
       this.saveToStorage(updated);
       return updated;
     });
+
+    const dbDescription =
+      cardId === 'tc-compartida'
+        ? draft.description
+        : `[CARD:${cardId}] ${draft.description}`;
 
     try {
       const { error } = await this.supabase.client
@@ -318,7 +652,7 @@ export class TcService {
         .update({
           date: draft.date,
           person: draft.person,
-          description: draft.description,
+          description: dbDescription,
           amount: draft.amount,
           category: draft.category || 'General',
         })
@@ -352,6 +686,7 @@ export class TcService {
         description: existing.description,
         amount: existing.amount,
         category: existing.category,
+        cardId: existing.cardId,
       };
       this.toastService.success('Consumo de TC eliminado', {
         label: 'Deshacer',
@@ -373,6 +708,29 @@ export class TcService {
       }
     } catch (err: any) {
       console.error('Error de red al eliminar consumo TC:', err);
+    }
+  }
+
+  private loadCardsFromStorage(): TcCard[] {
+    try {
+      const stored = localStorage.getItem(STORAGE_CARDS_KEY);
+      if (stored !== null) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('No se pudieron leer tarjetas de localStorage:', e);
+    }
+    return [...DEFAULT_TC_CARDS];
+  }
+
+  private saveCardsToStorage(cards: TcCard[]): void {
+    try {
+      localStorage.setItem(STORAGE_CARDS_KEY, JSON.stringify(cards));
+    } catch (e) {
+      console.warn('No se pudieron guardar tarjetas en localStorage:', e);
     }
   }
 

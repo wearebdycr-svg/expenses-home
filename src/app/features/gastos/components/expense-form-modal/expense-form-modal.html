@@ -1,119 +1,195 @@
 <app-modal [title]="modalTitle()" (close)="cancel.emit()">
-  <form class="expense-form" (submit)="$event.preventDefault(); onSubmit()">
-    @if (hasSubmitted() && hasErrors()) {
-      <div class="form-validation-summary">
-        <span>⚠️ Faltan campos obligatorios por completar. Revisa los campos resaltados.</span>
+  @if (confirmationType() === 'personal-tc-prompt') {
+    @let tc = selectedTcCard()!;
+    <div class="tc-confirm-container">
+      <div class="tc-confirm-icon-wrap tc-wrap">
+        <span>💳</span>
       </div>
-    }
 
-    <div class="form-row">
-      <label class="field" [class.has-error]="errors()['date']">
-        <span class="field-label">Fecha</span>
-        <input
-          class="field-control"
-          [class.control-error]="errors()['date']"
-          type="date"
-          [value]="date()"
-          (input)="date.set($any($event.target).value)"
+      <h3 class="tc-confirm-title">Movimiento en {{ tc.name }}</h3>
+      
+      <p class="tc-confirm-desc">
+        Esta tarjeta es personal de <strong>{{ tc.person }}</strong> (•••• {{ tc.lastDigits }}). ¿Qué tipo de movimiento deseas registrar?
+      </p>
+
+      <div class="tc-movement-options">
+        <button
+          type="button"
+          class="tc-movement-btn option-expense"
+          (click)="confirmPersonalTcMovement('expense')"
+        >
+          <div class="option-icon-wrap">🛍️</div>
+          <div class="option-info">
+            <span class="option-name">Es un Gasto (Consumo)</span>
+            <span class="option-detail">
+              Compra realizada con la tarjeta {{ tc.name }}. Sumará a la deuda pendiente de la tarjeta.
+            </span>
+          </div>
+          <span class="option-arrow">→</span>
+        </button>
+
+        <button
+          type="button"
+          class="tc-movement-btn option-payment"
+          (click)="confirmPersonalTcMovement('payment')"
+        >
+          <div class="option-icon-wrap">💸</div>
+          <div class="option-info">
+            <span class="option-name">Es un Abono (Pago a la tarjeta)</span>
+            <span class="option-detail">
+              Pago realizado desde tu cuenta bancaria. Descontará de la deuda de tu TC personal.
+            </span>
+          </div>
+          <span class="option-arrow">→</span>
+        </button>
+      </div>
+
+      <div class="tc-confirm-footer">
+        <button type="button" class="btn btn-secondary btn-full" (click)="cancelConfirmation()">
+          Volver al formulario para ajustar
+        </button>
+      </div>
+    </div>
+  } @else {
+    <!-- Formulario Normal -->
+    <form class="expense-form" (submit)="$event.preventDefault(); onSubmit()">
+      @if (hasSubmitted() && hasErrors()) {
+        <div class="form-validation-summary">
+          <span>⚠️ Faltan campos obligatorios por completar. Revisa los campos resaltados.</span>
+        </div>
+      }
+
+      <div class="form-row">
+        <label class="field" [class.has-error]="errors()['date']">
+          <span class="field-label">Fecha</span>
+          <input
+            class="field-control"
+            [class.control-error]="errors()['date']"
+            type="date"
+            [value]="date()"
+            (input)="date.set($any($event.target).value)"
+          />
+          @if (errors()['date']) {
+            <span class="field-error-msg">{{ errors()['date'] }}</span>
+          }
+        </label>
+
+        <app-select
+          label="Persona"
+          placeholder="Seleccionar persona..."
+          [options]="personOptions"
+          [value]="person()"
+          [hasError]="!!errors()['person']"
+          [errorMessage]="errors()['person'] ?? ''"
+          (valueChange)="person.set($event)"
         />
-        @if (errors()['date']) {
-          <span class="field-error-msg">{{ errors()['date'] }}</span>
-        }
-      </label>
+      </div>
 
       <app-select
-        label="Persona"
-        placeholder="Seleccionar persona..."
-        [options]="personOptions"
-        [value]="person()"
-        [hasError]="!!errors()['person']"
-        [errorMessage]="errors()['person'] ?? ''"
-        (valueChange)="person.set($event)"
+        label="Categoría"
+        [options]="categoryOptions()"
+        [value]="category()"
+        [hasError]="!!errors()['category']"
+        [errorMessage]="errors()['category'] ?? ''"
+        (valueChange)="category.set($event)"
       />
-    </div>
 
-    <app-select
-      label="Categoría"
-      [options]="categoryOptions()"
-      [value]="category()"
-      [hasError]="!!errors()['category']"
-      [errorMessage]="errors()['category'] ?? ''"
-      (valueChange)="category.set($event)"
-    />
-
-    @if (category() === 'Deudas') {
-      <div class="debt-amortization-info" style="background: #eff6ff; border-color: #bfdbfe;">
-        <div class="info-detail-row" style="color: #1e40af; font-size: 0.75rem; line-height: 1.35;">
-          <span>💡 <strong>Consejo:</strong> Para que este pago descuente automáticamente el saldo y los meses restantes de un crédito específico, selecciona en el selector de categoría la opción <em>"Deuda: [Nombre de tu crédito]"</em>.</span>
-        </div>
-      </div>
-    }
-
-    @if (selectedDebt(); as debt) {
-      <div class="debt-amortization-info" [class.overdraft]="isOverdraft()">
-        <div class="info-header">
-          <span class="info-title">💳 Pago / Amortización de Crédito</span>
-          <span class="info-badge">{{ debt.person }}</span>
-        </div>
-        <div class="info-body">
-          <div class="info-detail-row">
-            <span class="info-label">Crédito:</span>
-            <span class="info-val font-semibold">{{ debt.name }}</span>
+      @if (category() === 'Deudas') {
+        <div class="debt-amortization-info" style="background: #eff6ff; border-color: #bfdbfe;">
+          <div class="info-detail-row" style="color: #1e40af; font-size: 0.75rem; line-height: 1.35;">
+            <span>💡 <strong>Consejo:</strong> Para que este pago descuente automáticamente el saldo y los meses restantes de un crédito específico, selecciona en el selector de categoría la opción <em>"Deuda: [Nombre de tu crédito]"</em>.</span>
           </div>
-          <div class="info-detail-row">
-            <span class="info-label">Saldo pendiente:</span>
-            <span class="info-val info-balance">{{ formatCOP(debt.currentBalance) }}</span>
+        </div>
+      }
+
+      @if (selectedDebt(); as debt) {
+        <div class="debt-amortization-info" [class.overdraft]="isOverdraft()">
+          <div class="info-header">
+            <span class="info-title">💳 Pago / Amortización de Crédito</span>
+            <span class="info-badge">{{ debt.person }}</span>
           </div>
-          @if (debt.monthlyPayment > 0) {
+          <div class="info-body">
             <div class="info-detail-row">
-              <span class="info-label">Cuota mensual:</span>
-              <span class="info-val">{{ formatCOP(debt.monthlyPayment) }}</span>
+              <span class="info-label">Crédito:</span>
+              <span class="info-val font-semibold">{{ debt.name }}</span>
+            </div>
+            <div class="info-detail-row">
+              <span class="info-label">Saldo pendiente:</span>
+              <span class="info-val info-balance">{{ formatCOP(debt.currentBalance) }}</span>
+            </div>
+            @if (debt.monthlyPayment > 0) {
+              <div class="info-detail-row">
+                <span class="info-label">Cuota mensual:</span>
+                <span class="info-val">{{ formatCOP(debt.monthlyPayment) }}</span>
+              </div>
+            }
+          </div>
+          @if (isOverdraft()) {
+            <div class="overdraft-warning">
+              ⚠️ El monto ingresado ({{ formatCOP(parseThousands(amount())) }}) supera el saldo pendiente de esta deuda. Quedará totalmente liquidada.
             </div>
           }
         </div>
-        @if (isOverdraft()) {
-          <div class="overdraft-warning">
-            ⚠️ El monto ingresado ({{ formatCOP(parseThousands(amount())) }}) supera el saldo pendiente de esta deuda. Quedará totalmente liquidada.
+      }
+
+      @if (selectedTcCard(); as tc) {
+        @let metrics = tcService.getCardMetrics(tc.id);
+        <div class="debt-amortization-info" style="background: #f8fafc; border-color: #cbd5e1;">
+          <div class="info-header">
+            <span class="info-title">💳 Tarjeta de Crédito</span>
+            <span class="info-badge" [style.background]="tc.color" style="color: #ffffff;">{{ tc.person }}</span>
           </div>
+          <div class="info-body">
+            <div class="info-detail-row">
+              <span class="info-label">Tarjeta:</span>
+              <span class="info-val font-semibold">{{ tc.name }} (•••• {{ tc.lastDigits }})</span>
+            </div>
+            <div class="info-detail-row">
+              <span class="info-label">Saldo pendiente actual:</span>
+              <span class="info-val info-balance" [style.color]="metrics.pendingDebt > 0 ? '#d97706' : '#059669'">
+                {{ formatCOP(metrics.pendingDebt) }}
+              </span>
+            </div>
+          </div>
+        </div>
+      }
+
+      <label class="field" [class.has-error]="errors()['description']">
+        <span class="field-label">Descripción</span>
+        <input
+          class="field-control"
+          [class.control-error]="errors()['description']"
+          type="text"
+          placeholder="Ej: Supermercado Éxito"
+          maxlength="100"
+          [value]="description()"
+          (input)="description.set($any($event.target).value)"
+        />
+        @if (errors()['description']) {
+          <span class="field-error-msg">{{ errors()['description'] }}</span>
         }
+      </label>
+
+      <label class="field" [class.has-error]="errors()['amount']">
+        <span class="field-label">Monto (COP)</span>
+        <input
+          class="field-control"
+          [class.control-error]="errors()['amount']"
+          type="text"
+          inputmode="numeric"
+          placeholder="Ej: 150.000"
+          [value]="amount()"
+          (input)="onAmountInput($event)"
+        />
+        @if (errors()['amount']) {
+          <span class="field-error-msg">{{ errors()['amount'] }}</span>
+        }
+      </label>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" (click)="cancel.emit()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">{{ submitLabel() }}</button>
       </div>
-    }
-
-    <label class="field" [class.has-error]="errors()['description']">
-      <span class="field-label">Descripción</span>
-      <input
-        class="field-control"
-        [class.control-error]="errors()['description']"
-        type="text"
-        placeholder="Ej: Supermercado Éxito"
-        maxlength="100"
-        [value]="description()"
-        (input)="description.set($any($event.target).value)"
-      />
-      @if (errors()['description']) {
-        <span class="field-error-msg">{{ errors()['description'] }}</span>
-      }
-    </label>
-
-    <label class="field" [class.has-error]="errors()['amount']">
-      <span class="field-label">Monto (COP)</span>
-      <input
-        class="field-control"
-        [class.control-error]="errors()['amount']"
-        type="text"
-        inputmode="numeric"
-        placeholder="Ej: 150.000"
-        [value]="amount()"
-        (input)="onAmountInput($event)"
-      />
-      @if (errors()['amount']) {
-        <span class="field-error-msg">{{ errors()['amount'] }}</span>
-      }
-    </label>
-
-    <div class="form-actions">
-      <button type="button" class="btn btn-secondary" (click)="cancel.emit()">Cancelar</button>
-      <button type="submit" class="btn btn-primary">{{ submitLabel() }}</button>
-    </div>
-  </form>
+    </form>
+  }
 </app-modal>

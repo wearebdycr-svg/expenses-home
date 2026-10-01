@@ -11,6 +11,7 @@ import type { ChartConfiguration, TooltipModel } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 import { formatAxisCurrencyK, formatCOP } from '../../data/debt.model';
 import { DebtsService } from '../../data/debts.service';
+import { escapeHtml } from '../../../../shared/utils/security.util';
 
 @Component({
   selector: 'app-debt-payments-chart',
@@ -106,9 +107,9 @@ export class DebtPaymentsChart {
 
       // Estilo exacto a HU06-deudas-5.png: "Cuota mensual : $ 700.000"
       tooltipEl.innerHTML = `
-        <div class="payments-tooltip-title">${debtTitle}</div>
+        <div class="payments-tooltip-title">${escapeHtml(debtTitle)}</div>
         <div class="payments-tooltip-row">
-          <span class="payments-tooltip-text">Cuota mensual : ${formatCOP(val)}</span>
+          <span class="payments-tooltip-text">Cuota mensual : ${escapeHtml(formatCOP(val))}</span>
         </div>
       `;
     }

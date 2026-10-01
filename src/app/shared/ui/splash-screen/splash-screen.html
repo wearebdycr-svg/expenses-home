@@ -1,0 +1,93 @@
+<div
+  class="splash-backdrop"
+  [class.closing]="isClosing()"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Cargando Expenses Home"
+>
+  <!-- Orbes de luz ambiental animados -->
+  <div class="glow-orb orb-emerald"></div>
+  <div class="glow-orb orb-amber"></div>
+  <div class="glow-orb orb-indigo"></div>
+
+  <div class="splash-card">
+    <!-- Emblema Principal Animado -->
+    <div class="emblem-wrapper">
+      <div class="emblem-pulse-ring"></div>
+      <div class="emblem-pulse-ring delay"></div>
+
+      <div class="emblem-squircle">
+        <!-- SVG oficial de Expenses Home (Hogar + Moneda de Finanzas) -->
+        <svg class="emblem-svg" viewBox="0 0 64 64" fill="none">
+          <defs>
+            <linearGradient id="splashCoinGrad" x1="24" y1="26" x2="40" y2="44" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#FDE047" />
+              <stop offset="60%" stop-color="#F59E0B" />
+              <stop offset="100%" stop-color="#D97706" />
+            </linearGradient>
+            <filter id="splashShadow" x="-10%" y="-10%" width="120%" height="130%" filterUnits="userSpaceOnUse">
+              <feDropShadow dx="0" dy="2.5" stdDeviation="2.5" flood-color="#7C2D12" flood-opacity="0.3" />
+            </filter>
+          </defs>
+
+          <!-- Silueta de la casa (Hogar) -->
+          <path d="M40 18H45V27H40V18Z" fill="#FFFFFF" fill-opacity="0.9" />
+          <path
+            filter="url(#splashShadow)"
+            d="M32 12.5C31.2 12.5 30.5 12.9 30 13.5L14.2 27.2C13.4 27.9 13.9 29.2 15 29.2H18.5V47.5C18.5 49.4 20.1 51 22 51H42C43.9 51 45.5 49.4 45.5 47.5V29.2H49C50.1 29.2 50.6 27.9 49.8 27.2L34 13.5C33.5 12.9 32.8 12.5 32 12.5Z"
+            fill="#FFFFFF"
+          />
+
+          <!-- Moneda central con signo de peso -->
+          <circle cx="32" cy="37" r="8.5" fill="url(#splashCoinGrad)" stroke="#FEF08A" stroke-width="1.2" />
+          <path
+            d="M32 31.8V42.2M34.2 33.6C33.8 33.1 33 32.8 32 32.8C30.6 32.8 29.6 33.5 29.6 34.6C29.6 35.8 30.7 36.3 32.3 36.7C33.9 37.1 34.8 37.7 34.8 39C34.8 40.3 33.6 41.2 32 41.2C30.8 41.2 29.9 40.7 29.4 40.1"
+            stroke="#78350F"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </div>
+
+      <!-- Partículas / chips flotantes decorativos -->
+      <div class="chip-badge chip-tc">💳 TCs</div>
+      <div class="chip-badge chip-savings">💰 Ahorros</div>
+      <div class="chip-badge chip-home">🏡 Hogar</div>
+    </div>
+
+    <!-- Títulos y subtítulos -->
+    <div class="splash-typography">
+      <h1 class="splash-brand-title">Expenses Home</h1>
+      <p class="splash-brand-subtitle">Control Inteligente de Finanzas del Hogar</p>
+      
+      <div class="couple-badge">
+        <span class="person-tag benny">Benny</span>
+        <span class="heart-symbol">♥</span>
+        <span class="person-tag charlie">Charlie</span>
+      </div>
+    </div>
+
+    <!-- Barra de Estado y Progreso de 10s -->
+    <div class="splash-progress-section">
+      <div class="step-indicator">
+        <span class="step-icon-spinner"></span>
+        <span class="step-message">{{ currentStep().text }}</span>
+      </div>
+
+      <div class="progress-bar-track">
+        <div
+          class="progress-bar-fill"
+          [style.width.%]="progress()"
+        >
+          <div class="glow-head"></div>
+        </div>
+      </div>
+
+      <div class="progress-footer">
+        <span class="progress-label">Sincronizando cuentas familiares</span>
+        <span class="progress-percent font-mono">{{ progress() }}%</span>
+      </div>
+    </div>
+  </div>
+</div>

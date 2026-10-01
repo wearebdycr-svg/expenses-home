@@ -1,0 +1,341 @@
+.card-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.form-validation-summary {
+  padding: 0.75rem 1rem;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #991b1b;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* =========================================
+   Live Preview Mockup
+   ========================================= */
+.card-preview-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+}
+
+.card-mockup {
+  width: 100%;
+  max-width: 380px;
+  height: 200px;
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-mockup::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  bottom: -50%;
+  left: -50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.card-mockup-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 1;
+}
+
+.card-chip-container {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.card-emv-chip {
+  width: 38px;
+  height: 28px;
+  background: linear-gradient(135deg, #ffd700 0%, #e6be8a 50%, #b8860b 100%);
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.5), inset 0 -1px 2px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+.card-emv-chip::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.contactless-icon {
+  width: 20px;
+  height: 20px;
+  opacity: 0.85;
+}
+
+.card-bank-badge {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(4px);
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.card-mockup-middle {
+  z-index: 1;
+  margin: 0.5rem 0;
+}
+
+.card-number-display {
+  font-family: 'SF Mono', Monaco, Consolas, monospace;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.card-mockup-bottom {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  z-index: 1;
+}
+
+.card-holder-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.card-label-small {
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  opacity: 0.8;
+  font-weight: 600;
+}
+
+.card-holder-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.card-person-pill {
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* =========================================
+   Themes Selector
+   ========================================= */
+.field-theme-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.themes-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.theme-color-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.theme-color-btn:hover {
+  transform: scale(1.1);
+}
+
+.theme-color-btn.active {
+  transform: scale(1.15);
+  box-shadow: 0 0 0 3px #1e293b, 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+}
+
+/* =========================================
+   Form Layout & Inputs
+   ========================================= */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.field-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.field-hint {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.field-control {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background-color: #ffffff;
+  color: #1e293b;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.field-control:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.field-control.control-error {
+  border-color: #ef4444;
+}
+
+.field-error-msg {
+  font-size: 0.75rem;
+  color: #ef4444;
+  font-weight: 500;
+}
+
+.person-type-selector {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.person-type-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.6rem 0.5rem;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.person-type-btn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #1e293b;
+}
+
+.person-type-btn.active {
+  background: #1e293b;
+  border-color: #1e293b;
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.15);
+}
+
+.type-icon {
+  font-size: 1rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
+}
+
+.btn-secondary {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.btn-secondary:hover {
+  background-color: #e2e8f0;
+  color: #1e293b;
+}
+
+.btn-primary {
+  background-color: #1e293b;
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+}
+
+.btn-primary:hover {
+  background-color: #0f172a;
+}
+
+@media (max-width: 640px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .card-mockup {
+    height: 180px;
+    padding: 1rem 1.25rem;
+  }
+
+  .card-number-display {
+    font-size: 1.05rem;
+  }
+}

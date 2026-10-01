@@ -11,6 +11,7 @@ import type { ChartConfiguration, TooltipModel } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 import { formatCOP } from '../../data/categoria.model';
 import { CategoriaService } from '../../data/categoria.service';
+import { escapeHtml } from '../../../../shared/utils/security.util';
 
 @Component({
   selector: 'app-categoria-donut-chart',
@@ -92,9 +93,9 @@ export class CategoriaDonutChart {
       const pct = totalAmount > 0 ? ((val / totalAmount) * 100).toFixed(1) : '0.0';
 
       tooltipEl.innerHTML = `
-        <div class="donut-tooltip-title">${categoryName}</div>
-        <div class="donut-tooltip-amount">${formatCOP(val)}</div>
-        <div class="donut-tooltip-pct">${pct}% del total</div>
+        <div class="donut-tooltip-title">${escapeHtml(categoryName)}</div>
+        <div class="donut-tooltip-amount">${escapeHtml(formatCOP(val))}</div>
+        <div class="donut-tooltip-pct">${escapeHtml(pct)}% del total</div>
       `;
     }
 

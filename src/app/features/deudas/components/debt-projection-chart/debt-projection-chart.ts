@@ -11,6 +11,7 @@ import type { ChartConfiguration, TooltipModel } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 import { formatAxisCurrency, formatCOP } from '../../data/debt.model';
 import { DebtsService } from '../../data/debts.service';
+import { escapeHtml } from '../../../../shared/utils/security.util';
 
 @Component({
   selector: 'app-debt-projection-chart',
@@ -121,15 +122,15 @@ export class DebtProjectionChart {
           const color = (point.dataset as any).borderColor ?? '#000';
           return `
             <div class="projection-tooltip-row">
-              <span class="projection-tooltip-label" style="color: ${color}">${label}</span>
-              <span class="projection-tooltip-val">${formatCOP(val)}</span>
+              <span class="projection-tooltip-label" style="color: ${escapeHtml(color)}">${escapeHtml(label)}</span>
+              <span class="projection-tooltip-val">${escapeHtml(formatCOP(val))}</span>
             </div>
           `;
         })
         .join('');
 
       tooltipEl.innerHTML = `
-        <div class="projection-tooltip-title">${monthLabel}</div>
+        <div class="projection-tooltip-title">${escapeHtml(monthLabel)}</div>
         ${rowsHtml}
       `;
     }

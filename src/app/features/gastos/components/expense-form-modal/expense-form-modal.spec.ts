@@ -3,6 +3,7 @@ import { vi } from 'vitest';
 import type { Expense } from '../../data/expense.model';
 import { ExpenseFormModal } from './expense-form-modal';
 import { DebtsService } from '../../../deudas/data/debts.service';
+import { TcService } from '../../../tc-compartida/data/tc.service';
 
 describe('ExpenseFormModal', () => {
   let fixture: ComponentFixture<ExpenseFormModal>;
@@ -116,4 +117,85 @@ describe('ExpenseFormModal', () => {
     component['amount'].set('6000000');
     expect(component['isOverdraft']()).toBe(true);
   });
+
+  it('registers shared TC expense directly in tc_expenses when person is Compartido', () => {
+    const tcService = TestBed.inject(TcService);
+    const tcSpy = vi.spyOn(tcService, 'addTcExpense');
+    const cancelSpy = vi.fn();
+    component.cancel.subscribe(cancelSpy);
+
+    component['person'].set('Compartido');
+    component['category'].set('TC-compartida');
+    component['description'].set('Mercado compartido');
+    component['amount'].set('80000');
+
+    component['onSubmit']();
+
+    expect(tcSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cardId: 'tc-compartida',
+        person: 'Compartido',
+        amount: 80_000,
+        description: 'Mercado compartido',
+      }),
+    );
+    expect(cancelSpy).toHaveBeenCalled();
+  });
+
+  it('emits normal save (abono that discounts debt) when person is Benny or Charlie for TC-compartida', () => {
+    const saveSpy = vi.fn();
+    component.save.subscribe(saveSpy);
+
+    component['person'].set('Benny');
+    component['category'].set('TC-compartida');
+    component['description'].set('Pago cuota TC');
+    component['amount'].set('250000');
+
+    component['onSubmit']();
+
+    expect(saveSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        person: 'Benny',
+        category: 'TC-compartida',
+        amount: 250_000,
+        description: 'Pago cuota TC',
+      }),
+    );
+  });
+
+  it('triggers personal-tc-prompt for personal cards and handles Gasto vs Abono', () => {
+    const tcService = TestBed.inject(TcService);
+    const tcSpy = vi.spyOn(tcService, 'addTcExpense');
+    const saveSpy = vi.fn();
+    component.save.subscribe(saveSpy);
+
+    component['person'].set('Charlie');
+    component['category'].set('TC: TC Nu Charlie');
+    component['description'].set('Pago o compra');
+    component['amount'].set('120000');
+
+    component['onSubmit']();
+
+    expect(component['confirmationType']()).toBe('personal-tc-prompt');
+
+    // Case 1: Cancel/Correct
+    component['cancelConfirmation']();
+    expect(component['confirmationType']()).toBe('none');
+    expect(tcSpy).not.toHaveBeenCalled();
+    expect(saveSpy).not.toHaveBeenCalled();
+
+    // Re-trigger
+    component['onSubmit']();
+    expect(component['confirmationType']()).toBe('personal-tc-prompt');
+
+    // Case 2: Register as Gasto (consumo)
+    component['confirmPersonalTcMovement']('expense');
+    expect(tcSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cardId: 'tc-nu-charlie',
+        amount: 120_000,
+      }),
+    );
+  });
 });
+

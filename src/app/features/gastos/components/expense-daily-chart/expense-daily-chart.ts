@@ -14,6 +14,7 @@ import {
   formatCOP,
 } from '../../data/expense.model';
 import { ExpensesService } from '../../data/expenses.service';
+import { escapeHtml } from '../../../../shared/utils/security.util';
 
 function formatKCurrency(value: number): string {
   if (value === 0) return '$0k';
@@ -163,20 +164,20 @@ export class ExpenseDailyChart {
           const color = (point.dataset as any).backgroundColor ?? '#000';
           return `
             <div class="daily-tooltip-row">
-              <span class="daily-tooltip-label" style="color: ${color}">${label}</span>
-              <span class="daily-tooltip-val">${formatCOP(val)}</span>
+              <span class="daily-tooltip-label" style="color: ${escapeHtml(color)}">${escapeHtml(label)}</span>
+              <span class="daily-tooltip-val">${escapeHtml(formatCOP(val))}</span>
             </div>
           `;
         })
         .join('');
 
       tooltipEl.innerHTML = `
-        <div class="daily-tooltip-title">Día ${dayLabel}</div>
+        <div class="daily-tooltip-title">Día ${escapeHtml(dayLabel)}</div>
         ${rowsHtml}
         <div class="daily-tooltip-divider"></div>
         <div class="daily-tooltip-row daily-tooltip-total">
           <span class="daily-tooltip-label">Total</span>
-          <span class="daily-tooltip-val">${formatCOP(totalDay)}</span>
+          <span class="daily-tooltip-val">${escapeHtml(formatCOP(totalDay))}</span>
         </div>
       `;
     }

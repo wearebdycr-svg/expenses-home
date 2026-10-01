@@ -241,4 +241,88 @@ describe('TcService - Módulo TC Compartida y Conciliación', () => {
 
     expect(tcService.currentWeekTotal()).toBe(120_000);
   });
+
+  it('correctly associates payments from Gastos to specific credit cards and discounts debt', () => {
+    const nuCard = tcService.cards().find((c) => c.id === 'tc-nu-charlie')!;
+    tcService.selectCard(nuCard);
+
+    // 1. Consumo en TC Nu
+    tcService.addTcExpense({
+      date: '2026-07-10',
+      person: 'Charlie',
+      description: 'Compra en Amazon',
+      amount: 150_000,
+      cardId: 'tc-nu-charlie',
+    });
+
+    expect(tcService.totalConsumptions()).toBe(150_000);
+    expect(tcService.totalPayments()).toBe(0);
+    expect(tcService.pendingDebt()).toBe(150_000);
+
+    // 2. Abono registrado en Gastos Diarios con la categoría de la tarjeta
+    expensesService.addExpense({
+      date: '2026-07-15',
+      person: 'Charlie',
+      category: 'TC: TC Nu Charlie',
+      description: 'Pago mensual Nu',
+      amount: 100_000,
+    });
+
+    // Debe conciliarse en Nu y restar su deuda a 50.000
+    expect(tcService.totalPayments()).toBe(100_000);
+    expect(tcService.pendingDebt()).toBe(50_000);
+    expect(tcService.payments().length).toBe(1);
+    expect(tcService.payments()[0].description).toBe('Pago mensual Nu');
+
+    // TC Compartida no debe verse afectada por el pago de Nu
+    const sharedCard = tcService.cards().find((c) => c.id === 'tc-compartida')!;
+    tcService.selectCard(sharedCard);
+    expect(tcService.totalConsumptions()).toBe(0);
+    expect(tcService.totalPayments()).toBe(0);
+  });
+
+  it('correctly calculates cumulative pendingDebt when a current-month payment settles prior-month debt', () => {
+    const sharedCard = tcService.cards().find((c) => c.id === 'tc-compartida')!;
+    tcService.selectCard(sharedCard);
+
+    // 1. Deuda del mes anterior (Julio): Consumo $3.783.314
+    tcService.addTcExpense({
+      date: '2026-07-20',
+      person: 'Compartido',
+      description: 'Gasto anterior',
+      amount: 3_783_314,
+      cardId: 'tc-compartida',
+    });
+
+    // 2. En Octubre se paga el saldo anterior ($3.783.314) y se hace una nueva compra ($50.000)
+    expensesService.addExpense({
+      date: '2026-10-01',
+      person: 'Charlie',
+      category: 'TC-compartida',
+      description: 'Pago saldo anterior',
+      amount: 3_783_314,
+    });
+
+    tcService.addTcExpense({
+      date: '2026-10-01',
+      person: 'Compartido',
+      description: 'D1 comida',
+      amount: 50_000,
+      cardId: 'tc-compartida',
+    });
+
+    // Filtro en Octubre
+    tcService.setMonth(10);
+
+    // Consumos del mes de Octubre: $50.000
+    expect(tcService.totalConsumptions()).toBe(50_000);
+
+    // Abonos del mes de Octubre: $3.783.314
+    expect(tcService.totalPayments()).toBe(3_783_314);
+
+    // Deuda pendiente real: NO debe ser $0, debe ser exactamente $50.000 (la nueva compra)
+    // porque el pago de $3.783.314 cubrió el saldo de Julio
+    expect(tcService.pendingDebt()).toBe(50_000);
+  });
 });
+

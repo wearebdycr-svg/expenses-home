@@ -13,9 +13,15 @@ describe('DebtsService', () => {
   let expensesService: ExpensesService;
 
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-30T12:00:00Z'));
     TestBed.configureTestingModule({});
     service = TestBed.inject(DebtsService);
     expensesService = TestBed.inject(ExpensesService);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('calculates French amortization properly matching the mockup values', () => {

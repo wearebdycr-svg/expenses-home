@@ -21,6 +21,8 @@ import {
 } from '../../data/expense.model';
 import { DebtsService } from '../../../deudas/data/debts.service';
 import type { Debt } from '../../../deudas/data/debt.model';
+import { TcService } from '../../../tc-compartida/data/tc.service';
+import type { TcCard } from '../../../tc-compartida/data/tc-card.model';
 import { formatThousands, parseThousands } from '../../../../shared/utils/format.utils';
 
 function todayIso(): string {
@@ -39,6 +41,7 @@ function todayIso(): string {
 })
 export class ExpenseFormModal {
   private readonly debtsService = inject(DebtsService);
+  protected readonly tcService = inject(TcService);
 
   expense = input<Expense | null>(null);
   save = output<ExpenseDraft>();
@@ -80,13 +83,21 @@ export class ExpenseFormModal {
   );
 
   protected readonly categoryOptions = computed<readonly SelectOption<ExpenseCategory>[]>(() => {
-    // 1. Categorías oficiales estándar
-    const standard: SelectOption<ExpenseCategory>[] = EXPENSE_CATEGORIES.map((cat) => ({
-      value: cat,
-      label: cat,
+    // 1. Categorías oficiales estándar (excluyendo TC-compartida para agruparla junto con las tarjetas)
+    const standard: SelectOption<ExpenseCategory>[] = EXPENSE_CATEGORIES
+      .filter((cat) => cat !== 'TC-compartida')
+      .map((cat) => ({
+        value: cat,
+        label: cat,
+      }));
+
+    // 2. Categorías dinámicas de Tarjetas de Crédito (TCs)
+    const cardOptions: SelectOption<ExpenseCategory>[] = this.tcService.cards().map((c) => ({
+      value: c.id === 'tc-compartida' ? 'TC-compartida' : `TC: ${c.name}`,
+      label: `Tarjeta: ${c.name} (•••• ${c.lastDigits})`,
     }));
 
-    // 2. Categorías dinámicas provenientes de deudas activas
+    // 3. Categorías dinámicas provenientes de deudas activas
     const activeDebts = this.debtsService.activeDebts();
     const debtOptions: SelectOption<ExpenseCategory>[] = activeDebts.map((d: Debt) => ({
       value: d.name,
@@ -95,7 +106,7 @@ export class ExpenseFormModal {
 
     // Preservar la categoría actual si se está editando y pertenece a una deuda saldada
     const currentCat = this.category();
-    const allOptions = [...standard, ...debtOptions];
+    const allOptions = [...standard, ...cardOptions, ...debtOptions];
     if (currentCat && !allOptions.some((o) => o.value === currentCat)) {
       debtOptions.push({
         value: currentCat,
@@ -103,13 +114,26 @@ export class ExpenseFormModal {
       });
     }
 
-    return [...standard, ...debtOptions];
+    return [...standard, ...cardOptions, ...debtOptions];
+  });
+
+  protected readonly selectedTcCard = computed<TcCard | null>(() => {
+    const cat = this.category();
+    if (!cat) return null;
+    return (
+      this.tcService.cards().find((c) =>
+        cat === (c.id === 'tc-compartida' ? 'TC-compartida' : `TC: ${c.name}`) ||
+        cat === c.name ||
+        cat === `TC: ${c.name}`
+      ) ?? null
+    );
   });
 
   protected readonly selectedDebt = computed(() => {
     const cat = this.category();
     return this.debtsService.allDebts().find((d: Debt) => d.name === cat) ?? null;
   });
+
 
   protected readonly isOverdraft = computed(() => {
     const debt = this.selectedDebt();
@@ -137,6 +161,8 @@ export class ExpenseFormModal {
     this.amount.set(formatted);
   }
 
+  protected readonly confirmationType = signal<'none' | 'personal-tc-prompt'>('none');
+
   protected onSubmit(): void {
     this.hasSubmitted.set(true);
     const description = this.description().trim().slice(0, 100);
@@ -147,12 +173,81 @@ export class ExpenseFormModal {
       return;
     }
 
+    const tc = this.selectedTcCard();
+    if (!tc || this.isEditMode()) {
+      this.emitSave();
+      return;
+    }
+
+    // Caso 1: Tarjeta Compartida
+    if (tc.person === 'Compartido') {
+      if (person === 'Compartido') {
+        // Seleccionó Compartido: es un consumo realizado con la TC Compartida.
+        // Se registra directamente en la TC Compartida (tc_expenses) y no en Gastos Diarios.
+        this.tcService.addTcExpense({
+          date: this.date(),
+          person: 'Compartido',
+          category: 'General',
+          description,
+          amount,
+          cardId: tc.id,
+        });
+        this.cancel.emit();
+      } else {
+        // Seleccionó Benny o Charlie: es un abono/pago a la TC Compartida desde cuenta bancaria.
+        // Realiza el registro normal en Gastos Diarios y amortiza/resta la deuda de la TC.
+        this.emitSave();
+      }
+      return;
+    }
+
+    // Caso 2: Tarjeta Personal (no compartida, ej. Charlie o Benny)
+    this.confirmationType.set('personal-tc-prompt');
+  }
+
+  protected emitSave(): void {
+    const description = this.description().trim().slice(0, 100);
+    const amount = parseThousands(this.amount());
+    const person = this.person();
+    const tc = this.selectedTcCard();
+    const category = tc
+      ? (tc.id === 'tc-compartida' ? 'TC-compartida' : `TC: ${tc.name}`)
+      : this.category();
+
     this.save.emit({
       date: this.date(),
       person: person as ExpensePerson,
-      category: this.category(),
+      category,
       description,
       amount,
     });
   }
+
+  protected confirmPersonalTcMovement(type: 'expense' | 'payment'): void {
+    const tc = this.selectedTcCard();
+    if (!tc) return;
+
+    if (type === 'expense') {
+      // Registrar como consumo directo dentro de esa TC personal
+      this.tcService.addTcExpense({
+        date: this.date(),
+        person: (this.person() as ExpensePerson) || tc.person,
+        category: 'General',
+        description: this.description().trim().slice(0, 100),
+        amount: parseThousands(this.amount()),
+        cardId: tc.id,
+      });
+      this.confirmationType.set('none');
+      this.cancel.emit();
+    } else {
+      // Registrar como abono (pago a la tarjeta) en Gastos Diarios
+      this.confirmationType.set('none');
+      this.emitSave();
+    }
+  }
+
+  protected cancelConfirmation(): void {
+    this.confirmationType.set('none');
+  }
 }
+

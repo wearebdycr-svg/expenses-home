@@ -14,6 +14,7 @@ import {
   formatCOP,
 } from '../../data/resumen.model';
 import { ResumenService } from '../../data/resumen.service';
+import { escapeHtml } from '../../../../shared/utils/security.util';
 
 @Component({
   selector: 'app-resumen-bar-chart',
@@ -134,15 +135,15 @@ export class ResumenBarChart {
           const color = (point.dataset as any).backgroundColor ?? '#000';
           return `
             <div class="bar-tooltip-row">
-              <span class="bar-tooltip-label" style="color: ${color}">${label}</span>
-              <span class="bar-tooltip-val">${formatCOP(val)}</span>
+              <span class="bar-tooltip-label" style="color: ${escapeHtml(color)}">${escapeHtml(label)}</span>
+              <span class="bar-tooltip-val">${escapeHtml(formatCOP(val))}</span>
             </div>
           `;
         })
         .join('');
 
       tooltipEl.innerHTML = `
-        <div class="bar-tooltip-title">${monthLabel}</div>
+        <div class="bar-tooltip-title">${escapeHtml(monthLabel)}</div>
         ${rowsHtml}
       `;
     }

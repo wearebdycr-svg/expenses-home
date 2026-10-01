@@ -252,6 +252,31 @@
 .btn-sub-push-full:hover {
   background: rgba(59, 130, 246, 0.25);
 }
+.sidebar-security {
+  padding: 12px 16px;
+  border-top: 1px solid var(--sidebar-border);
+}
+.btn-lock-app {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 8px;
+  color: #fca5a5;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+.btn-lock-app:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #ffffff;
+}
 @media (min-width: 768px) {
   .mobile-menu-btn,
   .sidebar-overlay,

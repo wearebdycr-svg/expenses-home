@@ -15,6 +15,7 @@ import {
   formatCOP,
 } from '../../data/resumen.model';
 import { ResumenService } from '../../data/resumen.service';
+import { escapeHtml } from '../../../../shared/utils/security.util';
 
 @Component({
   selector: 'app-resumen-line-chart',
@@ -122,9 +123,9 @@ export class ResumenLineChart {
 
       // Estilo exacto a HU04-resumen-mensual-3.png: "Saldo Acumulado : $ 31.500.399"
       tooltipEl.innerHTML = `
-        <div class="line-tooltip-title">${monthLabel}</div>
+        <div class="line-tooltip-title">${escapeHtml(monthLabel)}</div>
         <div class="line-tooltip-row">
-          <span class="line-tooltip-text">Saldo Acumulado : ${formatCOP(val)}</span>
+          <span class="line-tooltip-text">Saldo Acumulado : ${escapeHtml(formatCOP(val))}</span>
         </div>
       `;
     }
