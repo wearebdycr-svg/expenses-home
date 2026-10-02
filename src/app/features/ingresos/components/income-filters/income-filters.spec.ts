@@ -17,11 +17,20 @@ describe('IncomeFilters', () => {
     return fixture.nativeElement.querySelectorAll('select')[index] as HTMLSelectElement;
   }
 
-  it('shows 2026 and "Todos" as the default filter values', () => {
-    expect(service.year()).toBe(2026);
-    expect(service.month()).toBe('Todos');
+  it('shows current year and current month as the default filter values', () => {
+    const now = new Date();
+    expect(service.year()).toBe(now.getFullYear());
+    expect(service.month()).toBe(now.getMonth() + 1);
     expect(service.day()).toBe('Todos');
     expect(service.person()).toBe('Todos');
+  });
+
+  it('updates the service when the month select changes', () => {
+    const monthSelect = selectEl(1);
+    monthSelect.value = '1';
+    monthSelect.dispatchEvent(new Event('change'));
+
+    expect(service.month()).toBe(1);
   });
 
   it('updates the service when the year select changes', () => {

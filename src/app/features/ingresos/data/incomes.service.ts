@@ -41,7 +41,7 @@ export class IncomesService {
   readonly error = signal<string | null>(null);
 
   readonly year = signal<number>(new Date().getFullYear());
-  readonly month = signal<MonthFilter>('Todos');
+  readonly month = signal<MonthFilter>(new Date().getMonth() + 1);
   readonly day = signal<DayFilter>('Todos');
   readonly person = signal<PersonFilter>('Todos');
 
@@ -55,7 +55,8 @@ export class IncomesService {
     const year = this.year();
     const person = this.person();
     return this.incomes().filter((income) => {
-      const matchesYear = Number(income.date.slice(0, 4)) === year;
+      const cleanDate = (income.date || '').trim().split('T')[0];
+      const matchesYear = Number(cleanDate.slice(0, 4)) === year;
       const matchesPerson = person === 'Todos' || income.person === person;
       return matchesYear && matchesPerson;
     });
@@ -67,7 +68,8 @@ export class IncomesService {
     const day = this.day();
     return this.yearlyIncomes()
       .filter((income) => {
-        const [, m, d] = income.date.split('-').map(Number);
+        const cleanDate = (income.date || '').trim().split('T')[0];
+        const [, m, d] = cleanDate.split('-').map(Number);
         const matchesMonth = month === 'Todos' || m === month;
         const matchesDay = day === 'Todos' || d === day;
         return matchesMonth && matchesDay;
@@ -83,13 +85,16 @@ export class IncomesService {
   readonly monthlySeries = computed<MonthlySeries>(() => {
     const series = emptyMonthlySeries();
     for (const income of this.yearlyIncomes()) {
-      const monthIndex = Number(income.date.slice(5, 7)) - 1;
-      if (income.person === 'Benny') {
-        series.benny[monthIndex] += income.amount;
-      } else {
-        series.charlie[monthIndex] += income.amount;
+      const cleanDate = (income.date || '').trim().split('T')[0];
+      const monthIndex = Number(cleanDate.slice(5, 7)) - 1;
+      if (monthIndex >= 0 && monthIndex < 12) {
+        if (income.person === 'Benny') {
+          series.benny[monthIndex] += income.amount;
+        } else {
+          series.charlie[monthIndex] += income.amount;
+        }
+        series.total[monthIndex] += income.amount;
       }
-      series.total[monthIndex] += income.amount;
     }
     return series;
   });

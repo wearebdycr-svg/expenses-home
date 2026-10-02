@@ -13,6 +13,8 @@ describe('IncomeTable', () => {
     fixture = TestBed.createComponent(IncomeTable);
     component = fixture.componentInstance;
     service = TestBed.inject(IncomesService);
+    service.setYear(2026);
+    service.setMonth(3);
     fixture.detectChanges();
   });
 
@@ -20,6 +22,30 @@ describe('IncomeTable', () => {
     const emptyState = fixture.nativeElement.querySelector('.empty-state');
     expect(emptyState?.textContent).toContain('No hay ingresos registrados para el período seleccionado.');
     expect(fixture.nativeElement.querySelector('table')).toBeNull();
+  });
+
+  it('filters table rows by month when the service month filter changes', () => {
+    service.addIncome({
+      date: '2026-03-01',
+      person: 'Benny',
+      source: 'Salario',
+      description: 'Salario marzo',
+      amount: 3_500_000,
+    });
+    service.addIncome({
+      date: '2026-10-01',
+      person: 'Charlie',
+      source: 'Salario',
+      description: 'Salario octubre',
+      amount: 4_000_000,
+    });
+    service.setMonth(10);
+    fixture.detectChanges();
+
+    const rows = fixture.nativeElement.querySelectorAll('tbody tr');
+    expect(rows.length).toBe(1);
+    expect(rows[0].textContent).toContain('Salario octubre');
+    expect(rows[0].textContent).not.toContain('Salario marzo');
   });
 
   it('renders rows with the record count when incomes exist', () => {
