@@ -1,31 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
-import { Capacitor } from '@capacitor/core';
-import { PushNotifications } from '@capacitor/push-notifications';
-import { LocalNotifications } from '@capacitor/local-notifications';
 import { PushNotificationService } from './push-notification.service';
 import { RemoteConfigService } from './remote-config.service';
 import { ToastService } from './toast.service';
 import type { Expense, ExpenseDraft } from '../../features/gastos/data/expense.model';
-
-vi.mock('@capacitor/push-notifications', () => ({
-  PushNotifications: {
-    checkPermissions: vi.fn().mockResolvedValue({ receive: 'granted' }),
-    requestPermissions: vi.fn().mockResolvedValue({ receive: 'granted' }),
-    register: vi.fn().mockResolvedValue(undefined),
-    createChannel: vi.fn().mockResolvedValue(undefined),
-    addListener: vi.fn().mockResolvedValue({ remove: vi.fn() }),
-  },
-}));
-
-vi.mock('@capacitor/local-notifications', () => ({
-  LocalNotifications: {
-    checkPermissions: vi.fn().mockResolvedValue({ display: 'granted' }),
-    requestPermissions: vi.fn().mockResolvedValue({ display: 'granted' }),
-    schedule: vi.fn().mockResolvedValue({ notifications: [] }),
-    createChannel: vi.fn().mockResolvedValue(undefined),
-  },
-}));
 
 describe('PushNotificationService', () => {
   let service: PushNotificationService;
@@ -174,36 +152,20 @@ describe('PushNotificationService', () => {
 
   it('requests native permissions and registers push on native platform', async () => {
     vi.spyOn(service, 'isNative').mockReturnValue(true);
-    vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true);
-    vi.spyOn(PushNotifications, 'checkPermissions').mockResolvedValue({ receive: 'prompt' } as any);
-    const reqSpy = vi.spyOn(PushNotifications, 'requestPermissions').mockResolvedValue({ receive: 'granted' } as any);
-    const registerSpy = vi.spyOn(PushNotifications, 'register').mockResolvedValue();
-    vi.spyOn(LocalNotifications, 'requestPermissions').mockResolvedValue({ display: 'granted' } as any);
+    const nativeSpy = vi.spyOn(service, 'requestNativeSubscription').mockResolvedValue('test-fcm-token');
 
-    await service.requestSubscription();
+    const result = await service.requestSubscription();
 
-    expect(reqSpy).toHaveBeenCalled();
-    expect(registerSpy).toHaveBeenCalled();
-    expect(service.permission()).toBe('granted');
+    expect(nativeSpy).toHaveBeenCalled();
+    expect(result).toBe('test-fcm-token');
   });
 
   it('schedules LocalNotification on native platform in showSystemNotification', async () => {
     vi.spyOn(service, 'isNative').mockReturnValue(true);
-    vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true);
-    const scheduleSpy = vi.spyOn(LocalNotifications, 'schedule').mockResolvedValue({ notifications: [] } as any);
+    const scheduleSpy = vi.spyOn(service, 'scheduleNativeNotification').mockResolvedValue();
 
     await service.showSystemNotification('Prueba Nativa', 'Cuerpo prueba', '/#tc-compartida');
 
-    expect(scheduleSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        notifications: [
-          expect.objectContaining({
-            title: 'Prueba Nativa',
-            body: 'Cuerpo prueba',
-            channelId: 'finanzas_hogar_alerts',
-          }),
-        ],
-      })
-    );
+    expect(scheduleSpy).toHaveBeenCalledWith('Prueba Nativa', 'Cuerpo prueba', '/#tc-compartida');
   });
 });

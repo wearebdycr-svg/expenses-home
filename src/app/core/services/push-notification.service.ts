@@ -239,7 +239,7 @@ export class PushNotificationService {
     return this.requestWebSubscription();
   }
 
-  private async requestNativeSubscription(): Promise<string | null> {
+  async requestNativeSubscription(): Promise<string | null> {
     try {
       let permStatus = await PushNotifications.checkPermissions();
       if (permStatus.receive !== 'granted') {
@@ -612,25 +612,29 @@ export class PushNotificationService {
     this.showSystemNotification(title, body, '/#deudas');
   }
 
+  async scheduleNativeNotification(title: string, body: string, url: string = '/#gastos'): Promise<void> {
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          id: Math.floor(Date.now() % 1000000),
+          title,
+          body,
+          channelId: 'finanzas_hogar_alerts',
+          extra: { url },
+          smallIcon: 'ic_launcher_round',
+          iconColor: '#F97316',
+        },
+      ],
+    });
+  }
+
   /**
    * Muestra la notificación nativa usando LocalNotifications (en móvil) o Service Worker (en web)
    */
   async showSystemNotification(title: string, body: string, url: string = '/#gastos'): Promise<void> {
     if (this.isNative()) {
       try {
-        await LocalNotifications.schedule({
-          notifications: [
-            {
-              id: Math.floor(Date.now() % 1000000),
-              title,
-              body,
-              channelId: 'finanzas_hogar_alerts',
-              extra: { url },
-              smallIcon: 'ic_launcher_round',
-              iconColor: '#F97316',
-            },
-          ],
-        });
+        await this.scheduleNativeNotification(title, body, url);
         return;
       } catch (e) {
         console.warn('[Native LocalNotification] Fallo al mostrar:', e);
