@@ -20,10 +20,12 @@
         (valueChange)="selectedDebtId.set($event)"
       />
 
-      <div class="balance-preview" *ngIf="selectedDebt()">
-        <span class="balance-label">Saldo actual:</span>
-        <span class="balance-value">{{ currentBalanceFormatted() }}</span>
-      </div>
+      @if (selectedDebt()) {
+        <div class="balance-preview">
+          <span class="balance-label">Saldo actual:</span>
+          <span class="balance-value">{{ currentBalanceFormatted() }}</span>
+        </div>
+      }
     </div>
 
     <label class="field" [class.has-error]="errors()['amount']">

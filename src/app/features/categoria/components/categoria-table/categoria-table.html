@@ -61,7 +61,7 @@
               </td>
 
               <td class="col-budget">
-                @if (row.budget != null) {
+                @if (row.budget !== null && row.budget !== undefined) {
                   <span class="budget-badge" title="Tope fijado por Firebase Remote Config (Inmutable)">
                     <span class="budget-lock-icon" aria-hidden="true">🔒</span>
                     {{ formatCOP(row.budget) }}
@@ -72,7 +72,7 @@
               </td>
 
               <td class="col-budget-progress">
-                @if (row.budget != null && row.budgetPercentage != null) {
+                @if (row.budget !== null && row.budgetPercentage !== null && row.budgetPercentage !== undefined) {
                   <div class="budget-progress-container">
                     <div class="budget-progress-track">
                       <div

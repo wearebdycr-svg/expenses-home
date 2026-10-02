@@ -1,4 +1,4 @@
-import type { Expense, ExpensePerson, ExpensePersonFilter } from '../../gastos/data/expense.model';
+import type { ExpensePerson, ExpensePersonFilter } from '../../gastos/data/expense.model';
 import {
   EXPENSE_PERSON_COLORS,
   EXPENSE_PERSONS,

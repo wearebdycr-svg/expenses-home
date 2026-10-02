@@ -10,7 +10,7 @@ export function formatThousands(value: string | number | null | undefined): stri
   if (value === null || value === undefined || value === '') return '';
   const digitsOnly = String(value).replace(/\D/g, '');
   if (!digitsOnly) return '';
-  return digitsOnly.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return new Intl.NumberFormat('es-CO').format(Number(digitsOnly));
 }
 
 /**

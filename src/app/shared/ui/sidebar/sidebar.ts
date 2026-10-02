@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
 import { environment } from '../../../../environments/environment';
 import { PushNotificationService } from '../../../core/services/push-notification.service';
-import type { ExpensePerson } from '../../../features/gastos/data/expense.model';
 import { Icon, type IconName } from '../icon/icon';
 
 export type SidebarPageId = 'gastos' | 'ingresos' | 'resumen' | 'categoria' | 'deudas' | 'tc-compartida';

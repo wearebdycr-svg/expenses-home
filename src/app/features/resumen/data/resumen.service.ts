@@ -9,7 +9,6 @@ import type {
 import {
   MONTHS,
   MONTH_ABBREVIATIONS,
-  RESUMEN_COLORS,
 } from './resumen.model';
 
 @Injectable({ providedIn: 'root' })

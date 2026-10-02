@@ -83,9 +83,7 @@ export const RESUMEN_COLORS = {
 
 export function formatCOP(amount: number): string {
   const rounded = Math.round(amount);
-  const formatted = Math.abs(rounded)
-    .toString()
-    .replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  const formatted = new Intl.NumberFormat('es-CO').format(Math.abs(rounded));
   return rounded < 0 ? `-$ ${formatted}` : `$ ${formatted}`;
 }
 
