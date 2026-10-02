@@ -1,5 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import { App as CapApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 
 const PIN_STORAGE_KEY = 'expenses_home_pin_hash';
 const PIN_SALT_KEY = 'expenses_home_pin_salt';
@@ -50,32 +51,22 @@ export class AuthPinService {
   private setupAutoLockListeners(): void {
     if (typeof window === 'undefined') return;
 
-    // 1. Escuchar ciclo de vida nativo de Capacitor (cuando la app pasa a segundo plano o se minimiza)
-    try {
-      CapApp.addListener('appStateChange', ({ isActive }) => {
-        if (!isActive) {
-          this.lock();
-        }
-      });
-    } catch {
-      // Ignorar en entornos no nativos
-    }
-
-    // 2. Escuchar visibilidad web (cuando se minimiza o cambia de pestaña en navegador)
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') {
-        this.lock();
+    // Solo en entorno nativo móvil (Android/iOS) escuchamos el ciclo de vida para auto-bloqueo al minimizar
+    if (Capacitor.isNativePlatform()) {
+      try {
+        CapApp.addListener('appStateChange', ({ isActive }) => {
+          if (!isActive) {
+            this.lock();
+          }
+        });
+      } catch {
+        // Ignorar
       }
-    });
 
-    // 3. Eventos adicionales nativos y webview móvil
-    document.addEventListener('pause', () => {
-      this.lock();
-    });
-
-    window.addEventListener('pagehide', () => {
-      this.lock();
-    });
+      document.addEventListener('pause', () => {
+        this.lock();
+      });
+    }
   }
 
   private checkInitialState(): void {
@@ -91,8 +82,20 @@ export class AuthPinService {
     // 2. Revisar bloqueo por intentos fallidos
     this.checkLockoutStatus();
 
-    // 3. Por seguridad familiar y financiera, la aplicación SIEMPRE inicia bloqueada requiriendo la clave
-    this.isUnlocked.set(false);
+    // 3. En entorno nativo móvil: SIEMPRE inicia bloqueada pidiendo la clave
+    if (Capacitor.isNativePlatform()) {
+      this.isUnlocked.set(false);
+    } else {
+      // En entorno Web: Mantiene la sesión activa si ya fue autenticada en esta sesión o recordada
+      try {
+        const isSessionUnlocked = typeof sessionStorage !== 'undefined' && sessionStorage.getItem(SESSION_STORAGE_KEY) === 'true';
+        const rememberExpiry = localStorage.getItem(SESSION_STORAGE_KEY);
+        const isRemembered = rememberExpiry && Number(rememberExpiry) > Date.now();
+        this.isUnlocked.set(Boolean(isSessionUnlocked || isRemembered));
+      } catch {
+        this.isUnlocked.set(false);
+      }
+    }
   }
 
   private checkLockoutStatus(): void {
@@ -156,6 +159,20 @@ export class AuthPinService {
       localStorage.removeItem(FAILED_ATTEMPTS_KEY);
       this.isLockedOut.set(false);
       this.lockoutRemainingSecs.set(0);
+
+      // Si estamos en entorno web, persistir la sesión para que refrescar la página no pida la clave
+      if (!Capacitor.isNativePlatform()) {
+        try {
+          if (typeof sessionStorage !== 'undefined') {
+            sessionStorage.setItem(SESSION_STORAGE_KEY, 'true');
+          }
+          if (rememberDevice && typeof localStorage !== 'undefined') {
+            localStorage.setItem(SESSION_STORAGE_KEY, String(Date.now() + REMEMBER_DAYS_MS));
+          }
+        } catch {
+          // Ignorar error de storage
+        }
+      }
 
       this.isUnlocked.set(true);
       return { success: true };

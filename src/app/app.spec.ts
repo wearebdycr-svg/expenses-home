@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
 import { App as CapApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 import { App } from './app';
 import { AuthPinService } from './core/services/auth-pin.service';
 
@@ -22,6 +23,7 @@ describe('App', () => {
   afterEach(() => {
     localStorage.clear();
     sessionStorage.clear();
+    vi.restoreAllMocks();
   });
 
   it('should create the app', () => {
@@ -30,7 +32,8 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
-  it('does NOT show splash on refresh/init if the app is locked', () => {
+  it('does NOT show splash on native app init if the app is locked', () => {
+    vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true);
     authPinService.isUnlocked.set(false);
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
@@ -41,6 +44,18 @@ describe('App', () => {
     expect(compiled.querySelector('app-splash-screen')).toBeFalsy();
     expect(compiled.querySelector('app-pin-lock')).toBeTruthy();
     expect(compiled.querySelector('app-sidebar')).toBeFalsy();
+  });
+
+  it('shows splash on web refresh/init even if locked', () => {
+    vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(false);
+    authPinService.isUnlocked.set(false);
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    fixture.detectChanges();
+
+    expect(app['showSplash']()).toBe(true);
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('app-splash-screen')).toBeTruthy();
   });
 
   it('shows splash on refresh/init if the app is already unlocked', () => {
@@ -56,6 +71,7 @@ describe('App', () => {
   });
 
   it('shows splash upon unlocking via onAppUnlocked()', () => {
+    vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true);
     authPinService.isUnlocked.set(false);
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;

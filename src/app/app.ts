@@ -19,6 +19,7 @@ import { ToastContainer } from './shared/ui/toast-container/toast-container';
 import { PinLock } from './shared/ui/pin-lock/pin-lock';
 import { AuthPinService } from './core/services/auth-pin.service';
 import { App as CapApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 
 export const ACTIVE_PAGE_STORAGE_KEY = 'expenses_home_active_page';
 export const VALID_SIDEBAR_PAGES: readonly SidebarPageId[] = [
@@ -74,7 +75,9 @@ export class App {
   private readonly tcService = inject(TcService);
   protected readonly authPinService = inject(AuthPinService);
   protected readonly currentPage = signal<SidebarPageId>(getInitialPage());
-  protected readonly showSplash = signal<boolean>(this.authPinService.isUnlocked());
+  protected readonly showSplash = signal<boolean>(
+    !Capacitor.isNativePlatform() || this.authPinService.isUnlocked()
+  );
 
   protected onSplashCompleted(): void {
     this.showSplash.set(false);
