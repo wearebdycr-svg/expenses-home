@@ -1,10 +1,8 @@
 # ==============================================================================
-# PIPELINE 1: CALIDAD, SEGURIDAD Y PRUEBAS UNITARIAS
+# PIPELINE 1: PRUEBAS UNITARIAS (TESTS)
 # ==============================================================================
-# Pipeline dedicado a ejecutar:
-# 1. 🔍 Análisis estático de código (SAST) y calidad (ESLint + Security)
-# 2. 🛡️ Auditoría de vulnerabilidades en dependencias (npm audit)
-# 3. 🧪 Suite completa de pruebas unitarias (Vitest + Angular Testing)
+# Pipeline dedicado exclusivamente a ejecutar y validar la suite de pruebas
+# unitarias del proyecto con Vitest y Angular Testing Utilities.
 # ==============================================================================
 
 image: node:22
@@ -28,27 +26,7 @@ stages:
   - test
 
 # ------------------------------------------------------------------------------
-# Trabajo 1: Análisis Estático de Código y Reglas de Seguridad (SAST)
-# ------------------------------------------------------------------------------
-lint:code:
-  stage: test
-  script:
-    - echo "🔍 [LINT] Ejecutando análisis estático de código y reglas de seguridad..."
-    - npm run lint
-  allow_failure: false
-
-# ------------------------------------------------------------------------------
-# Trabajo 2: Auditoría de Dependencias
-# ------------------------------------------------------------------------------
-audit:dependencies:
-  stage: test
-  script:
-    - echo "🛡️ [AUDIT] Auditando vulnerabilidades en paquetes npm..."
-    - npm run audit
-  allow_failure: true
-
-# ------------------------------------------------------------------------------
-# Trabajo 3: Ejecución de Tests Unitarios
+# Trabajo: Ejecución de Tests Unitarios
 # ------------------------------------------------------------------------------
 test:unit:
   stage: test

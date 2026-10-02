@@ -2,22 +2,112 @@ name: "🚀 Deploy Pipeline"
 
 on:
   workflow_run:
-    workflows: ["🧪 Tests Pipeline"]
+    workflows: ["🧪 Tests Pipeline", "🔍 Scan Pipeline"]
     branches: [main]
     types:
       - completed
   workflow_dispatch:
 
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.event.workflow_run.head_sha || github.sha }}
+  cancel-in-progress: false
+
 jobs:
+  verify-prerequisites:
+    name: "Verify Tests & Scan"
+    runs-on: ubuntu-latest
+    outputs:
+      should_deploy: ${{ steps.check.outputs.should_deploy }}
+    steps:
+      - name: Check Status of Prerequisite Pipelines
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            if (context.eventName === 'workflow_dispatch') {
+              console.log('⚡ Disparo manual vía workflow_dispatch: procediendo directamente al despliegue.');
+              core.setOutput('should_deploy', 'true');
+              return;
+            }
+
+            const headSha = context.payload.workflow_run
+              ? context.payload.workflow_run.head_sha
+              : context.sha;
+
+            console.log(`Verificando pipelines para el commit: ${headSha}`);
+
+            // Esperar hasta 3 minutos (18 intentos cada 10s) a que ambos pipelines terminen
+            const maxAttempts = 18;
+            for (let i = 1; i <= maxAttempts; i++) {
+              const runs = await github.rest.actions.listWorkflowRunsForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                head_sha: headSha,
+              });
+
+              // Prevenir despliegues duplicados si un run anterior para este mismo commit ya completó exitosamente
+              const priorDeploys = runs.data.workflow_runs.filter(
+                r => r.name === '🚀 Deploy Pipeline' && r.id !== context.runId && r.conclusion === 'success'
+              );
+              if (priorDeploys.length > 0) {
+                console.log(`El commit ${headSha} ya fue desplegado exitosamente por la ejecución #${priorDeploys[0].id}. Omitiendo ejecución duplicada.`);
+                core.setOutput('should_deploy', 'false');
+                return;
+              }
+
+              const testsRuns = runs.data.workflow_runs.filter(r => r.name === '🧪 Tests Pipeline');
+              const scanRuns = runs.data.workflow_runs.filter(r => r.name === '🔍 Scan Pipeline');
+
+              const latestTest = testsRuns[0];
+              const latestScan = scanRuns[0];
+
+              const testInfo = latestTest ? `${latestTest.status} (${latestTest.conclusion})` : 'no encontrado';
+              const scanInfo = latestScan ? `${latestScan.status} (${latestScan.conclusion})` : 'no encontrado';
+              console.log(`[Intento ${i}/${maxAttempts}] Tests Pipeline: ${testInfo} | Scan Pipeline: ${scanInfo}`);
+
+              // Si cualquiera de los dos falló, abortar inmediatamente el deploy
+              if (latestTest && latestTest.status === 'completed' && latestTest.conclusion !== 'success') {
+                core.setFailed(`❌ Tests Pipeline falló (conclusión: ${latestTest.conclusion}). Despliegue cancelado.`);
+                core.setOutput('should_deploy', 'false');
+                return;
+              }
+              if (latestScan && latestScan.status === 'completed' && latestScan.conclusion !== 'success') {
+                core.setFailed(`❌ Scan Pipeline falló (conclusión: ${latestScan.conclusion}). Despliegue cancelado.`);
+                core.setOutput('should_deploy', 'false');
+                return;
+              }
+
+              const testsSuccess = latestTest && latestTest.status === 'completed' && latestTest.conclusion === 'success';
+              const scanSuccess = latestScan && latestScan.status === 'completed' && latestScan.conclusion === 'success';
+
+              if (testsSuccess && scanSuccess) {
+                console.log('✅ Ambos pipelines (Tests y Scan) culminaron con éxito. Autorizando despliegue.');
+                core.setOutput('should_deploy', 'true');
+                return;
+              }
+
+              // Esperar 10 segundos antes de volver a consultar
+              await new Promise(resolve => setTimeout(resolve, 10000));
+            }
+
+            core.setFailed('⏱️ Tiempo de espera agotado esperando a que concluyan los pipelines de Tests y Scan.');
+            core.setOutput('should_deploy', 'false');
+
   build-and-deploy:
     name: "Build & Deploy"
+    needs: verify-prerequisites
+    if: needs.verify-prerequisites.outputs.should_deploy == 'true'
     runs-on: ubuntu-latest
-    # IMPORTANTE: Si los tests fallan, el deploy se cancela automáticamente y NO se ejecuta.
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

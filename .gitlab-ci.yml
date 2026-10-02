@@ -1,9 +1,10 @@
 # ==============================================================================
 # PIPELINES CI/CD - EXPENSES HOME (GitLab CI)
 # ==============================================================================
-# Orquestador que separa completamente los dos flujos de trabajo en pipelines hijos:
+# Orquestador que separa completamente los tres flujos de trabajo en pipelines hijos:
 # 1. 🧪 Pipeline de Tests: Pruebas unitarias independientes (.gitlab/ci/tests.gitlab-ci.yml)
-# 2. 🚀 Pipeline de Deploy: Compilación AOT y despliegue (.gitlab/ci/deploy.gitlab-ci.yml)
+# 2. 🔍 Pipeline de Scan: Escaneo de código SAST y calidad (.gitlab/ci/scan.gitlab-ci.yml)
+# 3. 🚀 Pipeline de Deploy: Compilación AOT y despliegue (.gitlab/ci/deploy.gitlab-ci.yml)
 # ==============================================================================
 
 workflow:
@@ -16,11 +17,11 @@ workflow:
 
 stages:
   - tests-pipeline
+  - scan-pipeline
   - deploy-pipeline
 
 # ------------------------------------------------------------------------------
 # 1. PIPELINE DE TESTS (Independiente)
-# Se ejecuta en todas las ramas, merge requests o cuando se invoque manualmente.
 # ------------------------------------------------------------------------------
 trigger:tests:
   stage: tests-pipeline
@@ -28,29 +29,43 @@ trigger:tests:
     include: .gitlab/ci/tests.gitlab-ci.yml
     strategy: depend
   rules:
-    # Si se solicita explícitamente solo deploy, omitir tests
-    - if: $PIPELINE_TARGET == "deploy_only"
+    - if: $PIPELINE_TARGET == "deploy_only" || $PIPELINE_TARGET == "scan_only"
       when: never
     - if: $CI_COMMIT_BRANCH
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_PIPELINE_SOURCE == "web"
 
 # ------------------------------------------------------------------------------
-# 2. PIPELINE DE DEPLOY Y TODO LO DEMÁS (Independiente)
-# Depende estrictamente del éxito de los tests. Si los tests fallan, NO despliega.
+# 2. PIPELINE DE ESCANEO DE CÓDIGO Y SEGURIDAD (Independiente)
+# ------------------------------------------------------------------------------
+trigger:scan:
+  stage: scan-pipeline
+  trigger:
+    include: .gitlab/ci/scan.gitlab-ci.yml
+    strategy: depend
+  rules:
+    - if: $PIPELINE_TARGET == "deploy_only" || $PIPELINE_TARGET == "test_only"
+      when: never
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "web"
+
+# ------------------------------------------------------------------------------
+# 3. PIPELINE DE DEPLOY (Independiente)
+# Depende estrictamente del éxito de Tests Y Scan. Si alguno falla, NO despliega.
 # ------------------------------------------------------------------------------
 trigger:deploy:
   stage: deploy-pipeline
   needs:
     - job: trigger:tests
+    - job: trigger:scan
   trigger:
     include: .gitlab/ci/deploy.gitlab-ci.yml
     strategy: depend
   rules:
-    # Si se solicita explícitamente solo tests, omitir deploy
-    - if: $PIPELINE_TARGET == "test_only"
+    - if: $PIPELINE_TARGET == "test_only" || $PIPELINE_TARGET == "scan_only"
       when: never
-    # En producción (main) se dispara automáticamente tras superar los tests
+    # En producción (main) se dispara automáticamente tras superar tests y scan
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_TAG
     # En rama de desarrollo (develop) disponible para disparo manual

@@ -1,0 +1,49 @@
+# ==============================================================================
+# PIPELINE 2: ESCANEO DE CÓDIGO Y SEGURIDAD (SCAN)
+# ==============================================================================
+# Pipeline dedicado a ejecutar:
+# 1. 🔍 Análisis estático de código (SAST) y reglas de calidad (ESLint + Security)
+# 2. 🛡️ Auditoría de vulnerabilidades en dependencias (npm audit)
+# ==============================================================================
+
+image: node:22
+
+variables:
+  NG_CLI_ANALYTICS: "false"
+  CI: "true"
+  npm_config_cache: "$CI_PROJECT_DIR/.npm"
+
+cache:
+  key:
+    files:
+      - package-lock.json
+  paths:
+    - .npm/
+
+before_script:
+  - npm ci --prefer-offline --no-audit
+
+stages:
+  - scan
+
+# ------------------------------------------------------------------------------
+# Trabajo 1: Análisis Estático de Código y Reglas de Seguridad (SAST)
+# ------------------------------------------------------------------------------
+lint:code:
+  stage: scan
+  script:
+    - echo "⚙️ Generando configuración de variables de entorno..."
+    - npm run config:env
+    - echo "🔍 [LINT] Ejecutando análisis estático de código y reglas de seguridad..."
+    - npm run lint
+  allow_failure: false
+
+# ------------------------------------------------------------------------------
+# Trabajo 2: Auditoría de Dependencias
+# ------------------------------------------------------------------------------
+audit:dependencies:
+  stage: scan
+  script:
+    - echo "🛡️ [AUDIT] Auditando vulnerabilidades en paquetes npm..."
+    - npm run audit
+  allow_failure: true
