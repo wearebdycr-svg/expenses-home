@@ -35,30 +35,7 @@ stages:
         echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
         echo "✅ google-services.json inyectado desde variables de GitLab CI."
       fi
-      node -e '
-        const fs = require("fs");
-        const file = "android/app/google-services.json";
-        if (fs.existsSync(file)) {
-          try {
-            const content = fs.readFileSync(file, "utf8").trim();
-            if (!content) return;
-            const data = JSON.parse(content);
-            if (Array.isArray(data.client)) {
-              const prod = data.client.find(c => c.client_info?.android_client_info?.package_name === "co.wearebdycr.expenseshome");
-              const hasDev = data.client.some(c => c.client_info?.android_client_info?.package_name === "co.wearebdycr.expenseshome.dev");
-              if (prod && !hasDev) {
-                const dev = JSON.parse(JSON.stringify(prod));
-                dev.client_info.android_client_info.package_name = "co.wearebdycr.expenseshome.dev";
-                data.client.push(dev);
-                fs.writeFileSync(file, JSON.stringify(data, null, 2));
-                console.log("✅ Auto-configurado cliente dev en google-services.json (co.wearebdycr.expenseshome.dev)");
-              }
-            }
-          } catch (e) {
-            console.warn("⚠️ Advertencia procesando google-services.json:", e.message);
-          }
-        }
-      '
+      node scripts/patch-google-services.js
 
 prepare:assets:dev:
   extends: .prepare-base
