@@ -107,7 +107,7 @@ jobs:
           npm run build
           echo "📲 [DEV] Sincronizando Capacitor con Android..."
           npx cap sync android
-          echo "📦 [DEV] Ensamblando APK Debug (co.bebolder.expenseshome.dev)..."
+          echo "📦 [DEV] Ensamblando APK Debug (co.wearebdycr.expenseshome.dev)..."
           ./android/gradlew -p android assembleDebug --no-daemon
           mkdir -p build-artifacts
           cp android/app/build/outputs/apk/debug/app-debug.apk build-artifacts/FinanzasHogar-dev.apk
@@ -144,7 +144,7 @@ jobs:
           npm run build
           echo "📲 [PROD] Sincronizando Capacitor con Android..."
           npx cap sync android
-          echo "📦 [PROD] Ensamblando APK Release (co.bebolder.expenseshome)..."
+          echo "📦 [PROD] Ensamblando APK Release (co.wearebdycr.expenseshome)..."
           ./android/gradlew -p android assembleRelease --no-daemon
           mkdir -p build-artifacts
           cp android/app/build/outputs/apk/release/app-release.apk build-artifacts/FinanzasHogar-release.apk
@@ -171,11 +171,11 @@ jobs:
           echo "| :--- | :--- | :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
           if [ -f build-artifacts/FinanzasHogar-dev.apk ]; then
             dev_size=$(ls -lh build-artifacts/FinanzasHogar-dev.apk | awk '{print $5}')
-            echo "| **FinanzasHogar-dev.apk** | 🟡 **DESARROLLO (DEV)** | \`co.bebolder.expenseshome.dev\` | $dev_size | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+            echo "| **FinanzasHogar-dev.apk** | 🟡 **DESARROLLO (DEV)** | \`co.wearebdycr.expenseshome.dev\` | $dev_size | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
           fi
           if [ -f build-artifacts/FinanzasHogar-release.apk ]; then
             rel_size=$(ls -lh build-artifacts/FinanzasHogar-release.apk | awk '{print $5}')
-            echo "| **FinanzasHogar-release.apk** | 🟢 **PRODUCCIÓN (PDN)** | \`co.bebolder.expenseshome\` | $rel_size | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+            echo "| **FinanzasHogar-release.apk** | 🟢 **PRODUCCIÓN (PDN)** | \`co.wearebdycr.expenseshome\` | $rel_size | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
           fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "👉 *Descarga el archivo APK generado desde la tarjeta **Artifacts** de este workflow.*" >> $GITHUB_STEP_SUMMARY

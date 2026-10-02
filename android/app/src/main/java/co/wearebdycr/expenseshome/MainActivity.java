@@ -1,4 +1,4 @@
-package co.bebolder.expenseshome;
+package co.wearebdycr.expenseshome;
 
 import android.os.Bundle;
 import android.webkit.WebView;

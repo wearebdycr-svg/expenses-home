@@ -173,6 +173,7 @@ describe('PushNotificationService', () => {
   });
 
   it('requests native permissions and registers push on native platform', async () => {
+    vi.spyOn(service, 'isNative').mockReturnValue(true);
     vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true);
     vi.spyOn(PushNotifications, 'checkPermissions').mockResolvedValue({ receive: 'prompt' } as any);
     const reqSpy = vi.spyOn(PushNotifications, 'requestPermissions').mockResolvedValue({ receive: 'granted' } as any);
@@ -187,6 +188,7 @@ describe('PushNotificationService', () => {
   });
 
   it('schedules LocalNotification on native platform in showSystemNotification', async () => {
+    vi.spyOn(service, 'isNative').mockReturnValue(true);
     vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true);
     const scheduleSpy = vi.spyOn(LocalNotifications, 'schedule').mockResolvedValue({ notifications: [] } as any);
 

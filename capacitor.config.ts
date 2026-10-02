@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'co.bebolder.expenseshome',
+  appId: 'co.wearebdycr.expenseshome',
   appName: 'Finanzas Hogar',
   webDir: 'dist/expenses-home/browser',
   server: {

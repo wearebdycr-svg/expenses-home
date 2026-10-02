@@ -76,10 +76,14 @@ export class PushNotificationService {
     this.init();
   }
 
+  isNative(): boolean {
+    return Capacitor.isNativePlatform();
+  }
+
   private async init(): Promise<void> {
     if (typeof window === 'undefined') return;
 
-    if (Capacitor.isNativePlatform()) {
+    if (this.isNative()) {
       await this.initNative();
     } else {
       await this.initWeb();
@@ -229,7 +233,7 @@ export class PushNotificationService {
    * Criterio 2.1 & 2.2: Solicita permiso y registra el Token FCM del dispositivo en el backend
    */
   async requestSubscription(): Promise<string | null> {
-    if (Capacitor.isNativePlatform()) {
+    if (this.isNative()) {
       return this.requestNativeSubscription();
     }
     return this.requestWebSubscription();
@@ -612,7 +616,7 @@ export class PushNotificationService {
    * Muestra la notificación nativa usando LocalNotifications (en móvil) o Service Worker (en web)
    */
   async showSystemNotification(title: string, body: string, url: string = '/#gastos'): Promise<void> {
-    if (Capacitor.isNativePlatform()) {
+    if (this.isNative()) {
       try {
         await LocalNotifications.schedule({
           notifications: [
@@ -670,7 +674,7 @@ export class PushNotificationService {
    * Envía una notificación de prueba para validar que este dispositivo recibe alertas
    */
   async sendTestNotification(): Promise<void> {
-    if (Capacitor.isNativePlatform()) {
+    if (this.isNative()) {
       if (this.permission() !== 'granted') {
         const res = await this.requestSubscription();
         if (!res && this.permission() !== 'granted') return;
