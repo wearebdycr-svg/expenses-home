@@ -121,8 +121,16 @@ export class PushNotificationService {
         vibration: true,
       });
 
-      // 2. Comprobar permisos actuales
-      const permStatus = await PushNotifications.checkPermissions();
+      // 2. Comprobar permisos actuales y solicitarlos automáticamente si aún no se han concedido
+      let permStatus = await PushNotifications.checkPermissions();
+      if (permStatus.receive === 'prompt' || permStatus.receive === 'prompt-with-rationale') {
+        permStatus = await PushNotifications.requestPermissions();
+        try {
+          await LocalNotifications.requestPermissions();
+        } catch {
+          // ignore local notification permission errors
+        }
+      }
       if (permStatus.receive === 'granted') {
         this.permission.set('granted');
         await PushNotifications.register();

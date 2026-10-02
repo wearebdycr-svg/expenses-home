@@ -20,6 +20,7 @@ import { PinLock } from './shared/ui/pin-lock/pin-lock';
 import { AuthPinService } from './core/services/auth-pin.service';
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
+import { PushNotificationService } from './core/services/push-notification.service';
 
 export const ACTIVE_PAGE_STORAGE_KEY = 'expenses_home_active_page';
 export const VALID_SIDEBAR_PAGES: readonly SidebarPageId[] = [
@@ -73,6 +74,7 @@ function getInitialPage(): SidebarPageId {
 export class App {
   private readonly destroyRef = inject(DestroyRef);
   private readonly tcService = inject(TcService);
+  private readonly pushNotificationService = inject(PushNotificationService);
   protected readonly authPinService = inject(AuthPinService);
   protected readonly currentPage = signal<SidebarPageId>(getInitialPage());
   protected readonly showSplash = signal<boolean>(

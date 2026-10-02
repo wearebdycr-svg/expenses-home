@@ -1,6 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
 import { environment } from '../../../../environments/environment';
-import { PushNotificationService } from '../../../core/services/push-notification.service';
 import { Icon, type IconName } from '../icon/icon';
 
 export type SidebarPageId = 'gastos' | 'ingresos' | 'resumen' | 'categoria' | 'deudas' | 'tc-compartida';
@@ -29,7 +28,6 @@ export class Sidebar {
   navigate = output<SidebarPageId>();
   lockApp = output<void>();
 
-  protected readonly pushService = inject(PushNotificationService);
   protected readonly isProduction = environment.production;
   protected readonly mobileOpen = signal(false);
   protected readonly currentYear = new Date().getFullYear();
@@ -65,10 +63,6 @@ export class Sidebar {
   protected onNavItemClick(id: SidebarPageId): void {
     this.navigate.emit(id);
     this.closeMobileMenu();
-  }
-
-  protected onSubscribePush(): void {
-    this.pushService.requestSubscription();
   }
 
   protected onLockApp(): void {

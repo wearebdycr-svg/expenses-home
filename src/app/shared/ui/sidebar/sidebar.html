@@ -88,28 +88,6 @@
     </div>
   </div>
 
-  <div class="sidebar-push">
-    <p class="push-header">Alertas en Tiempo Real</p>
-    <div class="push-box">
-      @if (pushService.isSubscribed()) {
-        <div class="push-status-active">
-          <span class="push-dot-active" aria-hidden="true"></span>
-          <span class="push-active-text">Notificaciones Activas</span>
-        </div>
-      } @else {
-        <button
-          type="button"
-          class="btn-sub-push-full"
-          (click)="onSubscribePush()"
-          title="Activar notificaciones en este dispositivo"
-        >
-          <app-icon name="bell" [size]="14" />
-          Activar Notificaciones
-        </button>
-      }
-    </div>
-  </div>
-
   <div class="sidebar-security">
     <button
       type="button"

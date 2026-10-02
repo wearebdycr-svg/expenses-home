@@ -7,8 +7,9 @@ android {
         applicationId "co.wearebdycr.expenseshome"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        def runNumber = System.getenv('GITHUB_RUN_NUMBER')
+        versionCode runNumber ? runNumber.toInteger() : 2
+        versionName "1.0.${versionCode}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders = [appName: "Finanzas Hogar"]
         aaptOptions {
