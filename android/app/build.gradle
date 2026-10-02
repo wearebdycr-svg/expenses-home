@@ -25,6 +25,20 @@ android {
                 keyAlias project.property('RELEASE_KEY_ALIAS')
                 keyPassword project.property('RELEASE_KEY_PASSWORD')
             } else {
+                def defaultKeystore = file("${System.getProperty('user.home')}/.android/debug.keystore")
+                def configKeystore = file("${System.getProperty('user.home')}/.config/.android/debug.keystore")
+                if (!configKeystore.exists() && !defaultKeystore.exists()) {
+                    configKeystore.parentFile.mkdirs()
+                    defaultKeystore.parentFile.mkdirs()
+                    try {
+                        def cmd = ['keytool', '-genkeypair', '-v', '-keystore', configKeystore.absolutePath, '-alias', 'androiddebugkey', '-storepass', 'android', '-keypass', 'android', '-keyalg', 'RSA', '-keysize', '2048', '-validity', '10000', '-dname', 'CN=AndroidDebug,O=Android,C=US']
+                        def p = cmd.execute()
+                        p.waitFor()
+                        if (configKeystore.exists()) {
+                            java.nio.file.Files.copy(configKeystore.toPath(), defaultKeystore.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                        }
+                    } catch (Exception ignored) {}
+                }
                 initWith debug
             }
         }

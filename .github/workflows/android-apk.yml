@@ -55,6 +55,14 @@ jobs:
       - name: Grant Execute Permission to Gradle Wrapper
         run: chmod +x ./android/gradlew
 
+      - name: Ensure Android Keystore Exists (Fallback Signing)
+        run: |
+          mkdir -p ~/.android ~/.config/.android
+          if [ ! -f ~/.android/debug.keystore ] && [ ! -f ~/.config/.android/debug.keystore ]; then
+            keytool -genkeypair -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+            cp ~/.android/debug.keystore ~/.config/.android/debug.keystore
+          fi
+
       # ------------------------------------------------------------------------
       # 1. Compilación de APK DEV (Base de datos Desarrollo)
       # Se ejecuta si:

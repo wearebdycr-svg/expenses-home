@@ -75,6 +75,8 @@ prepare:assets:prod:
   stage: build-apk
   before_script:
     - yes | sdkmanager "platforms;android-36" "build-tools;36.0.0" || true
+    - mkdir -p ~/.android ~/.config/.android
+    - if [ ! -f ~/.android/debug.keystore ]; then keytool -genkeypair -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"; cp ~/.android/debug.keystore ~/.config/.android/debug.keystore; fi
   cache:
     key: gradle-cache-$CI_PROJECT_ID
     paths:
