@@ -71,10 +71,6 @@ export class Sidebar {
     this.pushService.requestSubscription();
   }
 
-  protected onTestPush(): void {
-    this.pushService.sendTestNotification();
-  }
-
   protected onLockApp(): void {
     this.lockApp.emit();
     this.closeMobileMenu();
