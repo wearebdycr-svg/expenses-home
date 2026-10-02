@@ -30,6 +30,11 @@ stages:
       - .npm/
   before_script:
     - npm ci --prefer-offline --no-audit
+    - |
+      if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+        echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+        echo "✅ google-services.json inyectado desde variables de GitLab CI."
+      fi
 
 prepare:assets:dev:
   extends: .prepare-base

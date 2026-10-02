@@ -94,8 +94,17 @@
       @if (pushService.isSubscribed()) {
         <div class="push-status-active">
           <span class="push-dot-active" aria-hidden="true"></span>
-          <span class="push-active-text">Notificaciones Activas en este equipo</span>
+          <span class="push-active-text">Notificaciones Activas</span>
         </div>
+        <button
+          type="button"
+          class="btn-test-push"
+          (click)="onTestPush()"
+          title="Enviar notificación de prueba"
+        >
+          <app-icon name="bell" [size]="14" />
+          Probar Alerta
+        </button>
       } @else {
         <button
           type="button"
@@ -103,7 +112,8 @@
           (click)="onSubscribePush()"
           title="Activar notificaciones en este dispositivo"
         >
-          🔔 Activar Notificaciones en este equipo
+          <app-icon name="bell" [size]="14" />
+          Activar Notificaciones
         </button>
       }
     </div>

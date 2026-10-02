@@ -1,6 +1,14 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage, Messaging } from 'firebase/messaging';
+import { Capacitor } from '@capacitor/core';
+import {
+  PushNotifications,
+  type Token,
+  type PushNotificationSchema,
+  type ActionPerformed,
+} from '@capacitor/push-notifications';
+import { LocalNotifications } from '@capacitor/local-notifications';
 import { environment } from '../../../environments/environment';
 import type { Expense, ExpenseDraft, ExpensePerson } from '../../features/gastos/data/expense.model';
 import type { TcExpense, TcExpenseDraft } from '../../features/tc-compartida/data/tc.model';
@@ -71,6 +79,97 @@ export class PushNotificationService {
   private async init(): Promise<void> {
     if (typeof window === 'undefined') return;
 
+    if (Capacitor.isNativePlatform()) {
+      await this.initNative();
+    } else {
+      await this.initWeb();
+    }
+  }
+
+  private async initNative(): Promise<void> {
+    this.isSupported.set(true);
+
+    const savedToken = localStorage.getItem(FCM_TOKEN_STORAGE_KEY);
+    if (savedToken) {
+      this.currentToken.set(savedToken);
+      this.isSubscribed.set(true);
+    }
+
+    try {
+      // 1. Crear canal de notificaciones Android con alta prioridad
+      await PushNotifications.createChannel({
+        id: 'finanzas_hogar_alerts',
+        name: 'Alertas Finanzas Hogar',
+        description: 'Notificaciones en tiempo real del hogar',
+        importance: 5,
+        visibility: 1,
+        sound: 'default',
+        vibration: true,
+      });
+
+      await LocalNotifications.createChannel({
+        id: 'finanzas_hogar_alerts',
+        name: 'Alertas Finanzas Hogar',
+        description: 'Notificaciones en tiempo real del hogar',
+        importance: 5,
+        visibility: 1,
+        sound: 'default',
+        vibration: true,
+      });
+
+      // 2. Comprobar permisos actuales
+      const permStatus = await PushNotifications.checkPermissions();
+      if (permStatus.receive === 'granted') {
+        this.permission.set('granted');
+        await PushNotifications.register();
+      } else {
+        this.permission.set(permStatus.receive === 'denied' ? 'denied' : 'default');
+      }
+
+      // 3. Listener para token recibido
+      await PushNotifications.addListener('registration', async (token: Token) => {
+        console.log('[Native Push] Token FCM recibido:', token.value);
+        localStorage.setItem(FCM_TOKEN_STORAGE_KEY, token.value);
+        this.currentToken.set(token.value);
+        this.isSubscribed.set(true);
+        await this.registerTokenInBackend(token.value, 'Hogar (Móvil)');
+      });
+
+      // 4. Listener para errores de registro
+      await PushNotifications.addListener('registrationError', (error: any) => {
+        console.warn('[Native Push] Error de registro FCM:', error);
+      });
+
+      // 5. Listener para notificación recibida con la app en primer plano
+      await PushNotifications.addListener(
+        'pushNotificationReceived',
+        async (notification: PushNotificationSchema) => {
+          console.log('[Native Push] Notificación en primer plano recibida:', notification);
+          const title = notification.title || 'Finanzas Hogar';
+          const body = notification.body || '';
+          this.toastService.info(`${title}: ${body}`);
+          await this.showSystemNotification(title, body, notification.data?.url || '/#gastos');
+        }
+      );
+
+      // 6. Listener para notificación pulsada
+      await PushNotifications.addListener(
+        'pushNotificationActionPerformed',
+        (action: ActionPerformed) => {
+          console.log('[Native Push] Notificación pulsada:', action);
+          const url = action.notification.data?.url || '/#gastos';
+          if (url && typeof window !== 'undefined') {
+            const hash = url.startsWith('/') ? url : `/${url}`;
+            window.location.hash = hash.replace(/^\/#?/, '');
+          }
+        }
+      );
+    } catch (e) {
+      console.warn('[Native Push] Inicialización de notificaciones nativas omitida:', e);
+    }
+  }
+
+  private async initWeb(): Promise<void> {
     const supported = 'Notification' in window && 'serviceWorker' in navigator;
     this.isSupported.set(supported);
 
@@ -130,6 +229,43 @@ export class PushNotificationService {
    * Criterio 2.1 & 2.2: Solicita permiso y registra el Token FCM del dispositivo en el backend
    */
   async requestSubscription(): Promise<string | null> {
+    if (Capacitor.isNativePlatform()) {
+      return this.requestNativeSubscription();
+    }
+    return this.requestWebSubscription();
+  }
+
+  private async requestNativeSubscription(): Promise<string | null> {
+    try {
+      let permStatus = await PushNotifications.checkPermissions();
+      if (permStatus.receive !== 'granted') {
+        permStatus = await PushNotifications.requestPermissions();
+      }
+
+      try {
+        await LocalNotifications.requestPermissions();
+      } catch {
+        // Ignorar
+      }
+
+      if (permStatus.receive === 'granted') {
+        this.permission.set('granted');
+        await PushNotifications.register();
+        this.toastService.success('Notificaciones push activadas en este dispositivo');
+        return this.currentToken();
+      } else {
+        this.permission.set('denied');
+        this.toastService.warning('Permisos de notificación no otorgados en el móvil.');
+        return null;
+      }
+    } catch (err: any) {
+      console.error('[Native Push] Error solicitando permisos nativos:', err);
+      this.toastService.error('Error al activar notificaciones en la app');
+      return null;
+    }
+  }
+
+  private async requestWebSubscription(): Promise<string | null> {
     if (!this.isSupported()) {
       this.toastService.error('Las notificaciones Push no están soportadas en este navegador.');
       return null;
@@ -473,9 +609,32 @@ export class PushNotificationService {
   }
 
   /**
-   * Muestra la notificación nativa usando el Service Worker (móvil y escritorio) o fallback de Notification
+   * Muestra la notificación nativa usando LocalNotifications (en móvil) o Service Worker (en web)
    */
   async showSystemNotification(title: string, body: string, url: string = '/#gastos'): Promise<void> {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              id: Math.floor(Date.now() % 1000000),
+              title,
+              body,
+              channelId: 'finanzas_hogar_alerts',
+              extra: { url },
+              smallIcon: 'ic_launcher_round',
+              iconColor: '#F97316',
+            },
+          ],
+        });
+        return;
+      } catch (e) {
+        console.warn('[Native LocalNotification] Fallo al mostrar:', e);
+        this.toastService.info(`${title}: ${body}`);
+        return;
+      }
+    }
+
     if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
       try {
         let swReg = this.swRegistration;
@@ -511,6 +670,20 @@ export class PushNotificationService {
    * Envía una notificación de prueba para validar que este dispositivo recibe alertas
    */
   async sendTestNotification(): Promise<void> {
+    if (Capacitor.isNativePlatform()) {
+      if (this.permission() !== 'granted') {
+        const res = await this.requestSubscription();
+        if (!res && this.permission() !== 'granted') return;
+      }
+      await this.showSystemNotification(
+        '🔔 Notificación de Prueba',
+        '¡Tu teléfono está listo y recibiendo alertas en tiempo real!',
+        '/#gastos'
+      );
+      this.toastService.success('Notificación de prueba enviada a tu teléfono');
+      return;
+    }
+
     if (typeof window === 'undefined' || !('Notification' in window)) {
       this.toastService.error('Este navegador no soporta notificaciones.');
       return;

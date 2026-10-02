@@ -145,6 +145,18 @@ export default async function handler(req, res) {
                   message: {
                     token,
                     notification: { title, body },
+                    android: {
+                      priority: 'high',
+                      notification: {
+                        title,
+                        body,
+                        channel_id: 'finanzas_hogar_alerts',
+                        sound: 'default',
+                        default_sound: true,
+                        default_vibrate_timings: true,
+                        notification_priority: 'PRIORITY_MAX',
+                      },
+                    },
                     webpush: {
                       notification: {
                         title,
@@ -190,9 +202,12 @@ export default async function handler(req, res) {
             },
             body: JSON.stringify({
               to: token,
+              priority: 'high',
               notification: {
                 title,
                 body,
+                sound: 'default',
+                android_channel_id: 'finanzas_hogar_alerts',
                 icon: icon || '/favicon.svg',
               },
               data: data || {},

@@ -335,6 +335,26 @@
 .btn-sub-push-full:hover {
   background: rgba(59, 130, 246, 0.25);
 }
+.btn-test-push {
+  margin-top: 0.35rem;
+  width: 100%;
+  padding: 0.35rem 0.5rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  color: var(--sidebar-foreground);
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  transition: background-color 0.15s ease;
+}
+.btn-test-push:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
 .sidebar-security {
   padding: 14px 16px max(var(--safe-area-bottom, 0px), env(safe-area-inset-bottom, 0px), 40px);
   border-top: 1px solid var(--sidebar-border);
