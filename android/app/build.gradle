@@ -80,7 +80,21 @@ apply from: 'capacitor.build.gradle'
 
 try {
     def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
+    if (servicesJSON.exists() && servicesJSON.text.trim()) {
+        try {
+            def parsed = new groovy.json.JsonSlurper().parseText(servicesJSON.text)
+            if (parsed.client instanceof List) {
+                def prodClient = parsed.client.find { it?.client_info?.android_client_info?.package_name == 'co.wearebdycr.expenseshome' }
+                def devClient = parsed.client.find { it?.client_info?.android_client_info?.package_name == 'co.wearebdycr.expenseshome.dev' }
+                if (prodClient != null && devClient == null) {
+                    def cloned = new groovy.json.JsonSlurper().parseText(groovy.json.JsonOutput.toJson(prodClient))
+                    cloned.client_info.android_client_info.package_name = 'co.wearebdycr.expenseshome.dev'
+                    parsed.client.add(cloned)
+                    servicesJSON.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(parsed))
+                }
+            }
+        } catch (Exception ignored) {}
+
         apply plugin: 'com.google.gms.google-services'
     }
 } catch(Exception e) {
