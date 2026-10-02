@@ -49,6 +49,11 @@ export class Sidebar {
     { name: 'Compartido', color: '#10B981' },
   ];
 
+  protected get currentNavTitle(): string {
+    const current = this.navItems.find((item) => item.id === this.currentPage());
+    return current ? current.label : 'Finanzas Hogar';
+  }
+
   protected openMobileMenu(): void {
     this.mobileOpen.set(true);
   }

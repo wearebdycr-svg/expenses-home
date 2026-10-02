@@ -9,6 +9,7 @@
 - [Visión General](#-visión-general)
 - [Módulos y Funcionalidades](#-módulos-y-funcionalidades)
 - [Arquitectura del Sistema](#-arquitectura-del-sistema)
+- [📱 Aplicación Móvil Android (Nativa con Capacitor)](#-aplicación-móvil-android-nativa-con-capacitor)
 - [Stack Tecnológico](#-stack-tecnológico)
 - [Modelo de Base de Datos (Supabase)](#-modelo-de-base-de-datos-supabase)
 - [Configuración Dinámica (Firebase Remote Config)](#-configuración-dinámica-firebase-remote-config)
@@ -115,17 +116,77 @@ flowchart TB
 
 ---
 
+## 📱 Aplicación Móvil Android (Nativa con Capacitor)
+
+Finanzas Hogar no solo opera como aplicación web responsiva, sino que está empaquetada como una **aplicación nativa de Android** mediante **Capacitor 8**, permitiendo compilar instaladores directos (`.apk`) instalables en cualquier teléfono o tablet Android.
+
+### Características Nativas Implementadas:
+1. **🎨 Identidad Visual y Adaptativa**:
+   - Íconos de aplicación adaptativos (`ic_launcher.png`, `ic_launcher_round.png`, `ic_launcher_foreground.png`) generados en todas las densidades de pantalla (`mdpi`, `hdpi`, `xhdpi`, `xxhdpi`, `xxxhdpi`) a partir de `favicon.svg`.
+   - Pantallas de carga (*Splash Screen*) nativas personalizadas para orientación vertical (*portrait*) y horizontal (*landscape*) con paleta corporativa `#0F172A`.
+2. **📐 Safe Area Inteligente (Edge-to-Edge Android 14 y 15)**:
+   - Inyección nativa en [`MainActivity.java`](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/android/app/src/main/java/co/bebolder/expenseshome/MainActivity.java) con `ViewCompat.setOnApplyWindowInsetsListener` para leer los recortes de pantalla (*punch-hole*, *notch*) y la barra de navegación/gestos inferior del hardware, inyectando `--safe-area-top` y `--safe-area-bottom`.
+   - Header móvil fijo (`.mobile-navbar`) con título de la sección activa y botón de bloqueo rápido.
+   - Menú hamburguesa lateral (*drawer*) totalmente optimizado con despeje superior e inferior y desplazamiento vertical fluido.
+3. **📳 Respuesta Táctil Háptica (`@capacitor/haptics`)**:
+   - Vibración de confirmación táctil al pulsar números en el teclado del PIN (`ImpactStyle.Light`), vibración de éxito al desbloquear (`NotificationType.Success`) y doble vibración de advertencia ante errores o bloqueos.
+4. **🔙 Navegación con Botones Físicos y Gestos de Android**:
+   - Integración con `@capacitor/app` (`backButton`):
+     - **En la pantalla de PIN**: El botón nativo "Atrás" sale de inmediato de la aplicación.
+     - **En el uso regular**: Cierra modales abiertos, repliega el menú lateral o regresa al panel principal de Gastos antes de salir.
+5. **🔐 Autobloqueo de Seguridad Financiera**:
+   - La aplicación inicia bloqueada de forma predeterminada sin almacenar sesiones abiertas en el navegador.
+   - Si el usuario minimiza la aplicación, cambia a otra app o la cierra, los escuchadores de ciclo de vida (`appStateChange: isActive === false`, `visibilitychange`, `pause`) activan el bloqueo automático inmediatamente.
+
+### Compilación Local de Instaladores Multi-Entorno:
+La aplicación cuenta con aislamiento completo de ambientes (Dev vs Producción):
+- **Desarrollo (`.dev`)**: Se compila apuntando a la base de datos de desarrollo (`SUPABASE_URL_DEV`), asignando el identificador `co.bebolder.expenseshome.dev` y nombre *"Finanzas Hogar (Dev)"*.
+- **Producción**: Se compila apuntando a la base de datos de producción (`SUPABASE_URL_PROD`), asignando `co.bebolder.expenseshome` y nombre *"Finanzas Hogar"*.
+- **Convivencia Simultánea**: Ambas aplicaciones pueden instalarse y ejecutarse en paralelo en el mismo teléfono sin conflictos.
+
+```bash
+# Compilar APK de desarrollo conectado a BD DEV
+npm run apk:dev
+
+# Compilar APK de producción conectado a BD PDN (Optimizado y firmado)
+npm run apk:prod
+
+# Comandos de sincronización Capacitor
+npm run cap:sync     # Sincroniza dist/ con Android Studio
+npm run cap:open     # Abre el proyecto nativo en Android Studio
+```
+*Los binarios generados se ubican en la carpeta `apk/` (`FinanzasHogar-dev.apk` y `FinanzasHogar-release.apk`).*
+
+---
+
+### 🚀 Automatización Dual CI/CD para Android (GitHub & GitLab)
+
+La generación de instaladores móviles está totalmente automatizada tanto en **GitHub Actions** como en **GitLab CI**:
+
+| Plataforma | Archivo de Workflow | Disparador Automático | Artefacto Generado |
+| :--- | :--- | :--- | :--- |
+| **GitHub Actions** | [`.github/workflows/android-apk.yml`](.github/workflows/android-apk.yml) | Push a `develop` (Dev) o `main` (Prod) + `workflow_dispatch` manual | Descargable en pestaña **Actions > Artifacts** |
+| **GitLab CI** | [`.gitlab/ci/android.gitlab-ci.yml`](.gitlab/ci/android.gitlab-ci.yml) | Pipeline `trigger:mobile` en `develop` y `main` | Descargable en **Pipelines > Job Artifacts** |
+
+#### Variables / Secrets requeridos en CI/CD:
+- `SUPABASE_URL_DEV` y `SUPABASE_ANON_KEY_DEV` (Base de datos de Desarrollo).
+- `SUPABASE_URL_PROD` y `SUPABASE_ANON_KEY_PROD` (Base de datos de Producción).
+- *(Fallback automático a `SUPABASE_URL` y `SUPABASE_ANON_KEY` si no se especifican prefijos).*
+
+---
+
 ## 🛠️ Stack Tecnológico
 
 | Capa | Tecnología | Propósito |
 | :--- | :--- | :--- |
 | **Framework Web** | Angular 22 (Next-Gen) | Componentes Standalone, Reactividad nativa con Signals, Control Flow moderno (`@if`, `@for`). |
-| **Lenguaje** | TypeScript ~6.0 | Tipado estático estricto en modelos, servicios y utilidades. |
+| **Plataforma Móvil** | Capacitor 8 + Android SDK (API 36) | Runtime nativo Android, plugins de App, Haptics, StatusBar y SplashScreen. |
+| **Lenguaje** | TypeScript ~6.0 & Java 21 LTS | Tipado estático estricto en frontend y compilación Gradle en Android. |
 | **Visualización** | Chart.js 4 & ng2-charts 10 | Gráficos de barras apiladas, líneas de tendencia y donas de distribución. |
 | **Base de Datos** | Supabase (PostgreSQL 15+) | Almacenamiento relacional, constraints de integridad, RLS y sincronización Realtime. |
 | **Servicios Cloud** | Firebase SDK 12 | Remote Config (parámetros y topes) + FCM (Web Push Notifications). |
-| **Infraestructura** | Vercel | Hosting estático global en Edge CDN, Serverless Functions y Cron Jobs. |
-| **Testing** | Vitest 4 + Angular Testing | Suite de pruebas unitarias ultrarrápida (201 pruebas automatizadas). |
+| **Infraestructura Web** | Vercel | Hosting estático global en Edge CDN, Serverless Functions y Cron Jobs. |
+| **Testing** | Vitest 4 + Angular Testing | Suite de pruebas unitarias ultrarrápida (204 pruebas automatizadas). |
 | **Calidad y SAST** | ESLint 10 + `@angular-eslint` + `eslint-plugin-security` | Análisis estático, buenas prácticas y prevención de vulnerabilidades (ReDoS, inyección). |
 | **Auditoría** | Native npm audit | Auditoría continua de seguridad en dependencias. |
 
@@ -278,13 +339,14 @@ flowchart TD
 ```
 
 ### Pipelines en GitHub Actions (`.github/workflows/`):
-1. **`🧪 Tests Pipeline` (`tests.yml`)**: Ejecuta `npm run test:ci` validando todas las reglas de negocio en Vitest.
+1. **`🧪 Tests Pipeline` (`tests.yml`)**: Ejecuta `npm run test:ci` validando todas las reglas de negocio en Vitest (204 pruebas unitarias).
 2. **`🔍 Scan Pipeline` (`scan.yml`)**:
    - `Static Code Analysis & SAST`: Ejecuta `npm run lint` aplicando `@angular-eslint` y `eslint-plugin-security` para detectar patrones vulnerables (ej. ReDoS, object injection).
    - `Dependency Vulnerability Audit`: Ejecuta `npm run audit` para auditar la cadena de dependencias.
-3. **`🚀 Deploy Pipeline` (`deploy.yml`)**: Se dispara tras la finalización de los pipelines previos, comprueba el estado del commit mediante la API de GitHub Actions y autoriza la compilación y despliegue a producción únicamente cuando ambos son exitosos.
+3. **`🚀 Deploy Pipeline` (`deploy.yml`)**: Se dispara tras la finalización de los pipelines previos, comprueba el estado del commit mediante la API de GitHub Actions y autoriza la compilación y despliegue a producción en Vercel únicamente cuando ambos son exitosos.
+4. **`📱 Android APK Pipeline` (`android-apk.yml`)**: Compila automáticamente los instaladores nativos de Android (`FinanzasHogar-debug.apk` y `FinanzasHogar-release.apk`) en cada push a `main` y `develop`, dejándolos listos para descarga como artefacto descargable en GitHub Actions con 30 días de retención.
 
-*(Misma arquitectura disponible en GitLab CI mediante `.gitlab-ci.yml`, `tests.gitlab-ci.yml`, `scan.gitlab-ci.yml` y `deploy.gitlab-ci.yml`).*
+*(Misma arquitectura web disponible en GitLab CI mediante `.gitlab-ci.yml`, `tests.gitlab-ci.yml`, `scan.gitlab-ci.yml` y `deploy.gitlab-ci.yml`).*
 
 ---
 
@@ -293,6 +355,8 @@ flowchart TD
 ### Requisitos Previos
 - **Node.js**: Versión `>= 20.x` (Recomendado Node 22).
 - **npm**: Versión `>= 10.x`.
+- **Java JDK**: Versión `21 LTS` (necesario para compilar el proyecto nativo de Android).
+- **Android Studio / Android SDK**: Platform API 36 y Command Line Tools instalados.
 - Cuenta en **Supabase** y proyecto activo con el esquema SQL ejecutado.
 - Proyecto en **Firebase** con credenciales web y Remote Config configurado.
 
@@ -338,11 +402,23 @@ flowchart TD
    ```
    *(Este paso se ejecuta automáticamente al correr `npm start`, `npm run build` o `npm test`).*
 
-5. **Iniciar el servidor de desarrollo**:
+5. **Iniciar el servidor de desarrollo web**:
    ```bash
    npm start
    ```
    Abre [http://localhost:4200/](http://localhost:4200/) en tu navegador. El PIN inicial por defecto es `2026`.
+
+6. **Compilar y abrir en Android**:
+   ```bash
+   # Sincronizar assets web con Android
+   npm run cap:sync
+
+   # Abrir el proyecto en Android Studio
+   npm run cap:open
+
+   # O compilar directamente el instalador APK en terminal
+   npm run apk:debug
+   ```
 
 ---
 
@@ -353,11 +429,16 @@ flowchart TD
 | `npm start` | Inicia el servidor de desarrollo local con recarga en caliente (`ng serve`). |
 | `npm run build` | Compila la aplicación optimizada para producción con AOT (`dist/`). |
 | `npm test` | Ejecuta la suite de pruebas unitarias con Vitest en modo interactivo. |
-| `npm run test:ci` | Ejecuta las pruebas unitarias una sola vez para entornos de CI/CD. |
+| `npm run test:ci` | Ejecuta las pruebas unitarias una sola vez para entornos de CI/CD (204 pruebas). |
 | `npm run lint` | Ejecuta el análisis estático con ESLint, Angular ESLint y reglas SAST. |
 | `npm run lint:fix` | Corrige de forma automática problemas de estilo y formato en el código. |
 | `npm run audit` | Audita vulnerabilidades conocidas de seguridad en dependencias de npm. |
 | `npm run config:env` | Genera los archivos de `src/environments/` a partir de `.env` o variables CI/CD. |
+| `npm run cap:sync` | Sincroniza los bundles web construidos hacia el proyecto nativo `android/`. |
+| `npm run cap:build` | Compila Angular en producción y sincroniza con el proyecto Android en un solo paso. |
+| `npm run cap:open` | Abre el proyecto Android nativo en Android Studio. |
+| `npm run apk:debug` | Compila el instalador APK de desarrollo (`apk/FinanzasHogar-debug.apk`). |
+| `npm run apk:release` | Compila el instalador APK optimizado y firmado para producción (`apk/FinanzasHogar-release.apk`). |
 
 ---
 
@@ -366,20 +447,30 @@ flowchart TD
 ```text
 expenses-home/
 ├── .github/workflows/          # Pipelines de CI/CD para GitHub Actions
-│   ├── tests.yml               # Pipeline de Pruebas Unitarias
+│   ├── tests.yml               # Pipeline de Pruebas Unitarias (Vitest)
 │   ├── scan.yml                # Pipeline de Escaneo Estático y Auditoría (SAST)
-│   └── deploy.yml              # Pipeline de Compilación y Despliegue Condicional
+│   ├── deploy.yml              # Pipeline de Despliegue en Vercel (Condicional)
+│   └── android-apk.yml         # Pipeline de Compilación Automatizada de APKs
 ├── .gitlab/ci/                 # Pipelines equivalentes para GitLab CI
 │   ├── tests.gitlab-ci.yml
 │   ├── scan.gitlab-ci.yml
 │   └── deploy.gitlab-ci.yml
+├── android/                    # Proyecto nativo Android (Capacitor 8 + Gradle)
+│   ├── app/                    # Módulo principal Android (Java, Manifest, Res)
+│   │   ├── src/main/java/      # MainActivity.java (WindowInsets / Safe Area)
+│   │   └── src/main/res/       # Íconos mipmap adaptativos y Splash screens
+│   └── build.gradle            # Configuración de compilación Gradle y signingConfigs
 ├── api/                        # Funciones Serverless de Vercel
 │   ├── cron-reminder.js        # Disparador programado de recordatorios
 │   ├── fcm-token.js            # Registro y actualización de tokens Push
 │   └── notify.js               # Envío de notificaciones FCM vía Firebase Admin
+├── apk/                        # Instaladores locales compilados (.apk) [ignorado en git]
+│   ├── FinanzasHogar-debug.apk
+│   └── FinanzasHogar-release.apk
 ├── public/                     # Recursos públicos estáticos y Service Worker FCM
 ├── scripts/                    # Scripts de soporte para la compilación
-│   └── set-env.js              # Generador dinámico de environments
+│   ├── set-env.js              # Generador dinámico de environments
+│   └── generate-android-assets.py # Generador de íconos adaptativos y splash
 ├── src/
 │   ├── app/
 │   │   ├── core/               # Servicios transversales singleton
@@ -397,6 +488,7 @@ expenses-home/
 │   └── environments/           # Archivos de entorno generados dinámicamente
 ├── supabase/                   # Scripts de migración SQL, esquemas y políticas RLS
 ├── angular.json                # Configuración del workspace Angular CLI
+├── capacitor.config.ts         # Configuración central de Capacitor (appId, plugins)
 ├── eslint.config.mjs           # Flat config de ESLint + Angular + Security SAST
 ├── remote_config.json          # Definición y defaults de Firebase Remote Config
 ├── vercel.json                 # Configuración de headers, CSP y rutas en Vercel

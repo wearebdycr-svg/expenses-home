@@ -18,6 +18,7 @@ import { SplashScreen } from './shared/ui/splash-screen/splash-screen';
 import { ToastContainer } from './shared/ui/toast-container/toast-container';
 import { PinLock } from './shared/ui/pin-lock/pin-lock';
 import { AuthPinService } from './core/services/auth-pin.service';
+import { App as CapApp } from '@capacitor/app';
 
 export const ACTIVE_PAGE_STORAGE_KEY = 'expenses_home_active_page';
 export const VALID_SIDEBAR_PAGES: readonly SidebarPageId[] = [
@@ -114,6 +115,55 @@ export class App {
       this.destroyRef.onDestroy(() => {
         window.removeEventListener('hashchange', onHashChange);
       });
+
+      this.setupBackButtonHandler();
+    }
+  }
+
+  private setupBackButtonHandler(): void {
+    try {
+      CapApp.addListener('backButton', () => {
+        // 1. Si la aplicación está bloqueada con PIN, salir de la aplicación
+        if (!this.authPinService.isUnlocked()) {
+          const changePinCloseBtn = document.querySelector(
+            '.change-pin-modal .btn-close-modal, .change-pin-modal .btn-cancel',
+          ) as HTMLButtonElement | null;
+          if (changePinCloseBtn) {
+            changePinCloseBtn.click();
+            return;
+          }
+          CapApp.exitApp();
+          return;
+        }
+
+        // 2. Si hay algún modal abierto en la aplicación, cerrarlo
+        const modalCloseBtn = document.querySelector(
+          '.modal-backdrop .modal-close, .modal-backdrop .btn-cancel',
+        ) as HTMLButtonElement | null;
+        if (modalCloseBtn) {
+          modalCloseBtn.click();
+          return;
+        }
+
+        // 3. Si el menú drawer móvil está abierto, cerrarlo
+        const sidebarEl = document.querySelector('.sidebar.is-open');
+        const mobileCloseBtn = document.querySelector('.mobile-close-btn') as HTMLButtonElement | null;
+        if (sidebarEl && mobileCloseBtn) {
+          mobileCloseBtn.click();
+          return;
+        }
+
+        // 4. Si estamos en una vista diferente al inicio (gastos), volver a gastos
+        if (this.currentPage() !== 'gastos') {
+          this.onNavigate('gastos');
+          return;
+        }
+
+        // 5. Si ya estamos en el inicio sin nada abierto, salir de la aplicación
+        CapApp.exitApp();
+      });
+    } catch {
+      // Ignorar en entornos de prueba
     }
   }
 

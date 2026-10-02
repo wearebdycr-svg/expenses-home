@@ -16,6 +16,7 @@
   max-width: 100%;
   overflow-y: auto;
   overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .page-placeholder {
@@ -29,6 +30,10 @@
 
 @media (max-width: 767px) {
   .app-content {
-    padding-top: 48px;
+    /* Mobile navbar height (~52px) + safe-area top with min 44px fallback */
+    padding-top: calc(52px + max(var(--safe-area-top, 0px), env(safe-area-inset-top, 0px), 44px));
+    padding-bottom: max(var(--safe-area-bottom, 0px), env(safe-area-inset-bottom, 0px), 40px);
+    padding-left: max(var(--safe-area-left, 0px), env(safe-area-inset-left, 0px), 0px);
+    padding-right: max(var(--safe-area-right, 0px), env(safe-area-inset-right, 0px), 0px);
   }
 }

@@ -5,6 +5,8 @@
 /tmp
 /out-tsc
 /bazel-out
+/apk
+*.apk
 
 # Node
 /node_modules
@@ -44,6 +46,7 @@ __screenshots__/
 Thumbs.db
 .claude/scheduled_tasks.lock
 .npm/
+Library/
 
 # Environment and secrets
 .env

@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { AuthPinService } from '../../../core/services/auth-pin.service';
 import { Icon } from '../icon/icon';
 
@@ -25,7 +26,6 @@ export class PinLock {
   unlocked = output<void>();
 
   protected readonly pin = signal<string>('');
-  protected readonly rememberDevice = signal<boolean>(true);
   protected readonly errorMessage = signal<string>('');
   protected readonly isShaking = signal<boolean>(false);
   protected readonly isSuccess = signal<boolean>(false);
@@ -59,6 +59,7 @@ export class PinLock {
     if (this.isSubmitting() || this.authPinService.isLockedOut()) return;
     if (this.pin().length >= 6) return;
 
+    Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
     this.errorMessage.set('');
     const newPin = this.pin() + digit;
     this.pin.set(newPin);
@@ -73,6 +74,7 @@ export class PinLock {
     if (this.isSubmitting()) return;
     const current = this.pin();
     if (current.length > 0) {
+      Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
       this.pin.set(current.slice(0, -1));
       this.errorMessage.set('');
     }
@@ -90,17 +92,20 @@ export class PinLock {
     if (pinVal.length < 4) {
       this.errorMessage.set('Ingresa un PIN de al menos 4 dígitos.');
       this.triggerShake();
+      Haptics.notification({ type: NotificationType.Error }).catch(() => {});
       return;
     }
 
     this.isSubmitting.set(true);
-    const result = await this.authPinService.unlock(pinVal, this.rememberDevice());
+    const result = await this.authPinService.unlock(pinVal);
     this.isSubmitting.set(false);
 
     if (result.success) {
+      Haptics.notification({ type: NotificationType.Success }).catch(() => {});
       this.isSuccess.set(true);
       this.unlocked.emit();
     } else {
+      Haptics.notification({ type: NotificationType.Error }).catch(() => {});
       this.errorMessage.set(result.error || 'PIN incorrecto.');
       this.triggerShake();
       this.pin.set('');

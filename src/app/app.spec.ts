@@ -1,4 +1,6 @@
 import { TestBed } from '@angular/core/testing';
+import { vi } from 'vitest';
+import { App as CapApp } from '@capacitor/app';
 import { App } from './app';
 import { AuthPinService } from './core/services/auth-pin.service';
 
@@ -170,5 +172,11 @@ describe('App', () => {
 
     expect(authPinService.isUnlocked()).toBe(false);
     expect(app['showSplash']()).toBe(false);
+  });
+
+  it('has setupBackButtonHandler configured for hardware navigation', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    expect(typeof (app as any).setupBackButtonHandler).toBe('function');
   });
 });

@@ -93,15 +93,6 @@
 
     <!-- Opciones inferiores -->
     <div class="pin-footer">
-      <label class="remember-checkbox-label">
-        <input
-          type="checkbox"
-          [checked]="rememberDevice()"
-          (change)="rememberDevice.set($any($event.target).checked)"
-        />
-        <span>Recordar este equipo (30 días)</span>
-      </label>
-
       <button type="button" class="btn-change-pin-link" (click)="openChangeModal()">
         ⚙️ Cambiar o personalizar PIN
       </button>

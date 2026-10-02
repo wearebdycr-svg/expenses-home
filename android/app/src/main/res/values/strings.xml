@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Finanzas Hogar</string>
+    <string name="title_activity_main">Finanzas Hogar</string>
+    <string name="package_name">co.bebolder.expenseshome</string>
+    <string name="custom_url_scheme">co.bebolder.expenseshome</string>
+</resources>

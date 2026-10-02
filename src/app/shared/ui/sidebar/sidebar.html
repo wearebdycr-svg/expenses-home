@@ -1,17 +1,38 @@
-<button
-  type="button"
-  class="mobile-menu-btn"
-  [class.is-hidden]="mobileOpen()"
-  (click)="openMobileMenu()"
-  aria-label="Abrir menú de navegación"
->
-  <app-icon name="menu" [size]="20" />
-</button>
+<header class="mobile-navbar" [class.is-hidden]="mobileOpen()">
+  <button
+    type="button"
+    class="mobile-menu-btn"
+    (click)="openMobileMenu()"
+    aria-label="Abrir menú de navegación"
+  >
+    <app-icon name="menu" [size]="20" />
+  </button>
+
+  <div class="mobile-navbar-brand">
+    <div class="mobile-logo-circle">
+      <app-icon name="home" [size]="14" />
+    </div>
+    <span class="mobile-brand-title">{{ currentNavTitle }}</span>
+  </div>
+
+  <button
+    type="button"
+    class="mobile-lock-btn"
+    (click)="onLockApp()"
+    aria-label="Bloquear aplicación"
+    title="Bloquear aplicación"
+  >
+    <app-icon name="lock" [size]="16" />
+  </button>
+</header>
 
 <div
   class="sidebar-overlay"
   [class.visible]="mobileOpen()"
   (click)="closeMobileMenu()"
+  (keydown.escape)="closeMobileMenu()"
+  tabindex="-1"
+  aria-hidden="true"
 ></div>
 
 <aside class="sidebar" [class.is-open]="mobileOpen()">

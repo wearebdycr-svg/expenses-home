@@ -1,0 +1,147 @@
+name: "📱 Android APK Pipeline"
+
+on:
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      target_env:
+        description: 'Ambiente objetivo para compilar'
+        required: true
+        default: 'auto'
+        type: choice
+        options:
+          - 'auto'
+          - 'dev'
+          - 'prod'
+          - 'both'
+
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-apk:
+    name: "Build Android APK"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'gradle'
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Grant Execute Permission to Gradle Wrapper
+        run: chmod +x ./android/gradlew
+
+      # ------------------------------------------------------------------------
+      # 1. Compilación de APK DEV (Base de datos Desarrollo)
+      # Se ejecuta si:
+      # - Push a rama develop
+      # - Ejecución manual con target_env = 'dev', 'both', o 'auto' en develop
+      # ------------------------------------------------------------------------
+      - name: Build DEV APK (Conexión a BD Desarrollo)
+        if: >
+          (github.event_name == 'push' && github.ref == 'refs/heads/develop') ||
+          (github.event_name == 'workflow_dispatch' && (github.event.inputs.target_env == 'dev' || github.event.inputs.target_env == 'both' || (github.event.inputs.target_env == 'auto' && github.ref == 'refs/heads/develop')))
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL_DEV || secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY_DEV || secrets.SUPABASE_ANON_KEY }}
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY_DEV || secrets.FIREBASE_API_KEY }}
+          FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_AUTH_DOMAIN_DEV || secrets.FIREBASE_AUTH_DOMAIN }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID_DEV || secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET_DEV || secrets.FIREBASE_STORAGE_BUCKET }}
+          FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID_DEV || secrets.FIREBASE_MESSAGING_SENDER_ID }}
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID_DEV || secrets.FIREBASE_APP_ID }}
+          FIREBASE_MEASUREMENT_ID: ${{ secrets.FIREBASE_MEASUREMENT_ID_DEV || secrets.FIREBASE_MEASUREMENT_ID }}
+          FIREBASE_VAPID_KEY: ${{ secrets.FIREBASE_VAPID_KEY_DEV || secrets.FIREBASE_VAPID_KEY }}
+        run: |
+          echo "🔧 [DEV] Inyectando configuración de Base de Datos DEV..."
+          node scripts/set-env.js --env=dev
+          echo "🏗️ [DEV] Compilando Web Bundle Angular..."
+          npm run build
+          echo "📲 [DEV] Sincronizando Capacitor con Android..."
+          npx cap sync android
+          echo "📦 [DEV] Ensamblando APK Debug (co.bebolder.expenseshome.dev)..."
+          ./android/gradlew -p android assembleDebug
+          mkdir -p build-artifacts
+          cp android/app/build/outputs/apk/debug/app-debug.apk build-artifacts/FinanzasHogar-dev.apk
+          echo "✅ [DEV] FinanzasHogar-dev.apk generado con éxito."
+
+      # ------------------------------------------------------------------------
+      # 2. Compilación de APK PRODUCCIÓN / RELEASE (Base de datos Producción)
+      # Se ejecuta si:
+      # - Push a rama main
+      # - Ejecución manual con target_env = 'prod', 'both', o 'auto' en main
+      # ------------------------------------------------------------------------
+      - name: Build PRODUCTION Release APK (Conexión a BD Producción)
+        if: >
+          (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+          (github.event_name == 'workflow_dispatch' && (github.event.inputs.target_env == 'prod' || github.event.inputs.target_env == 'both' || (github.event.inputs.target_env == 'auto' && github.ref == 'refs/heads/main')))
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL_PROD || secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY_PROD || secrets.SUPABASE_ANON_KEY }}
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY_PROD || secrets.FIREBASE_API_KEY }}
+          FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_AUTH_DOMAIN_PROD || secrets.FIREBASE_AUTH_DOMAIN }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID_PROD || secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET_PROD || secrets.FIREBASE_STORAGE_BUCKET }}
+          FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID_PROD || secrets.FIREBASE_MESSAGING_SENDER_ID }}
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID_PROD || secrets.FIREBASE_APP_ID }}
+          FIREBASE_MEASUREMENT_ID: ${{ secrets.FIREBASE_MEASUREMENT_ID_PROD || secrets.FIREBASE_MEASUREMENT_ID }}
+          FIREBASE_VAPID_KEY: ${{ secrets.FIREBASE_VAPID_KEY_PROD || secrets.FIREBASE_VAPID_KEY }}
+        run: |
+          echo "🚀 [PROD] Inyectando configuración de Base de Datos PRODUCCIÓN..."
+          node scripts/set-env.js --env=prod
+          echo "🏗️ [PROD] Compilando Web Bundle Angular para Producción..."
+          npm run build
+          echo "📲 [PROD] Sincronizando Capacitor con Android..."
+          npx cap sync android
+          echo "📦 [PROD] Ensamblando APK Release (co.bebolder.expenseshome)..."
+          ./android/gradlew -p android assembleRelease
+          mkdir -p build-artifacts
+          cp android/app/build/outputs/apk/release/app-release.apk build-artifacts/FinanzasHogar-release.apk
+          echo "✅ [PROD] FinanzasHogar-release.apk generado con éxito."
+
+      # ------------------------------------------------------------------------
+      # 3. Subir Artefactos APK a GitHub Actions
+      # ------------------------------------------------------------------------
+      - name: Upload APKs Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FinanzasHogar-Android-APKs
+          path: build-artifacts/*.apk
+          retention-days: 30
+
+      # ------------------------------------------------------------------------
+      # 4. Generar Reporte de Ejecución (GitHub Step Summary)
+      # ------------------------------------------------------------------------
+      - name: Generate Summary Report
+        run: |
+          echo "### 📱 Android APKs Compilados con Éxito" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Archivo | Entorno BD | App ID | Tamaño | Rama Git |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- | :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+          if [ -f build-artifacts/FinanzasHogar-dev.apk ]; then
+            dev_size=$(ls -lh build-artifacts/FinanzasHogar-dev.apk | awk '{print $5}')
+            echo "| **FinanzasHogar-dev.apk** | 🟡 **DESARROLLO (DEV)** | \`co.bebolder.expenseshome.dev\` | $dev_size | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ -f build-artifacts/FinanzasHogar-release.apk ]; then
+            rel_size=$(ls -lh build-artifacts/FinanzasHogar-release.apk | awk '{print $5}')
+            echo "| **FinanzasHogar-release.apk** | 🟢 **PRODUCCIÓN (PDN)** | \`co.bebolder.expenseshome\` | $rel_size | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "👉 *Descarga el archivo APK generado desde la tarjeta **Artifacts** de este workflow.*" >> $GITHUB_STEP_SUMMARY

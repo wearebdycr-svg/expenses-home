@@ -1,0 +1,119 @@
+# ==============================================================================
+# PIPELINE MOBILE: ANDROID APK (GitLab CI)
+# ==============================================================================
+# Compila y empaqueta la aplicación nativa Android según la rama:
+# - Rama develop -> Base de datos DEV  -> FinanzasHogar-dev.apk
+# - Rama main    -> Base de datos PDN  -> FinanzasHogar-release.apk
+# ==============================================================================
+
+variables:
+  NG_CLI_ANALYTICS: "false"
+  CI: "true"
+  npm_config_cache: "$CI_PROJECT_DIR/.npm"
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+
+stages:
+  - prepare-assets
+  - build-apk
+
+# ------------------------------------------------------------------------------
+# 1. Preparación de Assets Web (Node.js 22)
+# ------------------------------------------------------------------------------
+.prepare-base:
+  image: node:22
+  stage: prepare-assets
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - .npm/
+  before_script:
+    - npm ci --prefer-offline --no-audit
+
+prepare:assets:dev:
+  extends: .prepare-base
+  script:
+    - echo "🔧 [DEV] Inyectando configuración de Base de Datos DEV..."
+    - node scripts/set-env.js --env=dev
+    - echo "🏗️ [DEV] Compilando Web Bundle Angular..."
+    - npm run build
+    - echo "📲 [DEV] Sincronizando con Android..."
+    - npx cap sync android
+  artifacts:
+    name: "android-assets-dev-$CI_COMMIT_REF_SLUG"
+    paths:
+      - android/
+    expire_in: 1 day
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_PIPELINE_SOURCE == "web" && $TARGET_ENV != "prod"
+
+prepare:assets:prod:
+  extends: .prepare-base
+  script:
+    - echo "🚀 [PROD] Inyectando configuración de Base de Datos PRODUCCIÓN..."
+    - node scripts/set-env.js --env=prod
+    - echo "🏗️ [PROD] Compilando Web Bundle Angular para Producción..."
+    - npm run build
+    - echo "📲 [PROD] Sincronizando con Android..."
+    - npx cap sync android
+  artifacts:
+    name: "android-assets-prod-$CI_COMMIT_REF_SLUG"
+    paths:
+      - android/
+    expire_in: 1 day
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_PIPELINE_SOURCE == "web" && $TARGET_ENV != "dev"
+
+# ------------------------------------------------------------------------------
+# 2. Ensamblado de APK Nativo (Android SDK / Java 21)
+# ------------------------------------------------------------------------------
+.android-base:
+  image: ghcr.io/cirruslabs/android-sdk:34
+  stage: build-apk
+  cache:
+    key: gradle-cache-$CI_PROJECT_ID
+    paths:
+      - .gradle/
+
+apk:android:dev:
+  extends: .android-base
+  needs:
+    - job: prepare:assets:dev
+  script:
+    - echo "📦 [DEV] Ensamblando APK Debug con BD Desarrollo..."
+    - chmod +x ./android/gradlew
+    - ./android/gradlew -p android assembleDebug
+    - mkdir -p apk-artifacts
+    - cp android/app/build/outputs/apk/debug/app-debug.apk apk-artifacts/FinanzasHogar-dev.apk
+    - ls -lh apk-artifacts/
+  artifacts:
+    name: "FinanzasHogar-dev-apk-$CI_COMMIT_REF_SLUG"
+    paths:
+      - apk-artifacts/FinanzasHogar-dev.apk
+    expire_in: 30 days
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_PIPELINE_SOURCE == "web" && $TARGET_ENV != "prod"
+
+apk:android:release:
+  extends: .android-base
+  needs:
+    - job: prepare:assets:prod
+  script:
+    - echo "🚀 [PROD] Ensamblando APK Release con BD Producción..."
+    - chmod +x ./android/gradlew
+    - ./android/gradlew -p android assembleRelease
+    - mkdir -p apk-artifacts
+    - cp android/app/build/outputs/apk/release/app-release.apk apk-artifacts/FinanzasHogar-release.apk
+    - ls -lh apk-artifacts/
+  artifacts:
+    name: "FinanzasHogar-release-apk-$CI_COMMIT_REF_SLUG"
+    paths:
+      - apk-artifacts/FinanzasHogar-release.apk
+    expire_in: 30 days
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_PIPELINE_SOURCE == "web" && $TARGET_ENV != "dev"

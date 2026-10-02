@@ -1,4 +1,5 @@
 import { Injectable, signal } from '@angular/core';
+import { App as CapApp } from '@capacitor/app';
 
 const PIN_STORAGE_KEY = 'expenses_home_pin_hash';
 const PIN_SALT_KEY = 'expenses_home_pin_salt';
@@ -43,6 +44,38 @@ export class AuthPinService {
 
   constructor() {
     this.checkInitialState();
+    this.setupAutoLockListeners();
+  }
+
+  private setupAutoLockListeners(): void {
+    if (typeof window === 'undefined') return;
+
+    // 1. Escuchar ciclo de vida nativo de Capacitor (cuando la app pasa a segundo plano o se minimiza)
+    try {
+      CapApp.addListener('appStateChange', ({ isActive }) => {
+        if (!isActive) {
+          this.lock();
+        }
+      });
+    } catch {
+      // Ignorar en entornos no nativos
+    }
+
+    // 2. Escuchar visibilidad web (cuando se minimiza o cambia de pestaña en navegador)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        this.lock();
+      }
+    });
+
+    // 3. Eventos adicionales nativos y webview móvil
+    document.addEventListener('pause', () => {
+      this.lock();
+    });
+
+    window.addEventListener('pagehide', () => {
+      this.lock();
+    });
   }
 
   private checkInitialState(): void {
@@ -58,25 +91,7 @@ export class AuthPinService {
     // 2. Revisar bloqueo por intentos fallidos
     this.checkLockoutStatus();
 
-    // 3. Revisar si hay sesión activa válida (localStorage o sessionStorage)
-    const sessionStr =
-      localStorage.getItem(SESSION_STORAGE_KEY) ||
-      (typeof sessionStorage !== 'undefined'
-        ? sessionStorage.getItem(SESSION_STORAGE_KEY)
-        : null);
-
-    if (sessionStr) {
-      try {
-        const session = JSON.parse(sessionStr);
-        if (session.unlocked && session.expiresAt && Date.now() < session.expiresAt) {
-          this.isUnlocked.set(true);
-          return;
-        }
-      } catch {
-        // Sesión inválida
-      }
-    }
-
+    // 3. Por seguridad familiar y financiera, la aplicación SIEMPRE inicia bloqueada requiriendo la clave
     this.isUnlocked.set(false);
   }
 
@@ -141,19 +156,6 @@ export class AuthPinService {
       localStorage.removeItem(FAILED_ATTEMPTS_KEY);
       this.isLockedOut.set(false);
       this.lockoutRemainingSecs.set(0);
-
-      // Guardar sesión
-      const expiresAt = rememberDevice
-        ? Date.now() + REMEMBER_DAYS_MS
-        : Date.now() + 12 * 60 * 60 * 1000; // 12 horas
-
-      const sessionData = JSON.stringify({ unlocked: true, expiresAt });
-
-      if (rememberDevice) {
-        localStorage.setItem(SESSION_STORAGE_KEY, sessionData);
-      } else if (typeof sessionStorage !== 'undefined') {
-        sessionStorage.setItem(SESSION_STORAGE_KEY, sessionData);
-      }
 
       this.isUnlocked.set(true);
       return { success: true };

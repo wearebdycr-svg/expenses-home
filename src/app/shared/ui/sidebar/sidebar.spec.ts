@@ -90,4 +90,22 @@ describe('Sidebar', () => {
     expect(spy).toHaveBeenCalledWith('resumen');
     expect(component['mobileOpen']()).toBe(false);
   });
+
+  it('displays the current nav title in the mobile navbar', () => {
+    fixture.componentRef.setInput('currentPage', 'tc-compartida');
+    fixture.detectChanges();
+
+    const titleEl = fixture.nativeElement.querySelector('.mobile-brand-title') as HTMLElement;
+    expect(titleEl.textContent?.trim()).toBe('TCs');
+  });
+
+  it('emits lockApp when the mobile lock button is clicked', () => {
+    const spy = vi.fn();
+    component.lockApp.subscribe(spy);
+
+    const lockBtn = fixture.nativeElement.querySelector('.mobile-lock-btn') as HTMLButtonElement;
+    lockBtn.click();
+
+    expect(spy).toHaveBeenCalled();
+  });
 });

@@ -19,6 +19,7 @@ stages:
   - tests-pipeline
   - scan-pipeline
   - deploy-pipeline
+  - mobile-pipeline
 
 # ------------------------------------------------------------------------------
 # 1. PIPELINE DE TESTS (Independiente)
@@ -72,4 +73,23 @@ trigger:deploy:
     - if: $CI_COMMIT_BRANCH == "develop"
       when: manual
       allow_failure: true
+    - if: $CI_PIPELINE_SOURCE == "web"
+
+# ------------------------------------------------------------------------------
+# 4. PIPELINE DE MOBILE ANDROID APK (Independiente)
+# Genera APK de desarrollo (develop) o producción (main) con su respectiva BD.
+# ------------------------------------------------------------------------------
+trigger:mobile:
+  stage: mobile-pipeline
+  needs:
+    - job: trigger:tests
+    - job: trigger:scan
+  trigger:
+    include: .gitlab/ci/android.gitlab-ci.yml
+    strategy: depend
+  rules:
+    - if: $PIPELINE_TARGET == "test_only" || $PIPELINE_TARGET == "scan_only" || $PIPELINE_TARGET == "deploy_only"
+      when: never
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "develop"
     - if: $CI_PIPELINE_SOURCE == "web"
