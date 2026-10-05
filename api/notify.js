@@ -100,6 +100,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       status: 'online',
       hasSupabaseConfig: !!(supabaseUrl && supabaseAnonKey),
+      dbHost: supabaseUrl ? new URL(supabaseUrl).host : 'none',
       authMethod: serviceAccount ? 'fcm_v1' : fcmServerKey ? 'fcm_legacy' : 'none',
       projectId: serviceAccount?.project_id || process.env.FIREBASE_PROJECT_ID || 'expenses-home',
     });
