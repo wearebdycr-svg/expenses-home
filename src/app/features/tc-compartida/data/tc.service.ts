@@ -693,7 +693,9 @@ export class TcService {
         });
       }
       this.toastService.success('Consumo de TC registrado');
-      this.pushNotificationService.handleTcExpenseCreated(draft, this.tcExpenses());
+      // La notificación general de uso de TC la despacha automáticamente el Database Webhook de Supabase.
+      // Aquí evaluamos si se superó el tope semanal configurado:
+      this.pushNotificationService.checkTcWeeklyBudgetAlert(draft, this.tcExpenses());
     } catch (err: any) {
       console.error('Error de red al insertar consumo TC:', err);
     }
@@ -757,7 +759,6 @@ export class TcService {
         category: existing.category,
         cardId: existing.cardId,
       };
-      this.pushNotificationService.handleTcExpenseDeleted(existing);
       this.toastService.success('Consumo de TC eliminado', {
         label: 'Deshacer',
         onClick: () => {

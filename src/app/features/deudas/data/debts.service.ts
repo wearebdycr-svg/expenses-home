@@ -392,7 +392,6 @@ export class DebtsService {
         this.persistLocal(this.debts());
       }
       this.toastService.success('Deuda registrada exitosamente');
-      this.pushNotificationService.handleDebtCreated(draft);
     } catch (err: any) {
       console.error('Error de red insertando deuda en Supabase:', err);
     }
@@ -476,7 +475,6 @@ export class DebtsService {
         totalMonths: existing.totalMonths,
         status: existing.status,
       };
-      this.pushNotificationService.handleDebtDeleted(existing);
       this.toastService.success('Deuda eliminada', {
         label: 'Deshacer',
         onClick: () => {

@@ -194,7 +194,6 @@ export class IncomesService {
         }
       }
       this.toastService.success('Ingreso registrado exitosamente');
-      this.pushNotificationService.handleIncomeCreated(draft);
     } catch (err: any) {
       console.error('Error de red insertando en Supabase:', err);
     }
@@ -245,7 +244,6 @@ export class IncomesService {
         description: existing.description,
         amount: existing.amount,
       };
-      this.pushNotificationService.handleIncomeDeleted(existing);
       this.toastService.success('Ingreso eliminado', {
         label: 'Deshacer',
         onClick: () => {

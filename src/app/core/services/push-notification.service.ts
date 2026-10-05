@@ -414,24 +414,31 @@ export class PushNotificationService {
     await this.dispatchPushNotification(expenseMessage);
 
     // 2. Criterio 3.1: Disparo de Notificación por Consumo Excedido (Push Automatizado)
+    await this.checkBudgetThresholdAlert(newExpense, monthlyExpenses);
+  }
+
+  /**
+   * Evalúa si un gasto supera el presupuesto mensual configurado en Remote Config
+   */
+  async checkBudgetThresholdAlert(newExpense: ExpenseDraft, monthlyExpenses: readonly Expense[]): Promise<void> {
+    const isPushEnabled = this.remoteConfig.enablePushAlerts();
+    if (!isPushEnabled) return;
+
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
     const budget = this.remoteConfig.getBudgetForCategory(newExpense.category);
     if (budget != null && budget > 0) {
-      // Calcular gasto acumulado del mes para este rubro
       const sameCategoryExpenses = monthlyExpenses.filter((e) => {
         const [y, m] = e.date.split('-').map(Number);
         return y === currentYear && m === currentMonth && e.category === newExpense.category;
       });
 
-      // Incluyendo el nuevo gasto
       const accumulated = sameCategoryExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-
-      // Fórmula de disparo: Gasto Acumulado Mes >= Tope Remote Config * (alert_threshold_pct / 100)
       const thresholdPct = this.remoteConfig.alertThresholdPct();
       const thresholdAmount = budget * (thresholdPct / 100);
 
       if (accumulated >= thresholdAmount) {
         const pct = (accumulated / budget) * 100;
-        // Criterio 3.2: Payload de Notificación Push FCM
         const alertMessage: PushNotificationMessage = {
           title: '⚠️ Tope Financiero en Riesgo',
           body: `El rubro ${newExpense.category} ha consumido el ${pct.toFixed(1)}% de su límite (${formatCOP(accumulated)} de ${formatCOP(budget)}).`,
@@ -472,8 +479,16 @@ export class PushNotificationService {
     };
 
     await this.dispatchPushNotification(tcMessage);
+    await this.checkTcWeeklyBudgetAlert(newExpense, allTcExpenses);
+  }
 
-    // Evaluación de tope semanal de TC Compartida
+  /**
+   * Evalúa el tope semanal de la tarjeta compartida según Remote Config
+   */
+  async checkTcWeeklyBudgetAlert(newExpense: TcExpenseDraft, allTcExpenses: readonly TcExpense[]): Promise<void> {
+    const isPushEnabled = this.remoteConfig.enablePushAlerts();
+    if (!isPushEnabled) return;
+
     const tcWeeklyBudget = this.remoteConfig.tcWeeklyBudget();
     if (tcWeeklyBudget > 0) {
       const { mondayStr, sundayStr } = getWeekDateRange();

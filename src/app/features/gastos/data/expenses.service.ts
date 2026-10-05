@@ -258,7 +258,9 @@ export class ExpensesService {
         }
       }
       this.toastService.success('Gasto registrado exitosamente');
-      this.pushNotificationService.handleExpenseCreated(draft, this.expenses());
+      // La notificación general de nuevo gasto la despacha automáticamente el Database Webhook de Supabase.
+      // Aquí evaluamos si el gasto excede los topes de presupuesto de Remote Config:
+      this.pushNotificationService.checkBudgetThresholdAlert(draft, this.expenses());
     } catch (err: any) {
       console.error('Error de red al insertar gasto:', err);
     }
@@ -309,7 +311,6 @@ export class ExpensesService {
         description: existing.description,
         amount: existing.amount,
       };
-      this.pushNotificationService.handleExpenseDeleted(existing);
       this.toastService.success('Gasto eliminado', {
         label: 'Deshacer',
         onClick: () => {
