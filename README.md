@@ -314,6 +314,7 @@ Para proteger la información financiera de miradas no autorizadas al compartir 
 - **Protección Anti-Fuerza Bruta**: Si se introducen **5 intentos fallidos consecutivos**, el sistema impone un bloqueo temporal de seguridad de **30 segundos** antes de permitir un nuevo intento.
 - **Persistencia Segura**: Opción para recordar el dispositivo de confianza durante 30 días mediante un token de sesión hasheado.
 - **Gestión de Credenciales**: Capacidad para actualizar el PIN familiar en cualquier momento desde la barra lateral.
+- **Auditoría Continua y PR Gating con Aikido Security**: Escaneo continuo de seguridad (SAST, SCA, detección de secretos expuestos y configuraciones IaC) integrado mediante la GitHub App oficial de Aikido Security en cada Pull Request.
 
 ---
 
@@ -345,6 +346,7 @@ flowchart TD
    - `Dependency Vulnerability Audit`: Ejecuta `npm run audit` para auditar la cadena de dependencias.
 3. **`🚀 Deploy Pipeline` (`deploy.yml`)**: Se dispara tras la finalización de los pipelines previos, comprueba el estado del commit mediante la API de GitHub Actions y autoriza la compilación y despliegue a producción en Vercel únicamente cuando ambos son exitosos.
 4. **`📱 Android APK Pipeline` (`android-apk.yml`)**: Compila automáticamente los instaladores nativos de Android (`FinanzasHogar-debug.apk` y `FinanzasHogar-release.apk`) en cada push a `main` y `develop`, dejándolos listos para descarga como artefacto descargable en GitHub Actions con 30 días de retención.
+5. **`🛡️ Aikido Security PR Checks` (GitHub App)**: Analiza automáticamente cada Pull Request evaluando SAST, SCA (vulnerabilidades de dependencias), fugas de secretos y riesgos de IaC, bloqueando la integración si se detectan anomalías críticas.
 
 *(Misma arquitectura web disponible en GitLab CI mediante `.gitlab-ci.yml`, `tests.gitlab-ci.yml`, `scan.gitlab-ci.yml` y `deploy.gitlab-ci.yml`).*
 
