@@ -180,7 +180,9 @@ export default async function handler(req, res) {
       supabase = createClient(supabaseUrl, supabaseAnonKey);
       let query = supabase.from('fcm_tokens').select('token');
 
-      if (senderToken) {
+      // Por defecto despachamos a todos los dispositivos del hogar (incluyendo confirmación en el propio móvil).
+      // Solo excluimos el emisor si explícitamente se solicita excludeSender: true.
+      if (senderToken && req.body?.excludeSender === true) {
         query = query.neq('token', senderToken);
       }
 
