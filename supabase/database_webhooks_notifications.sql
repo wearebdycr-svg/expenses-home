@@ -71,8 +71,8 @@ FOR EACH ROW EXECUTE FUNCTION public.handle_expense_notify();
 -- ==============================================================================
 -- CONSULTAS ÚTILES DE MONITOREO EN SUPABASE SQL EDITOR:
 -- ==============================================================================
--- Ver historial de peticiones HTTP enviadas por pg_net:
--- SELECT id, url, method, error_msg, created FROM net._http_response ORDER BY created DESC LIMIT 10;
+-- Ver historial de respuestas HTTP recibidas por pg_net:
+-- SELECT id, status_code, content, error_msg, timed_out, created FROM net._http_response ORDER BY created DESC LIMIT 10;
 -- 
 -- Ver estado de triggers activos:
 -- SELECT trigger_name, event_manipulation, event_object_table 
