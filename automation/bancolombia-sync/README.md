@@ -17,7 +17,9 @@ Gracias a **Supabase Realtime**, cualquier gasto que hagas en la calle aparecer�
   * Si la compra se hizo con la **Tarjeta de Crédito Compartida** (identificada por sus últimos 4 dígitos), se guarda directamente en la tabla `tc_expenses` de la TC Compartida.
   * Si fue con tarjeta personal, débito o transferencia, se guarda en `expenses` bajo el nombre de la persona (`Charlie` o `Benny`).
 * **Categorización automática**: Clasifica comercios colombianos frecuentes a las 15 categorías oficiales (ej. *Éxito, Carulla, D1* $\to$ `Mercado`; *Uber, DiDi, Texaco* $\to$ `Transporte`; *Netflix, Spotify* $\to$ `Suscripciones`; *Enel, EPM, Claro* $\to$ `Servicios públicos`).
-* **Anti-duplicación**: Etiqueta los correos procesados en Gmail (`ExpensesHome/Procesado`) para no registrar nunca un gasto dos veces.
+* **Manejo de hilos agrupados de Gmail**: Procesa cada correo por su **ID único de mensaje**, evitando que compras sucesivas se pierdan cuando Gmail agrupa varios correos de Bancolombia en una sola conversación.
+* **Frecuencia configurable y Modo Nocturno**: Ajusta el intervalo de ejecución entre 5 min, 10 min, 15 min, 30 min o 1 hora (`TRIGGER_EVERY_MINUTES`), con opción de suspender revisiones en la noche (`NIGHT_MODE_SAVINGS`) para optimizar cuotas.
+* **Anti-duplicación multinivel**: Valida por ID de mensaje procesado y por coincidencia exacta en Supabase (monto, fecha, comercio y persona) para no duplicar ningún registro.
 * **100% Gratuito y sin servidores**: Corre en los servidores de Google Apps Script dentro de tu propia cuenta de Gmail.
 
 ---
@@ -59,6 +61,14 @@ const CONFIG = {
   LABEL_PROCESSED: 'ExpensesHome/Procesado',
   LABEL_ERROR: 'ExpensesHome/Error',
   BANCOLOMBIA_SENDER: 'alertasynotificaciones@notificacionesbancolombia.com',
+
+  // 5. Frecuencia de escaneo: 5, 10, 15, 30 o 60 (1 hora)
+  TRIGGER_EVERY_MINUTES: 10,
+
+  // 6. Modo nocturno: pausa escaneos entre 11 PM y 6 AM para ahorrar cuota
+  NIGHT_MODE_SAVINGS: false, // Cambia a true si deseas activarlo
+  NIGHT_START_HOUR: 23,
+  NIGHT_END_HOUR: 6,
 };
 ```
 

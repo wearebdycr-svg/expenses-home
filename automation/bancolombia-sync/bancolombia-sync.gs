@@ -51,6 +51,23 @@ const CONFIG = {
 
   // Dominio o remitente oficial de Bancolombia (cubre subdominios como ayn. y an.)
   BANCOLOMBIA_SENDER: 'notificacionesbancolombia.com',
+
+  // ------------------------------------------------------------------------
+  // INTERVALO Y FRECUENCIA DE EJECUCIÓN (Configurable)
+  // ------------------------------------------------------------------------
+  // Frecuencia en minutos para el disparador automático.
+  // Valores permitidos en Google Apps Script: 5, 10, 15, 30 o 60 (para 1 hora).
+  TRIGGER_EVERY_MINUTES: 10,
+
+  // ------------------------------------------------------------------------
+  // OPTIMIZACIÓN NOCTURNA (Ahorro de cuotas)
+  // ------------------------------------------------------------------------
+  // En las noches rara vez se realizan compras. Si activas esto (true),
+  // el script pausará las consultas automáticas entre NIGHT_START_HOUR y NIGHT_END_HOUR.
+  // Apenas termine la noche (ej. 6:00 AM), procesará cualquier compra pendiente.
+  NIGHT_MODE_SAVINGS: false, // Cambiar a true si deseas pausar escaneos en la noche
+  NIGHT_START_HOUR: 23,      // 11:00 PM (hora Colombia)
+  NIGHT_END_HOUR: 6,         // 6:00 AM (hora Colombia)
 };
 
 // ==============================================================================
@@ -111,21 +128,46 @@ const CATEGORY_KEYWORDS = {
  * Función principal que busca correos no procesados y los sincroniza
  */
 function syncBancolombiaEmails() {
-  const query = `from:${CONFIG.BANCOLOMBIA_SENDER} -label:${CONFIG.LABEL_PROCESSED} newer_than:${CONFIG.MAX_DAYS_AGO}`;
-  const threads = GmailApp.search(query, 0, 25);
+  // 1. Optimización Nocturna opcional
+  if (CONFIG.NIGHT_MODE_SAVINGS) {
+    const bogotaHour = parseInt(Utilities.formatDate(new Date(), 'America/Bogota', 'HH'), 10);
+    const isNight = (CONFIG.NIGHT_START_HOUR > CONFIG.NIGHT_END_HOUR)
+      ? (bogotaHour >= CONFIG.NIGHT_START_HOUR || bogotaHour < CONFIG.NIGHT_END_HOUR)
+      : (bogotaHour >= CONFIG.NIGHT_START_HOUR && bogotaHour < CONFIG.NIGHT_END_HOUR);
+
+    if (isNight) {
+      Logger.log(`🌙 [Modo Nocturno] Son las ${bogotaHour}:00 (rango nocturno: ${CONFIG.NIGHT_START_HOUR}:00 a ${CONFIG.NIGHT_END_HOUR}:00). Omitiendo ejecución para optimizar cuota.`);
+      return;
+    }
+  }
+
+  // 2. Búsqueda de correos recientes de Bancolombia
+  // NOTA CLAVE: NO filtramos por -label:Procesado en la consulta porque Gmail agrupa
+  // correos nuevos dentro de hilos ya etiquetados. En su lugar, validamos mensaje por mensaje por su Message-ID único.
+  const query = `from:${CONFIG.BANCOLOMBIA_SENDER} newer_than:${CONFIG.MAX_DAYS_AGO}`;
+  const threads = GmailApp.search(query, 0, 30);
 
   if (threads.length === 0) {
-    Logger.log('No se encontraron correos nuevos de Bancolombia para procesar.');
+    Logger.log('No se encontraron correos recientes de Bancolombia.');
     return;
   }
 
   const processedLabel = getOrCreateLabel(CONFIG.LABEL_PROCESSED);
   const errorLabel = getOrCreateLabel(CONFIG.LABEL_ERROR);
+  const processedIds = new Set(getProcessedMessageIds());
+  let newMessagesProcessed = 0;
 
   for (const thread of threads) {
     const messages = thread.getMessages();
+    let threadHasUnprocessed = false;
+
     for (const message of messages) {
-      if (hasLabel(thread, CONFIG.LABEL_PROCESSED)) continue;
+      const msgId = message.getId();
+
+      // Si este mensaje individual ya fue procesado antes, omitirlo de inmediato
+      if (processedIds.has(msgId)) {
+        continue;
+      }
 
       const body = message.getPlainBody();
       const subject = message.getSubject();
@@ -135,28 +177,47 @@ function syncBancolombiaEmails() {
         const parsed = parseBancolombiaEmail(body, subject, date);
 
         if (parsed) {
-          // Filtro de seguridad: ignorar y marcar transacciones con más de 7 días de antigüedad
+          // Filtro de seguridad: ignorar transacciones con más de 7 días de antigüedad
           const txDate = new Date(parsed.date + 'T00:00:00');
           const now = new Date();
           const diffDays = (now - txDate) / (1000 * 60 * 60 * 24);
           if (diffDays > 7) {
             Logger.log(`⏭️ Omitiendo transacción antigua (${parsed.date}): ${parsed.description}`);
-            thread.addLabel(processedLabel);
+            markMessageAsProcessed(msgId);
+            processedIds.add(msgId);
+            message.markRead();
             continue;
           }
 
-          Logger.log(`Registro extraído [${parsed.type.toUpperCase()}]: $${parsed.amount} - ${parsed.description} (${parsed.targetTable})`);
+          Logger.log(`📥 [NUEVO] Mensaje procesado en hilo (${msgId}) [${parsed.type.toUpperCase()}]: $${parsed.amount} - ${parsed.description} (${parsed.targetTable})`);
           saveRecordToSupabase(parsed);
-          thread.addLabel(processedLabel);
+          markMessageAsProcessed(msgId);
+          processedIds.add(msgId);
+          message.markRead();
+          newMessagesProcessed++;
         } else {
-          // No es un correo transaccional relevante (ej: seguridad, inicio de sesión)
-          thread.addLabel(processedLabel);
+          // No es un correo transaccional relevante (ej: seguridad, inicio de sesión, clave dinámica)
+          markMessageAsProcessed(msgId);
+          processedIds.add(msgId);
+          message.markRead();
         }
       } catch (err) {
-        Logger.log(`Error procesando mensaje: ${err.message}`);
+        Logger.log(`⚠️ Error procesando mensaje individual ${msgId}: ${err.message}`);
+        threadHasUnprocessed = true;
         thread.addLabel(errorLabel);
       }
     }
+
+    // Si todos los mensajes del hilo fueron procesados con éxito, asegurar la etiqueta visual en Gmail
+    if (!threadHasUnprocessed) {
+      thread.addLabel(processedLabel);
+    }
+  }
+
+  if (newMessagesProcessed > 0) {
+    Logger.log(`🎉 Sincronización completada: se registraron ${newMessagesProcessed} nuevas transacciones.`);
+  } else {
+    Logger.log('ℹ️ Todos los mensajes dentro de los hilos ya se encontraban previamente procesados.');
   }
 }
 
@@ -485,6 +546,47 @@ function hasLabel(thread, name) {
   return labels.some((l) => l.getName() === name);
 }
 
+/**
+ * Obtiene la lista de IDs de mensajes individuales de Gmail ya procesados
+ * (Persistidos en PropertiesService de Google Apps Script para no duplicar correos dentro de un mismo hilo)
+ */
+function getProcessedMessageIds() {
+  const props = PropertiesService.getUserProperties();
+  const raw = props.getProperty('PROCESSED_MESSAGE_IDS');
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+/**
+ * Guarda un ID de mensaje en el almacén de propiedades (con rotación de los últimos 250)
+ */
+function markMessageAsProcessed(msgId) {
+  if (!msgId) return;
+  const props = PropertiesService.getUserProperties();
+  let ids = getProcessedMessageIds();
+  if (!ids.includes(msgId)) {
+    ids.push(msgId);
+    // Limitar a los últimos 250 IDs para no superar el límite de 9KB de PropertiesService
+    if (ids.length > 250) {
+      ids = ids.slice(ids.length - 200);
+    }
+    props.setProperty('PROCESSED_MESSAGE_IDS', JSON.stringify(ids));
+  }
+}
+
+/**
+ * Utilidad manual para reiniciar la memoria de mensajes procesados si se necesita forzar reproceso
+ */
+function resetProcessedMessageCache() {
+  PropertiesService.getUserProperties().deleteProperty('PROCESSED_MESSAGE_IDS');
+  Logger.log('🧹 Caché de mensajes procesados reiniciada con éxito.');
+}
+
 // ==============================================================================
 // 3. UTILIDADES DE PRUEBA Y AUTOMATIZACIÓN
 // ==============================================================================
@@ -532,7 +634,7 @@ function testWithSampleEmail() {
 }
 
 /**
- * Ejecuta esta función UNA SOLA VEZ para instalar el disparador automático cada 10 minutos
+ * Ejecuta esta función para instalar o actualizar el disparador automático según CONFIG.TRIGGER_EVERY_MINUTES
  */
 function installTrigger() {
   const triggers = ScriptApp.getProjectTriggers();
@@ -542,10 +644,17 @@ function installTrigger() {
     }
   }
 
-  ScriptApp.newTrigger('syncBancolombiaEmails')
-    .timeBased()
-    .everyMinutes(10)
-    .create();
+  const minutes = Number(CONFIG.TRIGGER_EVERY_MINUTES) || 10;
+  const builder = ScriptApp.newTrigger('syncBancolombiaEmails').timeBased();
 
-  Logger.log('✅ Disparador instalado: Se ejecutará automáticamente cada 10 minutos.');
+  if (minutes >= 60) {
+    const hours = Math.max(1, Math.floor(minutes / 60));
+    builder.everyHours(hours).create();
+    Logger.log(`✅ Disparador instalado: Se ejecutará automáticamente cada ${hours} hora(s).`);
+  } else {
+    // Valores válidos en Google Apps Script: 1, 5, 10, 15, 30
+    const validMinutes = [1, 5, 10, 15, 30].includes(minutes) ? minutes : 10;
+    builder.everyMinutes(validMinutes).create();
+    Logger.log(`✅ Disparador instalado: Se ejecutará automáticamente cada ${validMinutes} minutos.`);
+  }
 }
