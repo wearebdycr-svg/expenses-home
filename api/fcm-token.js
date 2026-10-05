@@ -13,6 +13,25 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
+  if (req.method === 'GET') {
+    if (supabaseUrl && supabaseAnonKey) {
+      try {
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+        const { count, error } = await supabase
+          .from('fcm_tokens')
+          .select('*', { count: 'exact', head: true });
+
+        if (error) {
+          return res.status(200).json({ status: 'error', error: error.message });
+        }
+        return res.status(200).json({ status: 'ok', registeredTokensCount: count });
+      } catch (e) {
+        return res.status(500).json({ status: 'error', message: e.message });
+      }
+    }
+    return res.status(200).json({ status: 'unconfigured' });
+  }
+
   if (req.method === 'POST') {
     const { token, person, household_id, device_info } = req.body || {};
 

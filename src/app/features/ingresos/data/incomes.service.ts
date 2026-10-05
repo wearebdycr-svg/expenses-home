@@ -245,6 +245,7 @@ export class IncomesService {
         description: existing.description,
         amount: existing.amount,
       };
+      this.pushNotificationService.handleIncomeDeleted(existing);
       this.toastService.success('Ingreso eliminado', {
         label: 'Deshacer',
         onClick: () => {
@@ -287,6 +288,8 @@ export class IncomesService {
             this.loadIncomes(false);
             if (payload?.eventType === 'INSERT' && payload?.new) {
               this.pushNotificationService.notifyIncomingIncome(payload.new);
+            } else if (payload?.eventType === 'DELETE' && payload?.old) {
+              this.pushNotificationService.notifyIncomingIncomeDeleted(payload.old);
             }
           }
         )

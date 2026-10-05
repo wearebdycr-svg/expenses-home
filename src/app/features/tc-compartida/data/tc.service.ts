@@ -757,6 +757,7 @@ export class TcService {
         category: existing.category,
         cardId: existing.cardId,
       };
+      this.pushNotificationService.handleTcExpenseDeleted(existing);
       this.toastService.success('Consumo de TC eliminado', {
         label: 'Deshacer',
         onClick: () => {
@@ -844,6 +845,8 @@ export class TcService {
             this.loadTcExpenses();
             if (payload?.eventType === 'INSERT' && payload?.new) {
               this.pushNotificationService.notifyIncomingTcExpense(payload.new);
+            } else if (payload?.eventType === 'DELETE' && payload?.old) {
+              this.pushNotificationService.notifyIncomingTcExpenseDeleted(payload.old);
             }
           },
         )

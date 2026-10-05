@@ -297,10 +297,11 @@ El proyecto utiliza **Firebase Remote Config** como fuente centralizada de pará
 
 El sistema mantiene a los usuarios al día mediante dos capas de recordatorios:
 
-1. **Notificaciones Web Push (FCM)**:
-   - Registro de dispositivos compatibles en la tabla `fcm_tokens` de Supabase.
-   - Envío programado mediante Serverless Functions (`api/cron-reminder.js` y `api/notify.js`).
-   - Recepción en segundo plano mediante Service Worker dedicado (`public/firebase-messaging-sw.js`).
+1. **Notificaciones Push en Tiempo Real (FCM & Capacitor Nativo)**:
+   - Registro automático de dispositivos móviles (Android) y web en la tabla `fcm_tokens` de Supabase.
+   - Despacho inmediato en inserciones y eliminaciones de registros (gastos, consumos de TC, deudas e ingresos) para alertar al otro integrante de la familia en tiempo real.
+   - Envío programado de recordatorios dos veces al día (9:00 AM y 9:00 PM Colombia) mediante Serverless Functions (`api/cron-reminder.js` y `api/notify.js`).
+   - Recepción en primer y segundo plano mediante canales de alta prioridad en Android (`finanzas_hogar_alerts`) y Service Worker (`public/firebase-messaging-sw.js`).
 2. **Banner In-App Inteligente**:
    - Componente visual reactivo (`daily-reminder-banner`) que evalúa si el usuario activo ya registró sus transacciones del día; si no lo ha hecho, presenta un acceso rápido para registrar gastos.
 
@@ -347,6 +348,7 @@ flowchart TD
 3. **`🚀 Deploy Pipeline` (`deploy.yml`)**: Se dispara tras la finalización de los pipelines previos, comprueba el estado del commit mediante la API de GitHub Actions y autoriza la compilación y despliegue a producción en Vercel únicamente cuando ambos son exitosos.
 4. **`📱 Android APK Pipeline` (`android-apk.yml`)**: Compila automáticamente los instaladores nativos de Android (`FinanzasHogar-debug.apk` y `FinanzasHogar-release.apk`) en cada push a `main` y `develop`, dejándolos listos para descarga como artefacto descargable en GitHub Actions con 30 días de retención.
 5. **`🛡️ Aikido Security PR Checks` (GitHub App)**: Analiza automáticamente cada Pull Request evaluando SAST, SCA (vulnerabilidades de dependencias), fugas de secretos y riesgos de IaC, bloqueando la integración si se detectan anomalías críticas.
+6. **`⏰ Daily Reminders Cron` (`reminders-cron.yml`)**: Ejecuta automáticamente los recordatorios de gastos a las 9:00 AM y 9:00 PM (hora Colombia) llamando a `/api/cron-reminder`, con soporte de ejecución manual bajo demanda (`workflow_dispatch`).
 
 *(Misma arquitectura web disponible en GitLab CI mediante `.gitlab-ci.yml`, `tests.gitlab-ci.yml`, `scan.gitlab-ci.yml` y `deploy.gitlab-ci.yml`).*
 

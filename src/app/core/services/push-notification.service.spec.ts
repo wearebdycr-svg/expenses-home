@@ -168,4 +168,81 @@ describe('PushNotificationService', () => {
 
     expect(scheduleSpy).toHaveBeenCalledWith('Prueba Nativa', 'Cuerpo prueba', '/#tc-compartida');
   });
+
+  it('resolves relative endpoint on web and absolute API URL on native platform', () => {
+    vi.spyOn(service, 'isNative').mockReturnValue(false);
+    expect(service.getApiUrl('/api/notify')).toBe('/api/notify');
+
+    vi.spyOn(service, 'isNative').mockReturnValue(true);
+    expect(service.getApiUrl('/api/notify')).toContain('https://finanzas-hogar-control-familiar.vercel.app/api/notify');
+  });
+
+  it('dispatches push notification when an expense is deleted', async () => {
+    const dispatchSpy = vi.spyOn(service, 'dispatchPushNotification').mockResolvedValue();
+
+    await service.handleExpenseDeleted({
+      person: 'Charlie',
+      category: 'Mercado',
+      description: 'Supermercado D1',
+      amount: 45_000,
+    });
+
+    expect(dispatchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: '🗑️ Charlie eliminó un gasto',
+        body: expect.stringContaining('Mercado'),
+      })
+    );
+  });
+
+  it('dispatches push notification when a TC expense is deleted', async () => {
+    const dispatchSpy = vi.spyOn(service, 'dispatchPushNotification').mockResolvedValue();
+
+    await service.handleTcExpenseDeleted({
+      person: 'Benny',
+      category: 'Restaurante',
+      description: 'Crepes & Waffles',
+      amount: 80_000,
+    });
+
+    expect(dispatchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: '🗑️ Consumo TC Eliminado (Benny)',
+        body: expect.stringContaining('Crepes & Waffles'),
+      })
+    );
+  });
+
+  it('dispatches push notification when a debt is deleted', async () => {
+    const dispatchSpy = vi.spyOn(service, 'dispatchPushNotification').mockResolvedValue();
+
+    await service.handleDebtDeleted({
+      name: 'Crédito Vehículo',
+      person: 'Compartido',
+      originalAmount: 15_000_000,
+    });
+
+    expect(dispatchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: '🗑️ Deuda Eliminada: Crédito Vehículo',
+      })
+    );
+  });
+
+  it('dispatches push notification when an income is deleted', async () => {
+    const dispatchSpy = vi.spyOn(service, 'dispatchPushNotification').mockResolvedValue();
+
+    await service.handleIncomeDeleted({
+      person: 'Charlie',
+      source: 'Freelance',
+      amount: 500_000,
+    });
+
+    expect(dispatchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: '🗑️ Ingreso Eliminado (Charlie)',
+      })
+    );
+  });
 });
+

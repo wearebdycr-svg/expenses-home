@@ -92,6 +92,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
+const apiUrl = isProduction
+  ? (process.env.APP_BASE_URL_PROD || process.env.APP_BASE_URL || 'https://finanzas-hogar-control-familiar.vercel.app')
+  : (process.env.APP_BASE_URL_DEV || process.env.APP_BASE_URL || 'https://finanzas-hogar-control-familiar.vercel.app');
+
 // 4. Generar archivos environment.ts y environment.development.ts
 const targetDir = path.resolve(__dirname, '../src/environments');
 if (!fs.existsSync(targetDir)) {
@@ -103,6 +107,7 @@ const envFileContent = (isProd) => `// Archivo generado automáticamente por scr
 // Entorno activo: ${envLabel}
 export const environment = {
   production: ${isProd},
+  apiUrl: '${apiUrl}',
   supabaseUrl: '${supabaseUrl}',
   supabaseAnonKey: '${supabaseAnonKey}',
   firebase: ${JSON.stringify(firebaseConfig, null, 2).replace(/\n/g, '\n  ')},

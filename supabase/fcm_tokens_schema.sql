@@ -4,7 +4,7 @@
 
 CREATE TABLE IF NOT EXISTS public.fcm_tokens (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  person TEXT NOT NULL, -- 'Benny' | 'Charlie'
+  person TEXT NOT NULL, -- 'Benny' | 'Charlie' | 'Hogar (Móvil)'
   household_id TEXT NOT NULL DEFAULT 'family-home',
   token TEXT NOT NULL UNIQUE,
   device_info TEXT,
@@ -15,11 +15,24 @@ CREATE TABLE IF NOT EXISTS public.fcm_tokens (
 -- Habilitar Row Level Security (RLS)
 ALTER TABLE public.fcm_tokens ENABLE ROW LEVEL SECURITY;
 
--- Políticas de acceso para gestión de tokens
+-- Políticas de acceso idempotentes para gestión de tokens
+DROP POLICY IF EXISTS "Permitir lectura publica de fcm_tokens" ON public.fcm_tokens;
+DROP POLICY IF EXISTS "Permitir insercion publica de fcm_tokens" ON public.fcm_tokens;
+DROP POLICY IF EXISTS "Permitir actualizacion publica de fcm_tokens" ON public.fcm_tokens;
+DROP POLICY IF EXISTS "Permitir eliminacion publica de fcm_tokens" ON public.fcm_tokens;
+
 CREATE POLICY "Permitir lectura publica de fcm_tokens" ON public.fcm_tokens FOR SELECT USING (true);
 CREATE POLICY "Permitir insercion publica de fcm_tokens" ON public.fcm_tokens FOR INSERT WITH CHECK (true);
 CREATE POLICY "Permitir actualizacion publica de fcm_tokens" ON public.fcm_tokens FOR UPDATE USING (true);
 CREATE POLICY "Permitir eliminacion publica de fcm_tokens" ON public.fcm_tokens FOR DELETE USING (true);
 
--- Agregar fcm_tokens a la publicación de tiempo real de Supabase
-ALTER PUBLICATION supabase_realtime ADD TABLE public.fcm_tokens;
+-- Agregar fcm_tokens a la publicación de tiempo real de Supabase de manera segura
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'fcm_tokens'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.fcm_tokens;
+  END IF;
+END $$;

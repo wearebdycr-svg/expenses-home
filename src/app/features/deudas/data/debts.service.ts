@@ -476,6 +476,7 @@ export class DebtsService {
         totalMonths: existing.totalMonths,
         status: existing.status,
       };
+      this.pushNotificationService.handleDebtDeleted(existing);
       this.toastService.success('Deuda eliminada', {
         label: 'Deshacer',
         onClick: () => {
@@ -543,6 +544,8 @@ export class DebtsService {
             this.loadDebts();
             if (payload?.eventType === 'INSERT' && payload?.new) {
               this.pushNotificationService.notifyIncomingDebt(payload.new);
+            } else if (payload?.eventType === 'DELETE' && payload?.old) {
+              this.pushNotificationService.notifyIncomingDebtDeleted(payload.old);
             }
           },
         )

@@ -309,6 +309,7 @@ export class ExpensesService {
         description: existing.description,
         amount: existing.amount,
       };
+      this.pushNotificationService.handleExpenseDeleted(existing);
       this.toastService.success('Gasto eliminado', {
         label: 'Deshacer',
         onClick: () => {
@@ -381,6 +382,8 @@ export class ExpensesService {
 
             if (payload?.eventType === 'INSERT' && payload?.new) {
               this.pushNotificationService.notifyIncomingExpense(payload.new);
+            } else if (payload?.eventType === 'DELETE' && payload?.old) {
+              this.pushNotificationService.notifyIncomingExpenseDeleted(payload.old);
             }
           },
         )

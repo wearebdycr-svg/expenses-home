@@ -336,6 +336,18 @@ export class PushNotificationService {
   }
 
   /**
+   * Resuelve la URL absoluta del endpoint cuando corre nativo en Capacitor móvil
+   */
+  getApiUrl(endpoint: string): string {
+    const cleanPath = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    if (this.isNative()) {
+      const base = (environment as any).apiUrl || 'https://finanzas-hogar-control-familiar.vercel.app';
+      return `${base.replace(/\/$/, '')}${cleanPath}`;
+    }
+    return cleanPath;
+  }
+
+  /**
    * Registra el token en la tabla fcm_tokens de Supabase y mediante el endpoint /api/fcm-token
    */
   async registerTokenInBackend(token: string, person: string = 'Hogar'): Promise<void> {
@@ -354,9 +366,10 @@ export class PushNotificationService {
       console.warn('Error guardando token en Supabase:', err);
     }
 
-    // Llamado complementario a la API serverless
+    // Llamado complementario a la API serverless con URL absoluta si corre en móvil
     try {
-      await fetch('/api/fcm-token', {
+      const url = this.getApiUrl('/api/fcm-token');
+      await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -366,8 +379,8 @@ export class PushNotificationService {
           device_info: typeof navigator !== 'undefined' ? navigator.userAgent : '',
         }),
       });
-    } catch {
-      // Ignorar fallo de API si corre en modo local puro
+    } catch (err) {
+      console.warn('[PushNotificationService] Error registrando token en backend API:', err);
     }
   }
 
@@ -557,7 +570,8 @@ export class PushNotificationService {
   async dispatchPushNotification(message: PushNotificationMessage): Promise<void> {
     const senderToken = this.currentToken();
     try {
-      await fetch('/api/notify', {
+      const url = this.getApiUrl('/api/notify');
+      await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -565,9 +579,104 @@ export class PushNotificationService {
           senderToken,
         }),
       });
-    } catch {
-      // Fallback silencioso si no hay red o backend
+    } catch (err) {
+      console.warn('[PushNotificationService] Fallo al despachar push a backend API:', err);
     }
+  }
+
+  /**
+   * Dispara una notificación Push a los demás dispositivos cuando se elimina un gasto
+   */
+  async handleExpenseDeleted(deletedExpense: { person?: string; amount: number; category: string; description?: string }): Promise<void> {
+    const isPushEnabled = this.remoteConfig.enablePushAlerts();
+    if (!isPushEnabled) return;
+
+    const person = deletedExpense.person || 'Alguien';
+    const title = person === 'Compartido' ? '🗑️ Gasto Compartido Eliminado' : `🗑️ ${person} eliminó un gasto`;
+    const descText = deletedExpense.description ? ` (${deletedExpense.description})` : '';
+    const message: PushNotificationMessage = {
+      title,
+      body: `${formatCOP(deletedExpense.amount)} en ${deletedExpense.category}${descText}`,
+      icon: '/favicon.svg',
+      data: {
+        url: '/#gastos',
+        category: deletedExpense.category,
+        action: 'deleted',
+      },
+      targetPerson: 'all',
+    };
+
+    await this.dispatchPushNotification(message);
+  }
+
+  /**
+   * Dispara una notificación Push a los demás dispositivos cuando se elimina un consumo de TC
+   */
+  async handleTcExpenseDeleted(deletedExpense: { person?: string; amount: number; description?: string; category?: string }): Promise<void> {
+    const isPushEnabled = this.remoteConfig.enablePushAlerts();
+    if (!isPushEnabled) return;
+
+    const person = deletedExpense.person || 'Alguien';
+    const title = `🗑️ Consumo TC Eliminado (${person})`;
+    const desc = deletedExpense.description || deletedExpense.category || 'Consumo';
+    const message: PushNotificationMessage = {
+      title,
+      body: `${formatCOP(deletedExpense.amount)} - ${desc}`,
+      icon: '/favicon.svg',
+      data: {
+        url: '/#tc-compartida',
+        type: 'tc_expense_deleted',
+      },
+      targetPerson: 'all',
+    };
+
+    await this.dispatchPushNotification(message);
+  }
+
+  /**
+   * Dispara una notificación Push a los demás dispositivos cuando se elimina una deuda
+   */
+  async handleDebtDeleted(deletedDebt: { name?: string; person?: string; originalAmount?: number; original_amount?: number }): Promise<void> {
+    const isPushEnabled = this.remoteConfig.enablePushAlerts();
+    if (!isPushEnabled) return;
+
+    const amount = Number(deletedDebt.originalAmount ?? deletedDebt.original_amount ?? 0);
+    const amountText = amount > 0 ? ` (${formatCOP(amount)})` : '';
+    const message: PushNotificationMessage = {
+      title: `🗑️ Deuda Eliminada: ${deletedDebt.name || 'Deuda'}`,
+      body: `Se ha retirado del control financiero${amountText} - ${deletedDebt.person || 'Compartido'}`,
+      icon: '/favicon.svg',
+      data: {
+        url: '/#deudas',
+        type: 'debt_deleted',
+      },
+      targetPerson: 'all',
+    };
+
+    await this.dispatchPushNotification(message);
+  }
+
+  /**
+   * Dispara una notificación Push a los demás dispositivos cuando se elimina un ingreso
+   */
+  async handleIncomeDeleted(deletedIncome: { person?: string; amount: number; source?: string; description?: string }): Promise<void> {
+    const isPushEnabled = this.remoteConfig.enablePushAlerts();
+    if (!isPushEnabled) return;
+
+    const person = deletedIncome.person || 'Alguien';
+    const descText = deletedIncome.description ? ` (${deletedIncome.description})` : '';
+    const message: PushNotificationMessage = {
+      title: `🗑️ Ingreso Eliminado (${person})`,
+      body: `${formatCOP(deletedIncome.amount)} de ${deletedIncome.source || 'Ingreso'}${descText}`,
+      icon: '/favicon.svg',
+      data: {
+        url: '/#ingresos',
+        type: 'income_deleted',
+      },
+      targetPerson: 'all',
+    };
+
+    await this.dispatchPushNotification(message);
   }
 
   /**
@@ -585,6 +694,19 @@ export class PushNotificationService {
   }
 
   /**
+   * Dispara una alerta cuando se elimina un gasto desde otro dispositivo
+   */
+  notifyIncomingExpenseDeleted(expense: { person?: string; amount?: number; category?: string; description?: string }): void {
+    const person = expense.person || 'Alguien';
+    const title = person === 'Compartido' ? '🗑️ Gasto Compartido Eliminado' : `🗑️ ${person} eliminó un gasto`;
+    const descText = expense.description ? ` (${expense.description})` : '';
+    const amountText = expense.amount != null ? `${formatCOP(expense.amount)} en ` : '';
+    const body = `${amountText}${expense.category || 'Gasto'}${descText}`;
+
+    this.showSystemNotification(title, body, '/#gastos');
+  }
+
+  /**
    * Dispara una alerta cuando se usa la Tarjeta Compartida desde otro dispositivo
    */
   notifyIncomingTcExpense(expense: { person?: string; amount: number; description?: string; category?: string }): void {
@@ -592,6 +714,19 @@ export class PushNotificationService {
     const title = `💳 ${creator} usó la TC Compartida`;
     const desc = expense.description || expense.category || 'Consumo';
     const body = `${formatCOP(expense.amount)} - ${desc}`;
+
+    this.showSystemNotification(title, body, '/#tc-compartida');
+  }
+
+  /**
+   * Dispara una alerta cuando se elimina un consumo de TC desde otro dispositivo
+   */
+  notifyIncomingTcExpenseDeleted(expense: { person?: string; amount?: number; description?: string; category?: string }): void {
+    const person = expense.person || 'Alguien';
+    const title = `🗑️ Consumo TC Eliminado (${person})`;
+    const desc = expense.description || expense.category || 'Consumo';
+    const amountText = expense.amount != null ? `${formatCOP(expense.amount)} - ` : '';
+    const body = `${amountText}${desc}`;
 
     this.showSystemNotification(title, body, '/#tc-compartida');
   }
@@ -609,6 +744,18 @@ export class PushNotificationService {
   }
 
   /**
+   * Dispara una alerta cuando se elimina un ingreso desde otro dispositivo
+   */
+  notifyIncomingIncomeDeleted(income: { person?: string; amount?: number; source?: string }): void {
+    const person = income.person || 'Alguien';
+    const title = `🗑️ Ingreso Eliminado (${person})`;
+    const amountText = income.amount != null ? `${formatCOP(income.amount)} de ` : '';
+    const body = `${amountText}${income.source || 'Ingreso'}`;
+
+    this.showSystemNotification(title, body, '/#ingresos');
+  }
+
+  /**
    * Dispara una alerta cuando otro dispositivo registra una nueva deuda
    */
   notifyIncomingDebt(debt: { name?: string; original_amount?: number; originalAmount?: number; person?: string; monthly_payment?: number; monthlyPayment?: number }): void {
@@ -616,6 +763,16 @@ export class PushNotificationService {
     const amount = Number(debt.original_amount ?? debt.originalAmount ?? 0);
     const quota = Number(debt.monthly_payment ?? debt.monthlyPayment ?? 0);
     const body = `${formatCOP(amount)} (${debt.person || 'Compartido'})${quota > 0 ? ` - Cuota: ${formatCOP(quota)}` : ''}`;
+
+    this.showSystemNotification(title, body, '/#deudas');
+  }
+
+  /**
+   * Dispara una alerta cuando se elimina una deuda desde otro dispositivo
+   */
+  notifyIncomingDebtDeleted(debt: { name?: string; person?: string }): void {
+    const title = `🗑️ Deuda Eliminada: ${debt.name || 'Deuda'}`;
+    const body = `Se eliminó del registro (${debt.person || 'Compartido'})`;
 
     this.showSystemNotification(title, body, '/#deudas');
   }
