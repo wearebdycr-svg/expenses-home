@@ -8,7 +8,20 @@ if (!devUrl || !devKey) {
   process.exit(1);
 }
 
-const hostname = devUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+let parsedUrl;
+try {
+  parsedUrl = new URL(devUrl);
+} catch {
+  console.error('URL inválida');
+  process.exit(1);
+}
+
+if (parsedUrl.protocol !== 'https:' || !parsedUrl.hostname.endsWith('.supabase.co')) {
+  console.error('SSRF Protection: Solo se permiten URLs HTTPS de dominios *.supabase.co');
+  process.exit(1);
+}
+
+const hostname = parsedUrl.hostname;
 
 function sendRequest(path, method, body) {
   return new Promise((resolve, reject) => {

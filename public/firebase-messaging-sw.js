@@ -13,26 +13,30 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(clients.claim());
 });
 
-// 2. Configuración pública de Firebase del proyecto
-const firebaseConfig = {
-  apiKey: "AIzaSyDP1lZt0Tox16p-JhQuNe6acQC4CnjBqLs",
-  authDomain: "expenses-home.firebaseapp.com",
-  projectId: "expenses-home",
-  storageBucket: "expenses-home.firebasestorage.app",
-  messagingSenderId: "917054655548",
-  appId: "1:917054655548:web:17fd4a6c4b66dba98a4739",
-  measurementId: "G-0KE4S739VH"
-};
-
-// 3. Inicialización oficial de Firebase en el Service Worker
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
+// 2. Extraer configuración dinámica sin exponer claves estáticas en el repositorio
+function getFirebaseConfig() {
+  try {
+    const params = new URLSearchParams(self.location.search);
+    const apiKey = params.get('apiKey');
+    const projectId = params.get('projectId');
+    if (apiKey && projectId) {
+      return {
+        apiKey,
+        authDomain: params.get('authDomain') || '',
+        projectId,
+        storageBucket: params.get('storageBucket') || '',
+        messagingSenderId: params.get('messagingSenderId') || '',
+        appId: params.get('appId') || '',
+        measurementId: params.get('measurementId') || '',
+      };
+    }
+  } catch (err) {
+    console.warn('[firebase-messaging-sw] No se pudieron leer parámetros de URL:', err);
+  }
+  return null;
 }
 
-const messaging = firebase.messaging();
-
-// 4. Manejador oficial de mensajes en segundo plano de Firebase (Campañas de Firebase Console y Push API)
-messaging.onBackgroundMessage((payload) => {
+function handleBackgroundMessage(payload) {
   console.log('[firebase-messaging-sw] Notificación recibida desde Firebase:', payload);
   const title = payload.notification?.title || payload.data?.title || 'FinanzasHogar';
   const options = {
@@ -45,9 +49,34 @@ messaging.onBackgroundMessage((payload) => {
   };
 
   return self.registration.showNotification(title, options);
+}
+
+function initFirebase(config) {
+  if (config && config.apiKey && typeof firebase !== 'undefined' && !firebase.apps.length) {
+    try {
+      firebase.initializeApp(config);
+      const messaging = firebase.messaging();
+      messaging.onBackgroundMessage(handleBackgroundMessage);
+    } catch (e) {
+      console.warn('[firebase-messaging-sw] Inicialización diferida de Firebase:', e);
+    }
+  }
+}
+
+// Inicializar si la configuración viene en los parámetros de la URL de registro
+const initialConfig = getFirebaseConfig();
+if (initialConfig) {
+  initFirebase(initialConfig);
+}
+
+// También permitir inicialización a través de postMessage desde la aplicación cliente
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'INIT_FIREBASE_MESSAGING' && event.data.config) {
+    initFirebase(event.data.config);
+  }
 });
 
-// 5. Manejo del clic sobre la notificación (apertura o enfoque de pestaña)
+// 3. Manejo del clic sobre la notificación (apertura o enfoque de pestaña)
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 

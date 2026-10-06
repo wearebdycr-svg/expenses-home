@@ -110,7 +110,38 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Método no permitido' });
   }
 
-  let { title, body, icon, data, senderToken } = req.body || {};
+  // 1. Verificación de autenticación para función crítica (CWE-306)
+  const authHeader = req.headers['authorization'] || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7).trim() : '';
+  const notifySecret = process.env.NOTIFY_SECRET || process.env.CRON_SECRET;
+
+  let isAuthorized = false;
+  if (notifySecret && token === notifySecret) {
+    isAuthorized = true;
+  } else if (token && supabaseAnonKey && token === supabaseAnonKey) {
+    isAuthorized = true;
+  } else if (token && supabaseUrl && supabaseAnonKey) {
+    try {
+      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (!error && user) {
+        isAuthorized = true;
+      }
+    } catch {
+      // Ignorar fallo de validación
+    }
+  }
+
+  if (!isAuthorized && (notifySecret || (supabaseUrl && supabaseAnonKey))) {
+    return res.status(401).json({ error: 'Unauthorized: Se requiere token de autorización válido' });
+  }
+
+  // 2. Control de consumo de recursos y validación de entrada (CWE-400)
+  if (!req.body || typeof req.body !== 'object') {
+    return res.status(400).json({ error: 'Payload inválido' });
+  }
+
+  let { title, body, icon, data, senderToken } = req.body;
 
   // Soporte para Webhook nativo de Supabase Database (INSERT o DELETE)
   if (!title && req.body?.table) {
@@ -171,6 +202,14 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Título y cuerpo son requeridos' });
   }
 
+  if (typeof title !== 'string' || typeof body !== 'string') {
+    return res.status(400).json({ error: 'Título y cuerpo deben ser cadenas de texto' });
+  }
+
+  if (title.length > 200 || body.length > 1000) {
+    return res.status(400).json({ error: 'El contenido excede el tamaño máximo permitido' });
+  }
+
   try {
     let tokens = [];
     let supabase = null;
@@ -192,7 +231,9 @@ export default async function handler(req, res) {
       }
     }
 
-    console.log(`[Push Notification] Despachando a ${tokens.length} dispositivos: "${title}" - "${body}"`);
+    const MAX_DISPATCH_LIMIT = 50;
+    const targetTokens = tokens.slice(0, MAX_DISPATCH_LIMIT);
+    console.log(`[Push Notification] Despachando a ${targetTokens.length} dispositivos: "${title}" - "${body}"`);
 
     let sentCount = 0;
     const invalidTokens = [];
@@ -201,12 +242,12 @@ export default async function handler(req, res) {
     // 2. Si hay Cuenta de Servicio (FCM v1 moderna) configurada
     const serviceAccount = getServiceAccount();
 
-    if (serviceAccount && tokens.length > 0) {
+    if (serviceAccount && targetTokens.length > 0) {
       try {
         const accessToken = await getGoogleAccessToken(serviceAccount);
         const projectId = serviceAccount.project_id || process.env.FIREBASE_PROJECT_ID || 'expenses-home';
 
-        for (const token of tokens) {
+        for (const token of targetTokens) {
           try {
             const resp = await fetch(
               `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
@@ -279,8 +320,8 @@ export default async function handler(req, res) {
 
     // 3. Respaldo: Si hay clave de servidor heredada (FCM legacy)
     const fcmServerKey = process.env.FIREBASE_SERVER_KEY || process.env.FCM_SERVER_KEY;
-    if (!sentCount && fcmServerKey && tokens.length > 0) {
-      for (const token of tokens) {
+    if (!sentCount && fcmServerKey && targetTokens.length > 0) {
+      for (const token of targetTokens) {
         try {
           const response = await fetch('https://fcm.googleapis.com/fcm/send', {
             method: 'POST',

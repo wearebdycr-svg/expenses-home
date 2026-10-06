@@ -22,14 +22,7 @@ async function sha256(text: string): Promise<string> {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
   }
-  // Fallback simple para entornos de prueba
-  let hash = 0;
-  for (let i = 0; i < text.length; i++) {
-    const char = text.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash |= 0;
-  }
-  return 'fallback_' + Math.abs(hash).toString(16);
+  throw new Error('Web Cryptography API (crypto.subtle) is required for secure authentication');
 }
 
 @Injectable({
@@ -240,7 +233,13 @@ export class AuthPinService {
       }
     }
 
-    const salt = Math.random().toString(36).substring(2, 15);
+    const randomBytes = new Uint8Array(16);
+    if (typeof globalThis.crypto?.getRandomValues === 'function') {
+      globalThis.crypto.getRandomValues(randomBytes);
+    } else {
+      throw new Error('Web Cryptography API (crypto.getRandomValues) is required for secure salt generation');
+    }
+    const salt = Array.from(randomBytes).map((b) => b.toString(16).padStart(2, '0')).join('');
     const newHash = await sha256(salt + newPin);
 
     localStorage.setItem(PIN_STORAGE_KEY, newHash);

@@ -1,14 +1,6 @@
 -- ==============================================================================
 -- EXPENSES HOME: Blindaje de Ciberseguridad y Row Level Security (RLS)
 -- ==============================================================================
--- Este script revoca las políticas abiertas a usuarios anónimos ('anon') y
--- restringe el acceso de lectura y escritura exclusivamente a usuarios
--- autenticados ('authenticated').
---
--- INSTRUCCIONES:
--- 1. Ve a tu panel de Supabase: SQL Editor
--- 2. Pega este contenido completo y ejecuta "Run".
--- ==============================================================================
 
 -- 0. TABLA: public.persons (Personas del Hogar: Benny, Charlie, Compartido)
 ALTER TABLE IF EXISTS public.persons ENABLE ROW LEVEL SECURITY;

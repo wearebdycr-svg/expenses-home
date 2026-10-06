@@ -53,7 +53,7 @@ deploy:vercel:
     - |
       if [ -n "$VERCEL_TOKEN" ]; then
         echo "⚡ Desplegando en Vercel vía Vercel CLI..."
-        npx vercel --prod --token="$VERCEL_TOKEN" --yes
+        npx vercel --prod --yes
       else
         echo "ℹ️ VERCEL_TOKEN no configurado en variables CI/CD. El despliegue a Vercel se sincroniza automáticamente mediante la integración Git."
       fi

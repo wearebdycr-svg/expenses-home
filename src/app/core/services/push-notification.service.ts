@@ -204,8 +204,21 @@ export class PushNotificationService {
 
     try {
       const firebaseConfig = environment.firebase;
-      // Registrar el Service Worker estándar de FCM
-      this.swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+      let swUrl = '/firebase-messaging-sw.js';
+      if (firebaseConfig?.apiKey && firebaseConfig?.projectId) {
+        const queryParams = new URLSearchParams({
+          apiKey: firebaseConfig.apiKey,
+          authDomain: firebaseConfig.authDomain || '',
+          projectId: firebaseConfig.projectId,
+          storageBucket: firebaseConfig.storageBucket || '',
+          messagingSenderId: firebaseConfig.messagingSenderId || '',
+          appId: firebaseConfig.appId || '',
+          measurementId: firebaseConfig.measurementId || '',
+        }).toString();
+        swUrl = `/firebase-messaging-sw.js?${queryParams}`;
+      }
+      // Registrar el Service Worker estándar de FCM con configuración dinámica
+      this.swRegistration = await navigator.serviceWorker.register(swUrl);
       console.log('[PushNotificationService] Service Worker registrado:', this.swRegistration.scope);
 
       if (this.swRegistration.active && firebaseConfig?.apiKey) {
@@ -586,9 +599,18 @@ export class PushNotificationService {
     const senderToken = this.currentToken();
     try {
       const url = this.getApiUrl('/api/notify');
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+
+      // Adjuntar token de autenticación para protección de función crítica
+      const { data: sessionData } = await this.supabase.client.auth.getSession();
+      const authToken = sessionData?.session?.access_token || environment.supabaseAnonKey;
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
       await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           ...message,
           senderToken,

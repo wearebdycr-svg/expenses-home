@@ -20,6 +20,9 @@ concurrency:
   group: android-apk-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   build-apk:
     name: "Build Android APK"
@@ -37,7 +40,7 @@ jobs:
           cache: 'gradle'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v4
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
 
       - name: Install Android SDK Platform 36 & Accept Licenses
         run: |

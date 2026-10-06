@@ -95,6 +95,24 @@ export default async function handler(req, res) {
   }
 
   try {
+    // 1. Verificación de autenticación para función crítica (CWE-306)
+    const authHeader = req.headers['authorization'] || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7).trim() : '';
+    const expectedSecret = process.env.CRON_SECRET || process.env.NOTIFY_SECRET;
+
+    let isAuthorized = false;
+    if (expectedSecret && token === expectedSecret) {
+      isAuthorized = true;
+    } else if (token && supabaseAnonKey && token === supabaseAnonKey) {
+      isAuthorized = true;
+    } else if (!expectedSecret && process.env.NODE_ENV !== 'production') {
+      isAuthorized = true;
+    }
+
+    if (expectedSecret && !isAuthorized) {
+      return res.status(401).json({ error: 'Unauthorized: Se requiere token de autorización para invocar el recordatorio programado' });
+    }
+
     const nowUtc = new Date();
     const utcHour = nowUtc.getUTCHours();
     const querySlot = req.query?.slot || req.query?.time;
@@ -129,18 +147,22 @@ export default async function handler(req, res) {
       });
     }
 
-    // 2. Parsear cuenta de servicio
+    // 2. Control de consumo de recursos y preparación de lote (CWE-400)
+    const MAX_CRON_TOKENS = 50;
+    const targetTokens = tokens.slice(0, MAX_CRON_TOKENS);
+
+    // 3. Parsear cuenta de servicio
     const serviceAccount = getServiceAccount();
     let sentCount = 0;
     const invalidTokens = [];
     const errorDetails = [];
 
-    if (serviceAccount && tokens.length > 0) {
+    if (serviceAccount && targetTokens.length > 0) {
       try {
         const accessToken = await getGoogleAccessToken(serviceAccount);
         const projectId = serviceAccount.project_id || process.env.FIREBASE_PROJECT_ID || 'expenses-home';
 
-        for (const token of tokens) {
+        for (const token of targetTokens) {
           try {
             const resp = await fetch(
               `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
@@ -215,10 +237,10 @@ export default async function handler(req, res) {
       }
     }
 
-    // 3. Fallback Legacy si aplica
+    // 4. Fallback Legacy si aplica
     const fcmServerKey = process.env.FIREBASE_SERVER_KEY || process.env.FCM_SERVER_KEY;
-    if (!sentCount && fcmServerKey && tokens.length > 0) {
-      for (const token of tokens) {
+    if (!sentCount && fcmServerKey && targetTokens.length > 0) {
+      for (const token of targetTokens) {
         try {
           const resp = await fetch('https://fcm.googleapis.com/fcm/send', {
             method: 'POST',

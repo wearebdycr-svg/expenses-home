@@ -18,6 +18,9 @@ on:
           - 'morning'
           - 'evening'
 
+permissions:
+  contents: read
+
 concurrency:
   group: daily-reminders
   cancel-in-progress: false
@@ -28,6 +31,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Calculate Reminder Slot & Trigger
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           SLOT="${{ github.event.inputs.slot || 'auto' }}"
           if [ "$SLOT" = "auto" ]; then
@@ -40,7 +45,11 @@ jobs:
           fi
           echo "Disparando recordatorio push automático para slot: $SLOT..."
           URL="https://finanzas-hogar-control-familiar.vercel.app/api/cron-reminder?slot=$SLOT"
-          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" "$URL")
+          AUTH_ARGS=()
+          if [ -n "$CRON_SECRET" ]; then
+            AUTH_ARGS=(-H "Authorization: Bearer $CRON_SECRET")
+          fi
+          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" "${AUTH_ARGS[@]}" "$URL")
           echo "Respuesta del servidor:"
           echo "$RESPONSE"
           STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS" | cut -d':' -f2)
