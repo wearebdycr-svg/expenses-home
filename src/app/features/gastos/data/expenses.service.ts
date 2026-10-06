@@ -198,7 +198,20 @@ export class ExpensesService {
       }
 
       if (data) {
-        const mapped: Expense[] = data.map((item: any) => ({
+        // Separar gastos asignados a 'Compartido' para que NO aparezcan en Gastos Diarios
+        // y migrarlos automáticamente a tc_expenses.
+        const sharedToMigrate: any[] = [];
+        const nonSharedData: any[] = [];
+
+        for (const item of data) {
+          if (item.person === 'Compartido') {
+            sharedToMigrate.push(item);
+          } else {
+            nonSharedData.push(item);
+          }
+        }
+
+        const mapped: Expense[] = nonSharedData.map((item: any) => ({
           id: String(item.id),
           date: String(item.date),
           person: item.person as ExpensePerson,
@@ -208,6 +221,10 @@ export class ExpensesService {
         }));
         this.expenses.set(mapped);
         this.error.set(null);
+
+        if (sharedToMigrate.length > 0) {
+          this.migrateSharedExpensesToTc(sharedToMigrate);
+        }
       }
     } catch (err: any) {
       console.warn('Error de conexión a Supabase:', err);
@@ -216,6 +233,28 @@ export class ExpensesService {
       if (showLoading) {
         this.loading.set(false);
       }
+    }
+  }
+
+  private async migrateSharedExpensesToTc(sharedExpenses: any[]): Promise<void> {
+    try {
+      for (const item of sharedExpenses) {
+        const cat = item.category || 'General';
+        const expenseCategory = (cat === 'TC-compartida' || cat.startsWith('TC:')) ? 'General' : cat;
+        await this.supabase.client.from('tc_expenses').insert([
+          {
+            date: item.date,
+            person: 'Compartido',
+            category: expenseCategory,
+            description: item.description,
+            amount: item.amount,
+          },
+        ]);
+        await this.supabase.client.from('expenses').delete().eq('id', item.id);
+      }
+      console.log(`✅ [AUTO-MIGRATION] ${sharedExpenses.length} gastos compartidos migrados a tc_expenses.`);
+    } catch (err) {
+      console.warn('Error migrando gastos compartidos a tc_expenses:', err);
     }
   }
 
@@ -290,7 +329,7 @@ export class ExpensesService {
         this.error.set(error.message);
         return;
       }
-      this.toastService.success('Gasto actualizado correctamente');
+      this.toastService.success('Gasto actualizado exitosamente');
     } catch (err: any) {
       console.error('Error de red al actualizar gasto:', err);
     }

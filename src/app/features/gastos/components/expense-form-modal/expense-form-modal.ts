@@ -23,6 +23,7 @@ import { DebtsService } from '../../../deudas/data/debts.service';
 import type { Debt } from '../../../deudas/data/debt.model';
 import { TcService } from '../../../tc-compartida/data/tc.service';
 import type { TcCard } from '../../../tc-compartida/data/tc-card.model';
+import { ExpensesService } from '../../data/expenses.service';
 import { formatThousands, parseThousands } from '../../../../shared/utils/format.utils';
 
 function todayIso(): string {
@@ -42,6 +43,7 @@ function todayIso(): string {
 export class ExpenseFormModal {
   private readonly debtsService = inject(DebtsService);
   protected readonly tcService = inject(TcService);
+  private readonly expensesService = inject(ExpensesService);
 
   expense = input<Expense | null>(null);
   save = output<ExpenseDraft>();
@@ -174,34 +176,49 @@ export class ExpenseFormModal {
     }
 
     const tc = this.selectedTcCard();
+
+    // Caso 1: Persona Compartido
+    // Todo gasto asignado a 'Compartido' es un consumo de la TC Compartida sin importar la categoría
+    // (Mercado, Hogar, Servicios públicos, etc.). Se registra directamente en tc_expenses y NO en Gastos Diarios.
+    if (person === 'Compartido') {
+      const tcCardId = tc?.id || 'tc-compartida';
+      const cat = this.category();
+      const expenseCategory = (cat === 'TC-compartida' || cat.startsWith('TC:')) ? 'General' : cat;
+
+      this.tcService.addTcExpense({
+        date: this.date(),
+        person: 'Compartido',
+        category: expenseCategory || 'General',
+        description,
+        amount,
+        cardId: tcCardId,
+      });
+
+      if (this.isEditMode()) {
+        const editing = this.expense();
+        if (editing) {
+          this.expensesService.deleteExpense(editing.id);
+        }
+      }
+
+      this.cancel.emit();
+      return;
+    }
+
     if (!tc || this.isEditMode()) {
       this.emitSave();
       return;
     }
 
-    // Caso 1: Tarjeta Compartida
+    // Caso 2: Tarjeta Compartida con persona Benny o Charlie (Abono/Pago a la TC)
     if (tc.person === 'Compartido') {
-      if (person === 'Compartido') {
-        // Seleccionó Compartido: es un consumo realizado con la TC Compartida.
-        // Se registra directamente en la TC Compartida (tc_expenses) y no en Gastos Diarios.
-        this.tcService.addTcExpense({
-          date: this.date(),
-          person: 'Compartido',
-          category: 'General',
-          description,
-          amount,
-          cardId: tc.id,
-        });
-        this.cancel.emit();
-      } else {
-        // Seleccionó Benny o Charlie: es un abono/pago a la TC Compartida desde cuenta bancaria.
-        // Realiza el registro normal en Gastos Diarios y amortiza/resta la deuda de la TC.
-        this.emitSave();
-      }
+      // Seleccionó Benny o Charlie: es un abono/pago a la TC Compartida desde cuenta bancaria.
+      // Realiza el registro normal en Gastos Diarios y amortiza/resta la deuda de la TC.
+      this.emitSave();
       return;
     }
 
-    // Caso 2: Tarjeta Personal (no compartida, ej. Charlie o Benny)
+    // Caso 3: Tarjeta Personal (no compartida, ej. Charlie o Benny)
     this.confirmationType.set('personal-tc-prompt');
   }
 
@@ -229,10 +246,12 @@ export class ExpenseFormModal {
 
     if (type === 'expense') {
       // Registrar como consumo directo dentro de esa TC personal
+      const cat = this.category();
+      const expenseCategory = cat.startsWith('TC:') ? 'General' : cat;
       this.tcService.addTcExpense({
         date: this.date(),
         person: (this.person() as ExpensePerson) || tc.person,
-        category: 'General',
+        category: expenseCategory || 'General',
         description: this.description().trim().slice(0, 100),
         amount: parseThousands(this.amount()),
         cardId: tc.id,

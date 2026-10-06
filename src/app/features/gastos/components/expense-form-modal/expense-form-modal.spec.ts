@@ -4,6 +4,7 @@ import type { Expense } from '../../data/expense.model';
 import { ExpenseFormModal } from './expense-form-modal';
 import { DebtsService } from '../../../deudas/data/debts.service';
 import { TcService } from '../../../tc-compartida/data/tc.service';
+import { ExpensesService } from '../../data/expenses.service';
 
 describe('ExpenseFormModal', () => {
   let fixture: ComponentFixture<ExpenseFormModal>;
@@ -139,6 +140,72 @@ describe('ExpenseFormModal', () => {
         description: 'Mercado compartido',
       }),
     );
+    expect(cancelSpy).toHaveBeenCalled();
+  });
+
+  it('registers shared TC expense directly in tc_expenses when person is Compartido even with standard category like Mercado', () => {
+    const tcService = TestBed.inject(TcService);
+    const tcSpy = vi.spyOn(tcService, 'addTcExpense');
+    const cancelSpy = vi.fn();
+    const saveSpy = vi.fn();
+    component.cancel.subscribe(cancelSpy);
+    component.save.subscribe(saveSpy);
+
+    component['person'].set('Compartido');
+    component['category'].set('Mercado');
+    component['description'].set('Compra masa de maíz olimpica');
+    component['amount'].set('18161');
+
+    component['onSubmit']();
+
+    expect(tcSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cardId: 'tc-compartida',
+        person: 'Compartido',
+        category: 'Mercado',
+        amount: 18_161,
+        description: 'Compra masa de maíz olimpica',
+      }),
+    );
+    expect(cancelSpy).toHaveBeenCalled();
+    expect(saveSpy).not.toHaveBeenCalled();
+  });
+
+  it('removes from expenses and adds to tc_expenses when editing an existing expense and setting person to Compartido', () => {
+    const tcService = TestBed.inject(TcService);
+    const expensesService = TestBed.inject(ExpensesService);
+    const tcSpy = vi.spyOn(tcService, 'addTcExpense');
+    const deleteSpy = vi.spyOn(expensesService, 'deleteExpense');
+    const cancelSpy = vi.fn();
+    component.cancel.subscribe(cancelSpy);
+
+    fixture.componentRef.setInput('expense', {
+      id: 'exp-123',
+      date: '2026-10-05',
+      person: 'Charlie',
+      category: 'Mercado',
+      description: 'Gasto anterior',
+      amount: 50000,
+    });
+    fixture.detectChanges();
+
+    component['person'].set('Compartido');
+    component['category'].set('Mercado');
+    component['description'].set('Ahora compartido');
+    component['amount'].set('50000');
+
+    component['onSubmit']();
+
+    expect(tcSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cardId: 'tc-compartida',
+        person: 'Compartido',
+        category: 'Mercado',
+        amount: 50_000,
+        description: 'Ahora compartido',
+      }),
+    );
+    expect(deleteSpy).toHaveBeenCalledWith('exp-123');
     expect(cancelSpy).toHaveBeenCalled();
   });
 

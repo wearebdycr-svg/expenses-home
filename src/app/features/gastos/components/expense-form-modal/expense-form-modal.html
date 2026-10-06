@@ -85,6 +85,14 @@
         />
       </div>
 
+      @if (person() === 'Compartido') {
+        <div class="debt-amortization-info" style="background: #ecfdf5; border-color: #a7f3d0; margin-bottom: 0.75rem;">
+          <div class="info-detail-row" style="color: #065f46; font-size: 0.75rem; line-height: 1.35;">
+            <span>💳 <strong>Gasto Compartido:</strong> Se registrará automáticamente como consumo en la <strong>TC Compartida</strong> y actualizará los saldos de la tarjeta.</span>
+          </div>
+        </div>
+      }
+
       <app-select
         label="Categoría"
         [options]="categoryOptions()"
