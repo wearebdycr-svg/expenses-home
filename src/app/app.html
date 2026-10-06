@@ -2,7 +2,13 @@
   <app-splash-screen (completed)="onSplashCompleted()" />
 }
 
-@if (!authPinService.isUnlocked()) {
+@if (supabaseAuth.isLoading()) {
+  <div class="auth-loading-overlay">
+    <div class="auth-loading-spinner"></div>
+  </div>
+} @else if (!supabaseAuth.isAuthenticated()) {
+  <app-auth-login (authenticated)="onSupabaseAuthenticated()" />
+} @else if (!authPinService.isUnlocked()) {
   <app-pin-lock (unlocked)="onAppUnlocked()" />
 } @else {
   <div class="app-shell">
@@ -10,6 +16,7 @@
       [currentPage]="currentPage()"
       (navigate)="onNavigate($event)"
       (lockApp)="onLockApp()"
+      (signOutSupabase)="onSignOutSupabase()"
     />
     <main class="app-content">
       <app-daily-reminder-banner (registerExpenseClicked)="onNavigate('gastos')" />

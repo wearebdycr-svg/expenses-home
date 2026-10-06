@@ -21,6 +21,20 @@ function createMockClient(): any {
       if (prop === 'single') return () => Promise.resolve({ data: { id: 'mock-id' }, error: null });
       if (prop === 'channel') return () => ({ on: () => ({ subscribe: () => ({ unsubscribe: () => {} }) }) });
       if (prop === 'removeChannel') return () => Promise.resolve('ok');
+      if (prop === 'auth') {
+        return {
+          getSession: () => Promise.resolve({ data: { session: { user: { id: 'test-user', email: 'test@familia.com' } } }, error: null }),
+          onAuthStateChange: (cb: any) => {
+            if (typeof cb === 'function') {
+              cb('SIGNED_IN', { user: { id: 'test-user', email: 'test@familia.com' } });
+            }
+            return { data: { subscription: { unsubscribe: () => {} } } };
+          },
+          signInWithPassword: () => Promise.resolve({ data: { session: { user: { id: 'test-user' } }, user: { id: 'test-user' } }, error: null }),
+          signUp: () => Promise.resolve({ data: { session: { user: { id: 'test-user' } }, user: { id: 'test-user' } }, error: null }),
+          signOut: () => Promise.resolve({ error: null }),
+        };
+      }
       return () => new Proxy(chainable, handler);
     },
     apply() {

@@ -43,16 +43,16 @@ DROP POLICY IF EXISTS "Permitir actualizacion de debts" ON public.debts;
 DROP POLICY IF EXISTS "Permitir eliminacion de debts" ON public.debts;
 
 CREATE POLICY "Permitir lectura de debts"
-ON public.debts FOR SELECT TO anon, authenticated USING (true);
+ON public.debts FOR SELECT TO authenticated USING (true);
 
 CREATE POLICY "Permitir insercion de debts"
-ON public.debts FOR INSERT TO anon, authenticated WITH CHECK (true);
+ON public.debts FOR INSERT TO authenticated WITH CHECK (true);
 
 CREATE POLICY "Permitir actualizacion de debts"
-ON public.debts FOR UPDATE TO anon, authenticated USING (true);
+ON public.debts FOR UPDATE TO authenticated USING (true);
 
 CREATE POLICY "Permitir eliminacion de debts"
-ON public.debts FOR DELETE TO anon, authenticated USING (true);
+ON public.debts FOR DELETE TO authenticated USING (true);
 
 -- 5. Habilitar sincronización en tiempo real (Realtime)
 DO $$

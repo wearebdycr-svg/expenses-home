@@ -1,0 +1,95 @@
+<div class="auth-container">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="auth-logo">
+        <app-icon name="home" [size]="28" />
+      </div>
+      <h1 class="auth-title">FinanzasHogar</h1>
+      <p class="auth-subtitle">
+        {{ isSignUpMode() ? 'Crear cuenta familiar' : 'Conexión Segura con el Hogar' }}
+      </p>
+      <p class="auth-hint">
+        Inicia sesión una sola vez en este dispositivo para autenticar la base de datos protegida.
+      </p>
+    </div>
+
+    @if (errorMessage()) {
+      <div class="auth-alert error">
+        <app-icon name="alert-circle" [size]="18" />
+        <span>{{ errorMessage() }}</span>
+      </div>
+    }
+
+    @if (successMessage()) {
+      <div class="auth-alert success">
+        <app-icon name="check-circle" [size]="18" />
+        <span>{{ successMessage() }}</span>
+      </div>
+    }
+
+    <form class="auth-form" (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label for="auth-email">Correo de la familia</label>
+        <div class="input-wrapper">
+          <input
+            id="auth-email"
+            type="email"
+            name="email"
+            [ngModel]="email()"
+            (ngModelChange)="email.set($event)"
+            placeholder="familia@ejemplo.com"
+            required
+            autocomplete="email"
+          />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="auth-password">Contraseña</label>
+        <div class="input-wrapper">
+          <input
+            id="auth-password"
+            [type]="showPassword() ? 'text' : 'password'"
+            name="password"
+            [ngModel]="password()"
+            (ngModelChange)="password.set($event)"
+            placeholder="••••••••"
+            required
+            autocomplete="current-password"
+          />
+          <button
+            type="button"
+            class="password-toggle"
+            (click)="toggleShowPassword()"
+            [title]="showPassword() ? 'Ocultar contraseña' : 'Ver contraseña'"
+            tabindex="-1"
+          >
+            <app-icon [name]="showPassword() ? 'eye-off' : 'eye'" [size]="18" />
+          </button>
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        class="submit-btn"
+        [disabled]="isLoading()"
+      >
+        @if (isLoading()) {
+          <span class="spinner"></span>
+          <span>Conectando...</span>
+        } @else {
+          <app-icon name="unlock" [size]="18" />
+          <span>{{ isSignUpMode() ? 'Crear Cuenta y Conectar' : 'Iniciar Sesión Familiar' }}</span>
+        }
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      <button type="button" class="toggle-mode-btn" (click)="toggleMode()">
+        {{ isSignUpMode()
+          ? '¿Ya tienes una cuenta familiar? Inicia sesión aquí'
+          : '¿Primera vez? Crea tu cuenta familiar aquí' }}
+      </button>
+    </div>
+  </div>
+</div>

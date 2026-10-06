@@ -82,16 +82,16 @@ DROP POLICY IF EXISTS "Permitir actualizacion de tc_expenses" ON public.tc_expen
 DROP POLICY IF EXISTS "Permitir eliminacion de tc_expenses" ON public.tc_expenses;
 
 CREATE POLICY "Permitir lectura de tc_expenses"
-ON public.tc_expenses FOR SELECT TO anon, authenticated USING (true);
+ON public.tc_expenses FOR SELECT TO authenticated USING (true);
 
 CREATE POLICY "Permitir insercion de tc_expenses"
-ON public.tc_expenses FOR INSERT TO anon, authenticated WITH CHECK (true);
+ON public.tc_expenses FOR INSERT TO authenticated WITH CHECK (true);
 
 CREATE POLICY "Permitir actualizacion de tc_expenses"
-ON public.tc_expenses FOR UPDATE TO anon, authenticated USING (true);
+ON public.tc_expenses FOR UPDATE TO authenticated USING (true);
 
 CREATE POLICY "Permitir eliminacion de tc_expenses"
-ON public.tc_expenses FOR DELETE TO anon, authenticated USING (true);
+ON public.tc_expenses FOR DELETE TO authenticated USING (true);
 
 -- 7. Habilitar sincronización en tiempo real (Realtime)
 DO $$

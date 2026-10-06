@@ -300,10 +300,36 @@
   gap: 0.5rem;
   transition: all 0.2s ease;
 }
+.sidebar-security {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
 .btn-lock-app:hover {
   background: rgba(239, 68, 68, 0.2);
   border-color: rgba(239, 68, 68, 0.4);
   color: #ffffff;
+}
+.btn-logout-app {
+  width: 100%;
+  padding: 8px 12px;
+  background: rgba(148, 163, 184, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  color: #94a3b8;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+.btn-logout-app:hover {
+  background: rgba(148, 163, 184, 0.16);
+  border-color: rgba(148, 163, 184, 0.35);
+  color: #f1f5f9;
 }
 @media (min-width: 768px) {
   .mobile-navbar,

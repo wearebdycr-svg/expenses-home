@@ -93,10 +93,19 @@
       type="button"
       class="btn-lock-app"
       (click)="onLockApp()"
-      title="Bloquear Expenses Home"
+      title="Bloquear Expenses Home con PIN"
     >
       <app-icon name="lock" [size]="16" />
       <span>Bloquear aplicación</span>
+    </button>
+    <button
+      type="button"
+      class="btn-logout-app"
+      (click)="onSignOutSupabase()"
+      title="Cerrar sesión de la cuenta familiar"
+    >
+      <app-icon name="log-out" [size]="16" />
+      <span>Cerrar sesión familiar</span>
     </button>
   </div>
 </aside>

@@ -21,10 +21,10 @@ DROP POLICY IF EXISTS "Permitir insercion publica de fcm_tokens" ON public.fcm_t
 DROP POLICY IF EXISTS "Permitir actualizacion publica de fcm_tokens" ON public.fcm_tokens;
 DROP POLICY IF EXISTS "Permitir eliminacion publica de fcm_tokens" ON public.fcm_tokens;
 
-CREATE POLICY "Permitir lectura publica de fcm_tokens" ON public.fcm_tokens FOR SELECT USING (true);
-CREATE POLICY "Permitir insercion publica de fcm_tokens" ON public.fcm_tokens FOR INSERT WITH CHECK (true);
-CREATE POLICY "Permitir actualizacion publica de fcm_tokens" ON public.fcm_tokens FOR UPDATE USING (true);
-CREATE POLICY "Permitir eliminacion publica de fcm_tokens" ON public.fcm_tokens FOR DELETE USING (true);
+CREATE POLICY "Permitir lectura de fcm_tokens" ON public.fcm_tokens FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Permitir insercion de fcm_tokens" ON public.fcm_tokens FOR INSERT TO authenticated WITH CHECK (char_length(token) > 10);
+CREATE POLICY "Permitir actualizacion de fcm_tokens" ON public.fcm_tokens FOR UPDATE TO authenticated USING (true);
+CREATE POLICY "Permitir eliminacion de fcm_tokens" ON public.fcm_tokens FOR DELETE TO authenticated USING (true);
 
 -- Agregar fcm_tokens a la publicación de tiempo real de Supabase de manera segura
 DO $$

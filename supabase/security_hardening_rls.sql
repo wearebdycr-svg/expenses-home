@@ -11,6 +11,18 @@
 -- 3. Pega este contenido y ejecuta "Run".
 -- ==============================================================================
 
+-- 0. TABLA: public.persons (Personas del Hogar)
+ALTER TABLE IF EXISTS public.persons ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Permitir acceso completo a personas" ON public.persons;
+DROP POLICY IF EXISTS "Solo autenticados pueden ver personas" ON public.persons;
+
+CREATE POLICY "Solo autenticados pueden ver personas"
+ON public.persons FOR SELECT
+TO authenticated
+USING (true);
+
+
 -- 1. TABLA: public.expenses (Gastos Diarios)
 ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
 

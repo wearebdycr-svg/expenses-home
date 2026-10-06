@@ -16,11 +16,11 @@ CREATE TABLE IF NOT EXISTS public.debts (
 -- Habilitar RLS
 ALTER TABLE public.debts ENABLE ROW LEVEL SECURITY;
 
--- Políticas de acceso para lectura y escritura anónima (app de hogar sin login complejo)
-CREATE POLICY "Permitir lectura publica de debts" ON public.debts FOR SELECT USING (true);
-CREATE POLICY "Permitir insercion publica de debts" ON public.debts FOR INSERT WITH CHECK (true);
-CREATE POLICY "Permitir actualizacion publica de debts" ON public.debts FOR UPDATE USING (true);
-CREATE POLICY "Permitir eliminacion publica de debts" ON public.debts FOR DELETE USING (true);
+-- Políticas de acceso para usuarios autenticados
+CREATE POLICY "Permitir lectura de debts" ON public.debts FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Permitir insercion de debts" ON public.debts FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "Permitir actualizacion de debts" ON public.debts FOR UPDATE TO authenticated USING (true);
+CREATE POLICY "Permitir eliminacion de debts" ON public.debts FOR DELETE TO authenticated USING (true);
 
 -- Habilitar Realtime
 ALTER PUBLICATION supabase_realtime ADD TABLE public.debts;

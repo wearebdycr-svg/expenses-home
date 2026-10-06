@@ -18,7 +18,7 @@ ALTER TABLE public.persons ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Permitir acceso completo a personas"
 ON public.persons
 FOR ALL
-TO anon, authenticated
+TO authenticated
 USING (true)
 WITH CHECK (true);
 
@@ -48,7 +48,7 @@ ALTER TABLE public.incomes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Permitir acceso completo a ingresos"
 ON public.incomes
 FOR ALL
-TO anon, authenticated
+TO authenticated
 USING (true)
 WITH CHECK (true);
 
@@ -73,7 +73,7 @@ ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Permitir acceso completo a gastos"
 ON public.expenses
 FOR ALL
-TO anon, authenticated
+TO authenticated
 USING (true)
 WITH CHECK (true);
 

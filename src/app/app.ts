@@ -17,7 +17,9 @@ import { DailyReminderBanner } from './shared/ui/daily-reminder-banner/daily-rem
 import { SplashScreen } from './shared/ui/splash-screen/splash-screen';
 import { ToastContainer } from './shared/ui/toast-container/toast-container';
 import { PinLock } from './shared/ui/pin-lock/pin-lock';
+import { AuthLogin } from './shared/ui/auth-login/auth-login';
 import { AuthPinService } from './core/services/auth-pin.service';
+import { SupabaseAuthService } from './core/services/supabase-auth.service';
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { PushNotificationService } from './core/services/push-notification.service';
@@ -66,6 +68,7 @@ function getInitialPage(): SidebarPageId {
     SplashScreen,
     ToastContainer,
     PinLock,
+    AuthLogin,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app.html',
@@ -76,6 +79,7 @@ export class App {
   private readonly tcService = inject(TcService);
   private readonly pushNotificationService = inject(PushNotificationService);
   protected readonly authPinService = inject(AuthPinService);
+  protected readonly supabaseAuth = inject(SupabaseAuthService);
   protected readonly currentPage = signal<SidebarPageId>(getInitialPage());
   protected readonly showSplash = signal<boolean>(
     !Capacitor.isNativePlatform() || this.authPinService.isUnlocked()
@@ -92,6 +96,19 @@ export class App {
 
   protected onAppUnlocked(): void {
     this.showSplash.set(true);
+  }
+
+  protected onSupabaseAuthenticated(): void {
+    // Tras autenticarse en Supabase, el flujo sigue al PIN o vista principal
+    if (this.authPinService.isUnlocked()) {
+      this.showSplash.set(true);
+    }
+  }
+
+  protected async onSignOutSupabase(): Promise<void> {
+    await this.supabaseAuth.signOut();
+    this.authPinService.lock();
+    this.showSplash.set(false);
   }
 
   constructor() {

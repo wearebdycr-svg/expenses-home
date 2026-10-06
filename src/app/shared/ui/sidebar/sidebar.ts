@@ -27,6 +27,7 @@ export class Sidebar {
   currentPage = input<SidebarPageId>('gastos');
   navigate = output<SidebarPageId>();
   lockApp = output<void>();
+  signOutSupabase = output<void>();
 
   protected readonly isProduction = environment.production;
   protected readonly mobileOpen = signal(false);
@@ -67,6 +68,11 @@ export class Sidebar {
 
   protected onLockApp(): void {
     this.lockApp.emit();
+    this.closeMobileMenu();
+  }
+
+  protected onSignOutSupabase(): void {
+    this.signOutSupabase.emit();
     this.closeMobileMenu();
   }
 }
