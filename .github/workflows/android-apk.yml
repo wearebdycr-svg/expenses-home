@@ -82,14 +82,13 @@ jobs:
 
       # ------------------------------------------------------------------------
       # 1. Compilación de APK DEV (Base de datos Desarrollo)
-      # Se ejecuta si:
-      # - Push a rama develop
-      # - Ejecución manual con target_env = 'dev', 'both', o 'auto' en develop
+      # Se ejecuta ÚNICAMENTE en la rama develop
       # ------------------------------------------------------------------------
       - name: Build DEV APK (Conexión a BD Desarrollo)
         if: >
-          (github.event_name == 'push' && github.ref == 'refs/heads/develop') ||
-          (github.event_name == 'workflow_dispatch' && (github.event.inputs.target_env == 'dev' || github.event.inputs.target_env == 'both' || (github.event.inputs.target_env == 'auto' && github.ref == 'refs/heads/develop')))
+          (github.ref == 'refs/heads/develop') &&
+          ((github.event_name == 'push') ||
+           (github.event_name == 'workflow_dispatch' && (github.event.inputs.target_env == 'dev' || github.event.inputs.target_env == 'both' || github.event.inputs.target_env == 'auto')))
         env:
           APP_ENV: dev
           SUPABASE_URL_DEV: ${{ secrets.SUPABASE_URL_DEV }}
@@ -119,14 +118,13 @@ jobs:
 
       # ------------------------------------------------------------------------
       # 2. Compilación de APK PRODUCCIÓN / RELEASE (Base de datos Producción)
-      # Se ejecuta si:
-      # - Push a rama main
-      # - Ejecución manual con target_env = 'prod', 'both', o 'auto' en main
+      # Se ejecuta ÚNICAMENTE en la rama main
       # ------------------------------------------------------------------------
       - name: Build PRODUCTION Release APK (Conexión a BD Producción)
         if: >
-          (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-          (github.event_name == 'workflow_dispatch' && (github.event.inputs.target_env == 'prod' || github.event.inputs.target_env == 'both' || (github.event.inputs.target_env == 'auto' && github.ref == 'refs/heads/main')))
+          (github.ref == 'refs/heads/main') &&
+          ((github.event_name == 'push') ||
+           (github.event_name == 'workflow_dispatch' && (github.event.inputs.target_env == 'prod' || github.event.inputs.target_env == 'both' || github.event.inputs.target_env == 'auto')))
         env:
           APP_ENV: prod
           SUPABASE_URL_PROD: ${{ secrets.SUPABASE_URL_PROD }}
@@ -168,6 +166,8 @@ jobs:
       # 4. Generar Reporte de Ejecución (GitHub Step Summary)
       # ------------------------------------------------------------------------
       - name: Generate Summary Report
+        env:
+          BRANCH_NAME: ${{ github.ref_name }}
         run: |
           echo "### 📱 Android APKs Compilados con Éxito" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -175,11 +175,11 @@ jobs:
           echo "| :--- | :--- | :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
           if [ -f build-artifacts/FinanzasHogar-dev.apk ]; then
             dev_size=$(ls -lh build-artifacts/FinanzasHogar-dev.apk | awk '{print $5}')
-            echo "| **FinanzasHogar-dev.apk** | 🟡 **DESARROLLO (DEV)** | \`co.wearebdycr.expenseshome.dev\` | $dev_size | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+            echo "| **FinanzasHogar-dev.apk** | 🟡 **DESARROLLO (DEV)** | \`co.wearebdycr.expenseshome.dev\` | $dev_size | \`$BRANCH_NAME\` |" >> $GITHUB_STEP_SUMMARY
           fi
           if [ -f build-artifacts/FinanzasHogar-release.apk ]; then
             rel_size=$(ls -lh build-artifacts/FinanzasHogar-release.apk | awk '{print $5}')
-            echo "| **FinanzasHogar-release.apk** | 🟢 **PRODUCCIÓN (PDN)** | \`co.wearebdycr.expenseshome\` | $rel_size | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+            echo "| **FinanzasHogar-release.apk** | 🟢 **PRODUCCIÓN (PDN)** | \`co.wearebdycr.expenseshome\` | $rel_size | \`$BRANCH_NAME\` |" >> $GITHUB_STEP_SUMMARY
           fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "👉 *Descarga el archivo APK generado desde la tarjeta **Artifacts** de este workflow.*" >> $GITHUB_STEP_SUMMARY

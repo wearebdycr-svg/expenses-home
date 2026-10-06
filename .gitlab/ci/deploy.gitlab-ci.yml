@@ -52,8 +52,17 @@ deploy:vercel:
     - echo "🚀 [DEPLOY PIPELINE] Iniciando despliegue hacia Vercel..."
     - |
       if [ -n "$VERCEL_TOKEN" ]; then
-        echo "⚡ Desplegando en Vercel vía Vercel CLI..."
-        npx vercel --prod --yes
+        # Determinar el tipo de despliegue según la rama/tag
+        if [ "$CI_COMMIT_BRANCH" = "main" ] || [ -n "$CI_COMMIT_TAG" ]; then
+          echo "⚡ Desplegando a PRODUCCIÓN en Vercel (main/tag)..."
+          npx vercel --prod --yes
+        elif [ "$CI_COMMIT_BRANCH" = "develop" ]; then
+          echo "⚡ Desplegando a PREVIEW en Vercel (develop)..."
+          npx vercel --yes
+        else
+          echo "❌ Rama no autorizada para despliegue: $CI_COMMIT_BRANCH"
+          exit 1
+        fi
       else
         echo "ℹ️ VERCEL_TOKEN no configurado en variables CI/CD. El despliegue a Vercel se sincroniza automáticamente mediante la integración Git."
       fi
