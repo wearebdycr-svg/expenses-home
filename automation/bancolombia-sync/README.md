@@ -54,9 +54,9 @@ const CONFIG = {
   // 3. Persona de esta cuenta de Gmail ('Charlie' o 'Benny')
   PERSON: 'Charlie',
 
-  // 4. Últimos 4 dígitos de la Tarjeta de Crédito Compartida
+  // 4. Últimos 4 dígitos de la Tarjeta de Crédito Compartida (ej: '0066' Bancolombia)
   // Si la compra fue con esta tarjeta, irá a TC Compartida; si no, a Gastos Diarios
-  SHARED_TC_DIGITS: ['1234'], 
+  SHARED_TC_DIGITS: ['0066'], 
 
   LABEL_PROCESSED: 'ExpensesHome/Procesado',
   LABEL_ERROR: 'ExpensesHome/Error',

@@ -39,7 +39,7 @@ const CONFIG = {
 
   // Últimos 4 dígitos de la(s) Tarjeta(s) de Crédito Compartida(s)
   // Si la compra coincide con estos dígitos, se envía a 'tc_expenses'
-  SHARED_TC_DIGITS: ['1234'], 
+  SHARED_TC_DIGITS: ['0066'], 
 
   // Etiqueta de Gmail para marcar correos ya procesados y no duplicar
   LABEL_PROCESSED: 'ExpensesHome/Procesado',
@@ -209,8 +209,12 @@ function syncBancolombiaEmails() {
     }
 
     // Si todos los mensajes del hilo fueron procesados con éxito, asegurar la etiqueta visual en Gmail
+    // y remover la etiqueta de error si la tenía previamente
     if (!threadHasUnprocessed) {
       thread.addLabel(processedLabel);
+      if (hasLabel(thread, CONFIG.LABEL_ERROR)) {
+        thread.removeLabel(errorLabel);
+      }
     }
   }
 
@@ -356,7 +360,7 @@ function parseBancolombiaEmail(body, subject, emailDate) {
  * Limpia y da formato Title Case a nombres de comercios y destinatarios
  */
 function cleanMerchantName(name) {
-  let cleaned = name.replace(/[\*\#\_]{2,}/g, '').trim();
+  let cleaned = name.replace(/[\*\#\_]+/g, ' ').replace(/\s+/g, ' ').trim();
   const keepUpper = ['SAS', 'SA', 'LTDA', 'PSE', 'NU', 'AFC', 'EPS', 'D1'];
   const lowerWords = ['de', 'la', 'el', 'los', 'las', 'en', 'a', 'por', 'y', 'del'];
 
