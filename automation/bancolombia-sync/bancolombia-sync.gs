@@ -763,3 +763,77 @@ function testPushNotification() {
   sendPushNotification(sampleRecord);
 }
 
+// ==============================================================================
+// 4. RECORDATORIOS DIARIOS PROGRAMADOS (9:00 AM y 9:00 PM)
+// ==============================================================================
+
+/**
+ * Envía el recordatorio matutino de gastos (9:00 AM hora Colombia)
+ */
+function sendMorningReminder() {
+  if (!CONFIG.APP_BASE_URL) return;
+  const url = `${CONFIG.APP_BASE_URL.replace(/\/$/, '')}/api/cron-reminder?slot=morning`;
+  try {
+    const resp = UrlFetchApp.fetch(url, {
+      method: 'get',
+      headers: { Authorization: `Bearer ${CONFIG.SUPABASE_ANON_KEY}` },
+      muteHttpExceptions: true,
+    });
+    Logger.log(`☀️ Recordatorio 9:00 AM ejecutado (HTTP ${resp.getResponseCode()}): ${resp.getContentText()}`);
+  } catch (e) {
+    Logger.log(`⚠️ Error despachando recordatorio 9:00 AM: ${e.message}`);
+  }
+}
+
+/**
+ * Envía el recordatorio nocturno de gastos (9:00 PM hora Colombia)
+ */
+function sendEveningReminder() {
+  if (!CONFIG.APP_BASE_URL) return;
+  const url = `${CONFIG.APP_BASE_URL.replace(/\/$/, '')}/api/cron-reminder?slot=evening`;
+  try {
+    const resp = UrlFetchApp.fetch(url, {
+      method: 'get',
+      headers: { Authorization: `Bearer ${CONFIG.SUPABASE_ANON_KEY}` },
+      muteHttpExceptions: true,
+    });
+    Logger.log(`🌙 Recordatorio 9:00 PM ejecutado (HTTP ${resp.getResponseCode()}): ${resp.getContentText()}`);
+  } catch (e) {
+    Logger.log(`⚠️ Error despachando recordatorio 9:00 PM: ${e.message}`);
+  }
+}
+
+/**
+ * Instala o actualiza los disparadores diarios de las 9:00 AM y 9:00 PM en Google Apps Script
+ * Selecciónala en el desplegable de Apps Script y presiona "Ejecutar" una sola vez.
+ */
+function installDailyReminders() {
+  // Limpiar disparadores existentes de recordatorios
+  const triggers = ScriptApp.getProjectTriggers();
+  for (const t of triggers) {
+    const fn = t.getHandlerFunction();
+    if (fn === 'sendMorningReminder' || fn === 'sendEveningReminder') {
+      ScriptApp.deleteTrigger(t);
+    }
+  }
+
+  // 1. Disparador 9:00 AM (hora Colombia)
+  ScriptApp.newTrigger('sendMorningReminder')
+    .timeBased()
+    .atHour(9)
+    .everyDays(1)
+    .inTimezone('America/Bogota')
+    .create();
+
+  // 2. Disparador 9:00 PM / 21:00 (hora Colombia)
+  ScriptApp.newTrigger('sendEveningReminder')
+    .timeBased()
+    .atHour(21)
+    .everyDays(1)
+    .inTimezone('America/Bogota')
+    .create();
+
+  Logger.log('✅ Disparadores de recordatorios instalados con éxito para las 9:00 AM y 9:00 PM (hora Colombia).');
+}
+
+

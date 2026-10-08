@@ -3,6 +3,7 @@ import crypto from 'crypto';
 
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseAnonKey;
 
 /**
  * Obtiene las credenciales de la cuenta de servicio de Firebase
@@ -131,8 +132,8 @@ export default async function handler(req, res) {
     // 1. Obtener todos los tokens registrados
     let tokens = [];
     let supabase = null;
-    if (supabaseUrl && supabaseAnonKey) {
-      supabase = createClient(supabaseUrl, supabaseAnonKey);
+    if (supabaseUrl && supabaseKey) {
+      supabase = createClient(supabaseUrl, supabaseKey);
       const { data: dbTokens, error } = await supabase.from('fcm_tokens').select('token');
       if (!error && dbTokens) {
         tokens = dbTokens.map((t) => t.token);
