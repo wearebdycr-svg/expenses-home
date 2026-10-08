@@ -402,3 +402,142 @@
 .btn-save-pin:hover {
   background: #ea580c;
 }
+
+/* ==============================================================================
+   BIOMETRIC AUTH STYLES
+   ============================================================================== */
+.biometric-trigger-container {
+  margin-top: 0.85rem;
+  margin-bottom: 0.25rem;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.btn-biometric-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(249, 115, 22, 0.15);
+  border: 1px solid rgba(249, 115, 22, 0.35);
+  border-radius: 9999px;
+  color: #fb923c;
+  font-size: 0.825rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-biometric-trigger:hover:not(:disabled) {
+  background: rgba(249, 115, 22, 0.25);
+  border-color: rgba(249, 115, 22, 0.55);
+  transform: translateY(-1px);
+}
+
+.btn-biometric-trigger:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.btn-biometric-trigger:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.biometric-key {
+  color: #f97316 !important;
+  background: rgba(249, 115, 22, 0.12) !important;
+  border-color: rgba(249, 115, 22, 0.28) !important;
+}
+
+.biometric-key:hover:not(:disabled) {
+  background: rgba(249, 115, 22, 0.22) !important;
+  border-color: rgba(249, 115, 22, 0.45) !important;
+}
+
+.biometric-toggle-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-top: 1.25rem;
+  padding: 0.85rem 1rem;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}
+
+.biometric-toggle-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(249, 115, 22, 0.15);
+  color: #f97316;
+  flex-shrink: 0;
+}
+
+.biometric-toggle-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  text-align: left;
+}
+
+.biometric-toggle-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.biometric-toggle-desc {
+  font-size: 0.725rem;
+  color: #94a3b8;
+  margin-top: 0.15rem;
+}
+
+/* Switch styling */
+.biometric-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.biometric-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.biometric-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: rgba(100, 116, 139, 0.5);
+  transition: 0.3s;
+  border-radius: 24px;
+}
+
+.biometric-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+.biometric-switch input:checked + .biometric-slider {
+  background-color: #f97316;
+}
+
+.biometric-switch input:checked + .biometric-slider:before {
+  transform: translateX(20px);
+}
+

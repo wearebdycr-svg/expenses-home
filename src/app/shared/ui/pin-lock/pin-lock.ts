@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   HostListener,
+  OnInit,
   inject,
   output,
   signal,
@@ -20,7 +21,7 @@ import { Icon } from '../icon/icon';
   templateUrl: './pin-lock.html',
   styleUrl: './pin-lock.css',
 })
-export class PinLock {
+export class PinLock implements OnInit {
   protected readonly authPinService = inject(AuthPinService);
 
   unlocked = output<void>();
@@ -38,6 +39,40 @@ export class PinLock {
   protected readonly changeConfirmPin = signal<string>('');
   protected readonly changeError = signal<string>('');
   protected readonly changeSuccess = signal<string>('');
+
+  async ngOnInit(): Promise<void> {
+    await this.authPinService.checkBiometricAvailability();
+    // Si la biometría está disponible y habilitada, pedirla automáticamente al abrir
+    if (this.authPinService.isBiometricAvailable() && this.authPinService.isBiometricEnabled()) {
+      setTimeout(() => {
+        this.triggerBiometricUnlock();
+      }, 350);
+    }
+  }
+
+  protected async triggerBiometricUnlock(): Promise<void> {
+    if (this.isSubmitting() || this.authPinService.isLockedOut()) return;
+    this.errorMessage.set('');
+
+    const result = await this.authPinService.unlockWithBiometric();
+    if (result.success) {
+      Haptics.notification({ type: NotificationType.Success }).catch(() => {});
+      this.isSuccess.set(true);
+      this.unlocked.emit();
+    } else {
+      const err = (result.error || '').toLowerCase();
+      const isCancellation =
+        err.includes('cancel') ||
+        err.includes('negative') ||
+        err.includes('user_cancel') ||
+        err.includes('dismiss');
+
+      if (!isCancellation && result.error) {
+        this.errorMessage.set('Huella no reconocida. Intenta de nuevo o ingresa tu PIN.');
+        Haptics.notification({ type: NotificationType.Error }).catch(() => {});
+      }
+    }
+  }
 
   @HostListener('window:keydown', ['$event'])
   handleKeyboardInput(event: KeyboardEvent): void {
@@ -161,5 +196,10 @@ export class PinLock {
     } else {
       this.changeError.set(res.error || 'No se pudo actualizar el PIN.');
     }
+  }
+
+  protected toggleBiometric(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.authPinService.setBiometricEnabled(input.checked);
   }
 }

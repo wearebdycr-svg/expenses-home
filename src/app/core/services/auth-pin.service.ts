@@ -1,11 +1,13 @@
 import { Injectable, signal } from '@angular/core';
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
+import { NativeBiometric, BiometryType } from '@capgo/capacitor-native-biometric';
 
 const PIN_STORAGE_KEY = 'expenses_home_pin_hash';
 const PIN_SALT_KEY = 'expenses_home_pin_salt';
 const SESSION_STORAGE_KEY = 'expenses_home_pin_session';
 const FAILED_ATTEMPTS_KEY = 'expenses_home_pin_failed';
+const BIOMETRIC_ENABLED_KEY = 'expenses_home_biometric_enabled';
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_MS = 30_000; // 30 segundos de penalización tras 5 intentos fallidos
 const REMEMBER_DAYS_MS = 30 * 24 * 60 * 60 * 1000; // 30 días
@@ -33,6 +35,9 @@ export class AuthPinService {
   readonly isLockedOut = signal<boolean>(false);
   readonly lockoutRemainingSecs = signal<number>(0);
   readonly hasCustomPin = signal<boolean>(false);
+  readonly isBiometricAvailable = signal<boolean>(false);
+  readonly isBiometricEnabled = signal<boolean>(true);
+  readonly biometryTypeName = signal<string>('Huella');
 
   private lockoutIntervalId: any = null;
 
@@ -71,6 +76,13 @@ export class AuthPinService {
     // 1. Revisar si hay un PIN personalizado configurado
     const savedHash = localStorage.getItem(PIN_STORAGE_KEY);
     this.hasCustomPin.set(Boolean(savedHash));
+
+    // Revisar preferencia biométrica guardada
+    const bioPref = localStorage.getItem(BIOMETRIC_ENABLED_KEY);
+    this.isBiometricEnabled.set(bioPref !== 'false');
+
+    // Comprobar disponibilidad biométrica en el dispositivo
+    this.checkBiometricAvailability().catch(() => {});
 
     // 2. Revisar bloqueo por intentos fallidos
     this.checkLockoutStatus();
@@ -260,5 +272,94 @@ export class AuthPinService {
       sessionStorage.removeItem(SESSION_STORAGE_KEY);
     }
     this.isUnlocked.set(false);
+  }
+
+  /**
+   * Comprueba si el dispositivo cuenta con sensor biométrico (huella o rostro) enrolado y disponible.
+   */
+  async checkBiometricAvailability(): Promise<boolean> {
+    if (!Capacitor.isNativePlatform()) {
+      this.isBiometricAvailable.set(false);
+      return false;
+    }
+
+    try {
+      const result = await NativeBiometric.isAvailable();
+      const available = Boolean(result.isAvailable);
+      this.isBiometricAvailable.set(available);
+
+      if (available) {
+        if (
+          result.biometryType === BiometryType.FACE_ID ||
+          result.biometryType === BiometryType.FACE_AUTHENTICATION
+        ) {
+          this.biometryTypeName.set('Rostro');
+        } else {
+          this.biometryTypeName.set('Huella');
+        }
+      }
+      return available;
+    } catch (e) {
+      console.warn('[Biometric] Verificación biométrica no disponible:', e);
+      this.isBiometricAvailable.set(false);
+      return false;
+    }
+  }
+
+  /**
+   * Habilita o deshabilita el uso de biometría según preferencia del usuario.
+   */
+  setBiometricEnabled(enabled: boolean): void {
+    this.isBiometricEnabled.set(enabled);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(BIOMETRIC_ENABLED_KEY, String(enabled));
+    }
+  }
+
+  /**
+   * Desbloquea la aplicación utilizando el sensor biométrico nativo (Huella o Face).
+   */
+  async unlockWithBiometric(): Promise<{ success: boolean; error?: string }> {
+    if (this.isLockedOut()) {
+      return {
+        success: false,
+        error: `Acceso bloqueado. Espera ${this.lockoutRemainingSecs()} segundos.`,
+      };
+    }
+
+    if (!Capacitor.isNativePlatform()) {
+      return { success: false, error: 'Biometría solo disponible en la app móvil.' };
+    }
+
+    if (!this.isBiometricEnabled()) {
+      return { success: false, error: 'Biometría deshabilitada en la configuración.' };
+    }
+
+    try {
+      await NativeBiometric.verifyIdentity({
+        title: 'Finanzas Hogar',
+        subtitle: 'Desbloqueo de Seguridad',
+        description: `Usa tu ${this.biometryTypeName().toLowerCase()} para acceder a tus cuentas`,
+        negativeButtonText: 'Usar PIN',
+        maxAttempts: 3,
+      });
+
+      // Éxito biométrico: limpiar penalizaciones e ingresar
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem(FAILED_ATTEMPTS_KEY);
+      }
+      this.isLockedOut.set(false);
+      this.lockoutRemainingSecs.set(0);
+      this.isUnlocked.set(true);
+
+      return { success: true };
+    } catch (err: any) {
+      const msg = err?.message || String(err || '');
+      console.log('[Biometric] Verificación biométrica no completada:', msg);
+      return {
+        success: false,
+        error: msg,
+      };
+    }
   }
 }

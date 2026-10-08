@@ -29,10 +29,10 @@
 // ==============================================================================
 const CONFIG = {
   // URL de tu proyecto de Supabase (ej: 'https://zmechahctplsnnauxvju.supabase.co')
-  SUPABASE_URL: 'https://zmechahctplsnnauxvju.supabase.co',
+  SUPABASE_URL: 'https://fbwljvmqzpmcfokogbpw.supabase.co',
 
   // Llave anónima pública de Supabase
-  SUPABASE_ANON_KEY: 'TU_SUPABASE_ANON_KEY',
+  SUPABASE_ANON_KEY: 'sb_publishable_mUn_o-UNyRQ2FhWdQcvsdQ_cnf8duXv',
 
   // URL base de la aplicación en Vercel para despachar notificaciones push a los móviles
   APP_BASE_URL: 'https://finanzas-hogar-control-familiar.vercel.app',

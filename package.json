@@ -23,10 +23,10 @@
     "cap:sync": "npx cap sync android",
     "cap:build": "npm run build && npx cap sync android",
     "cap:open": "npx cap open android",
-    "apk:debug": "npm run cap:build && JAVA_HOME=\"${JAVA_HOME:-/opt/homebrew/opt/openjdk}\" ./android/gradlew -p android assembleDebug",
-    "apk:release": "npm run cap:build && JAVA_HOME=\"${JAVA_HOME:-/opt/homebrew/opt/openjdk}\" ./android/gradlew -p android assembleRelease",
-    "apk:dev": "npm run config:env:dev && npm run build && npx cap sync android && JAVA_HOME=\"${JAVA_HOME:-/opt/homebrew/opt/openjdk}\" ./android/gradlew -p android assembleDebug",
-    "apk:prod": "npm run config:env:prod && npm run build && npx cap sync android && JAVA_HOME=\"${JAVA_HOME:-/opt/homebrew/opt/openjdk}\" ./android/gradlew -p android assembleRelease"
+    "apk:debug": "npm run cap:build && JAVA_HOME=\"/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home\" ./android/gradlew -p android assembleDebug",
+    "apk:release": "npm run cap:build && JAVA_HOME=\"/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home\" ./android/gradlew -p android assembleRelease",
+    "apk:dev": "npm run config:env:dev && npm run build && npx cap sync android && JAVA_HOME=\"/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home\" ./android/gradlew -p android assembleDebug",
+    "apk:prod": "npm run config:env:prod && npm run build && npx cap sync android && JAVA_HOME=\"/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home\" ./android/gradlew -p android assembleRelease"
   },
   "private": true,
   "packageManager": "npm@11.18.0",
@@ -46,6 +46,7 @@
     "@capacitor/push-notifications": "^8.1.3",
     "@capacitor/splash-screen": "^8.0.2",
     "@capacitor/status-bar": "^8.0.4",
+    "@capgo/capacitor-native-biometric": "^8.8.0",
     "@supabase/supabase-js": "^2.117.2",
     "chart.js": "^4.5.1",
     "firebase": "^12.19.0",

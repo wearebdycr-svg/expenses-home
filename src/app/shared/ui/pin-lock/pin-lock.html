@@ -30,6 +30,21 @@
       }
     </div>
 
+    <!-- Botón de Acceso Rápido con Huella / Biometría -->
+    @if (authPinService.isBiometricAvailable() && authPinService.isBiometricEnabled()) {
+      <div class="biometric-trigger-container">
+        <button
+          type="button"
+          class="btn-biometric-trigger"
+          [disabled]="authPinService.isLockedOut() || isSubmitting()"
+          (click)="triggerBiometricUnlock()"
+        >
+          <app-icon name="fingerprint" [size]="20" />
+          <span>Toca para usar {{ authPinService.biometryTypeName() }}</span>
+        </button>
+      </div>
+    }
+
     <!-- Mensaje de Error o Penalización -->
     @if (authPinService.isLockedOut()) {
       <div class="pin-alert lockout-alert">
@@ -60,16 +75,28 @@
         </button>
       }
 
-      <!-- Fila inferior: Limpiar, 0, Borrar -->
-      <button
-        type="button"
-        class="key-btn action-key"
-        [disabled]="authPinService.isLockedOut() || isSubmitting() || pin().length === 0"
-        (click)="clearPin()"
-        title="Limpiar"
-      >
-        Limpiar
-      </button>
+      <!-- Fila inferior: Huella / Limpiar, 0, Borrar -->
+      @if (authPinService.isBiometricAvailable() && authPinService.isBiometricEnabled()) {
+        <button
+          type="button"
+          class="key-btn action-key biometric-key"
+          [disabled]="authPinService.isLockedOut() || isSubmitting()"
+          (click)="triggerBiometricUnlock()"
+          title="Desbloquear con {{ authPinService.biometryTypeName() }}"
+        >
+          <app-icon name="fingerprint" [size]="26" />
+        </button>
+      } @else {
+        <button
+          type="button"
+          class="key-btn action-key"
+          [disabled]="authPinService.isLockedOut() || isSubmitting() || pin().length === 0"
+          (click)="clearPin()"
+          title="Limpiar"
+        >
+          Limpiar
+        </button>
+      }
 
       <button
         type="button"
@@ -158,6 +185,26 @@
               (input)="changeConfirmPin.set($any($event.target).value)"
             />
           </div>
+
+          @if (authPinService.isBiometricAvailable()) {
+            <div class="biometric-toggle-card">
+              <div class="biometric-toggle-icon">
+                <app-icon name="fingerprint" [size]="22" />
+              </div>
+              <div class="biometric-toggle-info">
+                <span class="biometric-toggle-title">Desbloqueo con {{ authPinService.biometryTypeName() }}</span>
+                <span class="biometric-toggle-desc">Permite entrar usando el sensor biométrico</span>
+              </div>
+              <label class="biometric-switch">
+                <input
+                  type="checkbox"
+                  [checked]="authPinService.isBiometricEnabled()"
+                  (change)="toggleBiometric($event)"
+                />
+                <span class="biometric-slider"></span>
+              </label>
+            </div>
+          }
         </div>
 
         <div class="modal-actions">
