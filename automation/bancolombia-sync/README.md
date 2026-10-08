@@ -51,21 +51,24 @@ const CONFIG = {
   // 2. Llave anónima pública de Supabase
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
 
-  // 3. Persona de esta cuenta de Gmail ('Charlie' o 'Benny')
+  // 3. URL de la aplicación web / Vercel para despachar notificaciones push a los celulares
+  APP_BASE_URL: 'https://finanzas-hogar-control-familiar.vercel.app',
+
+  // 4. Persona de esta cuenta de Gmail ('Charlie' o 'Benny')
   PERSON: 'Charlie',
 
-  // 4. Últimos 4 dígitos de la Tarjeta de Crédito Compartida (ej: '0066' Bancolombia)
+  // 5. Últimos 4 dígitos de la Tarjeta de Crédito Compartida (ej: '0066' Bancolombia)
   // Si la compra fue con esta tarjeta, irá a TC Compartida; si no, a Gastos Diarios
   SHARED_TC_DIGITS: ['0066'], 
 
   LABEL_PROCESSED: 'ExpensesHome/Procesado',
   LABEL_ERROR: 'ExpensesHome/Error',
-  BANCOLOMBIA_SENDER: 'alertasynotificaciones@notificacionesbancolombia.com',
+  BANCOLOMBIA_SENDER: 'notificacionesbancolombia.com',
 
-  // 5. Frecuencia de escaneo: 5, 10, 15, 30 o 60 (1 hora)
+  // 6. Frecuencia de escaneo: 5, 10, 15, 30 o 60 (1 hora)
   TRIGGER_EVERY_MINUTES: 10,
 
-  // 6. Modo nocturno: pausa escaneos entre 11 PM y 6 AM para ahorrar cuota
+  // 7. Modo nocturno: pausa escaneos entre 11 PM y 6 AM para ahorrar cuota
   NIGHT_MODE_SAVINGS: false, // Cambia a true si deseas activarlo
   NIGHT_START_HOUR: 23,
   NIGHT_END_HOUR: 6,
@@ -76,10 +79,12 @@ const CONFIG = {
 
 ---
 
-### Paso 4: Probar que funcione
-1. En la barra superior del editor de Google Apps Script, en el selector de funciones, elige **`testWithSampleEmail`**.
-2. Haz clic en **Ejecutar**.
-3. En la parte inferior se abrirá el "Registro de ejecución" mostrando la extracción simulada de un gasto del Éxito con monto, categoría y tarjeta.
+### Paso 4: Probar que funcione y probar Notificaciones Push
+1. **Prueba de extracción**: En la barra superior del editor de Google Apps Script, en el selector de funciones, elige **`testWithSampleEmail`** y haz clic en **Ejecutar**. Verás la extracción simulada de los correos.
+2. **Prueba de Notificación Push al teléfono**:
+   * Asegúrate de haber abierto la app móvil al menos una vez en tu celular con conexión a internet.
+   * En el selector de funciones de Google Apps Script, elige **`testPushNotification`** y haz clic en **Ejecutar**.
+   * Verás en los registros `📲 Notificación push despachada con éxito` y recibirás la notificación push instantánea en tu teléfono celular.
 
 ---
 
@@ -90,7 +95,7 @@ const CONFIG = {
 4. Verás en el registro:  
    `✅ Disparador instalado: Se ejecutará automáticamente cada 10 minutos.`
 
-¡Listo! A partir de este momento, cada vez que hagas un pago o compra con Bancolombia, tu Gmail recibirá el correo y en los próximos minutos el script lo registrará automáticamente en tu aplicación.
+¡Listo! A partir de este momento, cada vez que hagas un pago o compra con Bancolombia, tu Gmail recibirá el correo, el script lo registrará en Supabase y te llegará una **notificación push inmediata a tu celular**.
 
 ---
 

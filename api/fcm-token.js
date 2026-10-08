@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseAnonKey;
 
 export default async function handler(req, res) {
   // Manejo de CORS
@@ -14,9 +15,9 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'GET') {
-    if (supabaseUrl && supabaseAnonKey) {
+    if (supabaseUrl && supabaseKey) {
       try {
-        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+        const supabase = createClient(supabaseUrl, supabaseKey);
         const { count, error } = await supabase
           .from('fcm_tokens')
           .select('*', { count: 'exact', head: true });
@@ -40,8 +41,8 @@ export default async function handler(req, res) {
     }
 
     try {
-      if (supabaseUrl && supabaseAnonKey) {
-        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+      if (supabaseUrl && supabaseKey) {
+        const supabase = createClient(supabaseUrl, supabaseKey);
         const { error } = await supabase.from('fcm_tokens').upsert(
           {
             token,
@@ -71,8 +72,8 @@ export default async function handler(req, res) {
 
   if (req.method === 'DELETE') {
     const { token } = req.body || {};
-    if (token && supabaseUrl && supabaseAnonKey) {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    if (token && supabaseUrl && supabaseKey) {
+      const supabase = createClient(supabaseUrl, supabaseKey);
       await supabase.from('fcm_tokens').delete().eq('token', token);
     }
     return res.status(200).json({ success: true, message: 'Token eliminado' });

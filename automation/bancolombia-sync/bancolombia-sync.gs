@@ -34,6 +34,9 @@ const CONFIG = {
   // Llave anónima pública de Supabase
   SUPABASE_ANON_KEY: 'TU_SUPABASE_ANON_KEY',
 
+  // URL base de la aplicación en Vercel para despachar notificaciones push a los móviles
+  APP_BASE_URL: 'https://finanzas-hogar-control-familiar.vercel.app',
+
   // Persona a la que pertenece esta cuenta de Gmail ('Charlie' o 'Benny')
   PERSON: 'Charlie',
 
@@ -190,7 +193,10 @@ function syncBancolombiaEmails() {
           }
 
           Logger.log(`📥 [NUEVO] Mensaje procesado en hilo (${msgId}) [${parsed.type.toUpperCase()}]: $${parsed.amount} - ${parsed.description} (${parsed.targetTable})`);
-          saveRecordToSupabase(parsed);
+          const saved = saveRecordToSupabase(parsed);
+          if (saved) {
+            sendPushNotification(parsed);
+          }
           markMessageAsProcessed(msgId);
           processedIds.add(msgId);
           message.markRead();
@@ -487,7 +493,7 @@ function saveRecordToSupabase(record) {
       const existing = JSON.parse(checkResp.getContentText());
       if (existing && existing.length > 0) {
         Logger.log(`⚠️ Registro ya existe en Supabase [${record.targetTable}] ($${record.amount} del ${record.date}). Omitiendo inserción para evitar duplicado.`);
-        return;
+        return false;
       }
     }
   } catch (e) {
@@ -533,9 +539,82 @@ function saveRecordToSupabase(record) {
 
   if (code >= 200 && code < 300) {
     Logger.log(`✅ Guardado con éxito en Supabase [${record.targetTable}]: ${response.getContentText()}`);
+    return true;
   } else {
     throw new Error(`Error Supabase HTTP ${code}: ${response.getContentText()}`);
   }
+}
+
+/**
+ * Envía una notificación push a los dispositivos móviles y web del hogar
+ * a través del endpoint serverless /api/notify de Vercel.
+ */
+function sendPushNotification(record) {
+  if (!CONFIG.APP_BASE_URL) {
+    Logger.log('ℹ️ APP_BASE_URL no está configurado. Omitiendo notificación push.');
+    return;
+  }
+
+  const notifyUrl = `${CONFIG.APP_BASE_URL.replace(/\/$/, '')}/api/notify`;
+  const formattedAmount = formatCurrency(record.amount);
+
+  let title = '💸 Transacción Registrada';
+  let body = `${formattedAmount} - ${record.description}`;
+  let url = '/#gastos';
+
+  if (record.targetTable === 'tc_expenses') {
+    title = '💳 Compra TC Compartida (*0066)';
+    body = `${formattedAmount} en ${record.description}`;
+    url = '/#tc-compartida';
+  } else if (record.targetTable === 'expenses') {
+    title = `💸 Gasto Registrado (${record.person})`;
+    body = `${formattedAmount} en ${record.description} (${record.category || 'Varios'})`;
+    url = '/#gastos';
+  } else if (record.targetTable === 'incomes') {
+    title = `💰 Ingreso Registrado (${record.person})`;
+    body = `${formattedAmount} - ${record.description}`;
+    url = '/#ingresos';
+  }
+
+  const payload = {
+    title: title,
+    body: body,
+    data: {
+      url: url,
+      type: record.targetTable,
+      amount: String(record.amount),
+      person: record.person,
+    },
+  };
+
+  const options = {
+    method: 'post',
+    contentType: 'application/json',
+    headers: {
+      Authorization: `Bearer ${CONFIG.SUPABASE_ANON_KEY}`,
+    },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true,
+  };
+
+  try {
+    const response = UrlFetchApp.fetch(notifyUrl, options);
+    const code = response.getResponseCode();
+    if (code >= 200 && code < 300) {
+      Logger.log(`📲 Notificación push despachada con éxito: "${title}" - "${body}"`);
+    } else {
+      Logger.log(`⚠️ Advertencia despachando notificación push (HTTP ${code}): ${response.getContentText()}`);
+    }
+  } catch (err) {
+    Logger.log(`⚠️ Excepción enviando notificación push: ${err.message}`);
+  }
+}
+
+/**
+ * Helper para dar formato de moneda COP ($XX.XXX)
+ */
+function formatCurrency(amount) {
+  return '$' + Math.round(Number(amount) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 }
 
 /**
@@ -662,3 +741,20 @@ function installTrigger() {
     Logger.log(`✅ Disparador instalado: Se ejecutará automáticamente cada ${validMinutes} minutos.`);
   }
 }
+
+/**
+ * Función de prueba manual para enviar una notificación push de prueba al teléfono/app.
+ * Selecciónala en el desplegable de funciones de Google Apps Script y presiona "Ejecutar".
+ */
+function testPushNotification() {
+  Logger.log('🔔 Iniciando prueba de despacho de notificación push...');
+  const sampleRecord = {
+    targetTable: 'tc_expenses',
+    amount: 33869,
+    description: 'Bold Sa Galu Mic',
+    category: 'Entretenimiento/salidas',
+    person: 'Compartido',
+  };
+  sendPushNotification(sampleRecord);
+}
+

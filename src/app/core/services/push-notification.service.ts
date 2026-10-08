@@ -97,6 +97,8 @@ export class PushNotificationService {
     if (savedToken) {
       this.currentToken.set(savedToken);
       this.isSubscribed.set(true);
+      // Re-asegurar registro en Supabase/Backend por si la app estuvo offline o hubo fallo de RLS previo
+      this.registerTokenInBackend(savedToken, 'Hogar (Móvil)').catch(() => {});
     }
 
     try {
@@ -199,6 +201,8 @@ export class PushNotificationService {
       } else {
         this.currentToken.set(savedToken);
         this.isSubscribed.set(true);
+        // Re-asegurar registro en Supabase/Backend
+        this.registerTokenInBackend(savedToken, 'Hogar (Web)').catch(() => {});
       }
     }
 

@@ -3,6 +3,7 @@ import crypto from 'crypto';
 
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseAnonKey;
 
 /**
  * Obtiene las credenciales de la cuenta de servicio de Firebase
@@ -215,8 +216,8 @@ export default async function handler(req, res) {
     let supabase = null;
 
     // 1. Obtener tokens de Supabase (excluyendo el dispositivo emisor)
-    if (supabaseUrl && supabaseAnonKey) {
-      supabase = createClient(supabaseUrl, supabaseAnonKey);
+    if (supabaseUrl && supabaseKey) {
+      supabase = createClient(supabaseUrl, supabaseKey);
       let query = supabase.from('fcm_tokens').select('token');
 
       // Por defecto despachamos a todos los dispositivos del hogar (incluyendo confirmación en el propio móvil).
