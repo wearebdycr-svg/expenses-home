@@ -550,6 +550,11 @@ function saveRecordToSupabase(record) {
  * a través del endpoint serverless /api/notify de Vercel.
  */
 function sendPushNotification(record) {
+  if (!record) {
+    Logger.log('⚠️ sendPushNotification requiere los datos de una transacción. Para hacer una prueba manual, selecciona la función "testPushNotification" en el menú desplegable superior y presiona Ejecutar.');
+    return;
+  }
+
   if (!CONFIG.APP_BASE_URL) {
     Logger.log('ℹ️ APP_BASE_URL no está configurado. Omitiendo notificación push.');
     return;
