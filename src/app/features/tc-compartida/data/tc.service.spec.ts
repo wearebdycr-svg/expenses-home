@@ -402,5 +402,49 @@ describe('TcService - Módulo TC Compartida y Conciliación', () => {
     };
     expect(tcService.isPaymentForCard(legitPayment, sharedCard)).toBe(true);
   });
+
+  it('adds, updates and deletes a credit card, synchronizing local state', () => {
+    const initialCount = tcService.cards().length;
+
+    // 1. Crear tarjeta
+    const newCard = tcService.addCard({
+      name: 'TC Falabella',
+      bank: 'Banco Falabella',
+      lastDigits: '9876',
+      person: 'Benny',
+      themeId: 'ruby-red',
+      quota: 4_000_000,
+      paymentCategory: 'Compras',
+      description: 'Tarjeta Falabella personal',
+    });
+
+    expect(tcService.cards().length).toBe(initialCount + 1);
+    expect(newCard.name).toBe('TC Falabella');
+    expect(newCard.color).toBe('#EF4444');
+    expect(tcService.cards().some((c) => c.id === newCard.id)).toBe(true);
+
+    // 2. Actualizar tarjeta
+    tcService.updateCard(newCard.id, {
+      name: 'TC Falabella VIP',
+      bank: 'Banco Falabella',
+      lastDigits: '9876',
+      person: 'Benny',
+      themeId: 'amber-gold',
+      quota: 6_000_000,
+      paymentCategory: 'Compras',
+      description: 'Tarjeta Falabella actualizada',
+    });
+
+    const updated = tcService.cards().find((c) => c.id === newCard.id);
+    expect(updated).toBeDefined();
+    expect(updated?.name).toBe('TC Falabella VIP');
+    expect(updated?.color).toBe('#F59E0B');
+    expect(updated?.quota).toBe(6_000_000);
+
+    // 3. Eliminar tarjeta
+    tcService.deleteCard(newCard.id);
+    expect(tcService.cards().length).toBe(initialCount);
+    expect(tcService.cards().some((c) => c.id === newCard.id)).toBe(false);
+  });
 });
 

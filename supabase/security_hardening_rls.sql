@@ -183,3 +183,33 @@ CREATE POLICY "Permitir eliminacion de tokens solo a autenticados"
 ON public.fcm_tokens FOR DELETE
 TO authenticated
 USING (true);
+
+
+-- 6. TABLA: public.tc_cards (Tarjetas de Crédito del Hogar)
+ALTER TABLE IF EXISTS public.tc_cards ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Solo autenticados pueden ver tc_cards" ON public.tc_cards;
+DROP POLICY IF EXISTS "Solo autenticados pueden crear tc_cards" ON public.tc_cards;
+DROP POLICY IF EXISTS "Solo autenticados pueden actualizar tc_cards" ON public.tc_cards;
+DROP POLICY IF EXISTS "Solo autenticados pueden eliminar tc_cards" ON public.tc_cards;
+
+CREATE POLICY "Solo autenticados pueden ver tc_cards"
+ON public.tc_cards FOR SELECT
+TO authenticated
+USING (true);
+
+CREATE POLICY "Solo autenticados pueden crear tc_cards"
+ON public.tc_cards FOR INSERT
+TO authenticated
+WITH CHECK (true);
+
+CREATE POLICY "Solo autenticados pueden actualizar tc_cards"
+ON public.tc_cards FOR UPDATE
+TO authenticated
+USING (true)
+WITH CHECK (true);
+
+CREATE POLICY "Solo autenticados pueden eliminar tc_cards"
+ON public.tc_cards FOR DELETE
+TO authenticated
+USING (true);

@@ -95,6 +95,7 @@ export class TcService {
   readonly personFilter = this.person.asReadonly();
 
   constructor() {
+    this.loadCards();
     this.loadFromStorage();
     this.loadTcExpenses();
     this.setupRealtime();
@@ -103,6 +104,119 @@ export class TcService {
   // ==========================================
   // GESTIÓN DE TARJETAS (CARDS)
   // ==========================================
+
+  /**
+   * Carga las tarjetas de crédito almacenadas en Supabase (tc_cards).
+   * Mantiene sincronizadas las tarjetas entre todos los dispositivos del hogar (esposa y esposo).
+   * Si existen tarjetas locales previas que aún no están en la BD, las sube automáticamente.
+   */
+  async loadCards(): Promise<void> {
+    try {
+      const { data, error } = await this.supabase.client
+        .from('tc_cards')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        console.warn(
+          'Supabase: No se pudieron cargar las tarjetas de crédito (verifica si la tabla tc_cards existe):',
+          error.message,
+        );
+        return;
+      }
+
+      const proc = (globalThis as any).process;
+      const isTest = Boolean(proc?.env?.['NODE_ENV'] === 'test' || proc?.env?.['VITEST']);
+
+      if (data && data.length > 0) {
+        const dbCards: TcCard[] = data.map((row: any) => ({
+          id: String(row.id),
+          name: String(row.name),
+          bank: String(row.bank),
+          lastDigits: String(row.last_digits || row.lastDigits || ''),
+          person: row.person as ExpensePerson,
+          themeId: String(row.theme_id || row.themeId || 'emerald'),
+          color: String(row.color),
+          gradient: String(row.gradient),
+          quota: row.quota != null ? Number(row.quota) : undefined,
+          paymentCategory: row.payment_category || row.paymentCategory || 'TC-compartida',
+          isDefault: Boolean(row.is_default ?? row.isDefault),
+          description: row.description ? String(row.description) : undefined,
+          createdAt: row.created_at ? String(row.created_at) : undefined,
+        }));
+
+        // Sincronización y reconciliación con tarjetas locales:
+        // Si en este dispositivo ya existía alguna tarjeta creada que no esté en Supabase,
+        // la subimos a la BD para compartirla de inmediato.
+        if (!isTest) {
+          const localCards = this.loadCardsFromStorage();
+          const dbCardIds = new Set(dbCards.map((c) => c.id));
+          const missingOnDb = localCards.filter((c) => !dbCardIds.has(c.id));
+
+          if (missingOnDb.length > 0) {
+            for (const card of missingOnDb) {
+              await this.insertCardToDb(card);
+              dbCards.push(card);
+            }
+          }
+        }
+
+        this.cardsSignal.set(dbCards);
+        this.saveCardsToStorage(dbCards);
+
+        // Si la tarjeta actualmente seleccionada existe en los datos cargados, actualizar su referencia
+        const currentSelected = this.selectedCard();
+        if (currentSelected) {
+          const updatedSelection = dbCards.find((c) => c.id === currentSelected.id) ?? null;
+          this.selectedCard.set(updatedSelection);
+        }
+      } else if (data && data.length === 0 && !isTest) {
+        // La tabla tc_cards existe pero no tiene registros: sembrar las tarjetas locales / por defecto
+        const cardsToSeed = this.loadCardsFromStorage();
+        for (const card of cardsToSeed) {
+          await this.insertCardToDb(card);
+        }
+      }
+    } catch (err: any) {
+      console.warn('Error al cargar tarjetas de crédito desde Supabase:', err);
+    }
+  }
+
+  private async insertCardToDb(card: TcCard): Promise<void> {
+    try {
+      const payload: Record<string, any> = {
+        id: card.id,
+        name: card.name,
+        bank: card.bank,
+        last_digits: card.lastDigits,
+        person: card.person,
+        theme_id: card.themeId,
+        color: card.color,
+        gradient: card.gradient,
+        payment_category: card.paymentCategory || 'TC-compartida',
+        is_default: Boolean(card.isDefault),
+      };
+      if (card.quota !== undefined && card.quota !== null) {
+        payload['quota'] = card.quota;
+      }
+      if (card.description !== undefined && card.description !== null) {
+        payload['description'] = card.description;
+      }
+      if (card.createdAt) {
+        payload['created_at'] = card.createdAt;
+      }
+
+      const { error } = await this.supabase.client
+        .from('tc_cards')
+        .upsert(payload, { onConflict: 'id' });
+
+      if (error) {
+        console.error('Error insertando tarjeta en Supabase (tc_cards):', error.message);
+      }
+    } catch (err) {
+      console.error('Error de red al insertar tarjeta en Supabase:', err);
+    }
+  }
 
   selectCard(card: TcCard | null): void {
     this.selectedCard.set(card);
@@ -115,6 +229,7 @@ export class TcService {
   }
 
   addCard(draft: TcCardDraft): TcCard {
+    this.lastLocalMutationTime = Date.now();
     const theme = TC_CARD_THEMES.find((t) => t.id === draft.themeId) ?? TC_CARD_THEMES[0];
     const newCard: TcCard = {
       ...draft,
@@ -131,11 +246,16 @@ export class TcService {
       return updated;
     });
 
+    this.insertCardToDb(newCard).catch((err) => {
+      console.error('Error al persistir nueva tarjeta en Supabase:', err);
+    });
+
     this.toastService.success(`Tarjeta "${newCard.name}" creada con éxito`);
     return newCard;
   }
 
   updateCard(id: string, draft: TcCardDraft): void {
+    this.lastLocalMutationTime = Date.now();
     const theme = TC_CARD_THEMES.find((t) => t.id === draft.themeId) ?? TC_CARD_THEMES[0];
     this.cardsSignal.update((list) => {
       const updated = list.map((card) => {
@@ -157,10 +277,45 @@ export class TcService {
       const updatedCard = this.cardsSignal().find((c) => c.id === id) ?? null;
       this.selectedCard.set(updatedCard);
     }
+
+    const payload: Record<string, any> = {
+      name: draft.name,
+      bank: draft.bank,
+      last_digits: draft.lastDigits,
+      person: draft.person,
+      theme_id: draft.themeId,
+      color: theme.primaryColor,
+      gradient: theme.gradient,
+      payment_category: draft.paymentCategory || 'TC-compartida',
+    };
+    if (draft.quota !== undefined) {
+      payload['quota'] = draft.quota;
+    }
+    if (draft.description !== undefined) {
+      payload['description'] = draft.description;
+    }
+
+    this.updateCardOnDb(id, payload);
     this.toastService.success('Tarjeta actualizada');
   }
 
+  private async updateCardOnDb(id: string, payload: Record<string, any>): Promise<void> {
+    try {
+      const { error } = await this.supabase.client
+        .from('tc_cards')
+        .update(payload)
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error actualizando tarjeta en Supabase:', error.message);
+      }
+    } catch (err) {
+      console.error('Error de red al actualizar tarjeta en Supabase:', err);
+    }
+  }
+
   deleteCard(id: string): void {
+    this.lastLocalMutationTime = Date.now();
     const card = this.cardsSignal().find((c) => c.id === id);
     if (!card) return;
 
@@ -173,7 +328,24 @@ export class TcService {
     if (this.selectedCard()?.id === id) {
       this.selectedCard.set(null);
     }
+
+    this.deleteCardFromDb(id);
     this.toastService.success(`Tarjeta "${card.name}" eliminada`);
+  }
+
+  private async deleteCardFromDb(id: string): Promise<void> {
+    try {
+      const { error } = await this.supabase.client
+        .from('tc_cards')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error eliminando tarjeta en Supabase:', error.message);
+      }
+    } catch (err) {
+      console.error('Error de red al eliminar tarjeta en Supabase:', err);
+    }
   }
 
   // ==========================================
@@ -854,6 +1026,24 @@ export class TcService {
         .subscribe();
     } catch (err) {
       console.warn('Realtime subscription no disponible para tc_expenses:', err);
+    }
+
+    try {
+      this.supabase.client
+        .channel('public:tc_cards')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'tc_cards' },
+          () => {
+            if (Date.now() - this.lastLocalMutationTime < 2500) {
+              return;
+            }
+            this.loadCards();
+          },
+        )
+        .subscribe();
+    } catch (err) {
+      console.warn('Realtime subscription no disponible para tc_cards:', err);
     }
   }
 }
