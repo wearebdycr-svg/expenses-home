@@ -61,4 +61,22 @@ describe('TcFormModal', () => {
     expect((component as any).errors()['person']).toBe('Debes seleccionar la persona');
     expect((component as any).errors()['description']).toBe('La descripción es obligatoria');
   });
+
+  it('includes active project categories in categoryOptions', async () => {
+    const projectsService = TestBed.inject((await import('../../../proyectos/data/projects.service')).ProjectsService);
+    await projectsService.addProject({
+      name: 'Paseo San Juan',
+      budgetAmount: 2_000_000,
+      person: 'Compartido',
+      icon: '✈️',
+      color: '#3B82F6',
+      status: 'activo',
+      endDate: '2099-12-31',
+    });
+
+    const options = (component as any).categoryOptions();
+    const projectOpt = options.find((o: any) => o.value === 'Paseo San Juan');
+    expect(projectOpt).toBeTruthy();
+    expect(projectOpt.label).toContain('Paseo San Juan');
+  });
 });

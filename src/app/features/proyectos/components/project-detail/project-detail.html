@@ -195,7 +195,16 @@
             @for (item of expenses(); track item.id) {
               <tr>
                 <td class="date-col">{{ item.date }}</td>
-                <td class="desc-col font-medium">{{ item.description }}</td>
+                <td class="desc-col font-medium">
+                  <div class="desc-with-source">
+                    <span>{{ item.description }}</span>
+                    @if (item.source === 'tc') {
+                      <span class="source-badge badge-tc">💳 TC Compartida</span>
+                    } @else if (item.source === 'daily') {
+                      <span class="source-badge badge-daily">📅 Gasto Diario</span>
+                    }
+                  </div>
+                </td>
                 <td>
                   <span class="cat-tag">{{ item.category || 'General' }}</span>
                 </td>
@@ -208,24 +217,30 @@
                   ${{ item.amount.toLocaleString('es-CO') }}
                 </td>
                 <td class="text-center actions-col">
-                  <div class="row-actions">
-                    <button
-                      type="button"
-                      class="row-action-btn"
-                      (click)="editExpense.emit(item)"
-                      title="Editar"
-                    >
-                      <app-icon name="pencil" [size]="15" />
-                    </button>
-                    <button
-                      type="button"
-                      class="row-action-btn delete-btn"
-                      (click)="deleteExpense.emit(item)"
-                      title="Eliminar"
-                    >
-                      <app-icon name="trash-2" [size]="15" />
-                    </button>
-                  </div>
+                  @if (item.source === 'tc') {
+                    <span class="ext-source-badge" title="Gestionado desde TC Compartida">Desde TC</span>
+                  } @else if (item.source === 'daily') {
+                    <span class="ext-source-badge" title="Gestionado desde Gastos Diarios">Desde Diario</span>
+                  } @else {
+                    <div class="row-actions">
+                      <button
+                        type="button"
+                        class="row-action-btn"
+                        (click)="editExpense.emit(item)"
+                        title="Editar"
+                      >
+                        <app-icon name="pencil" [size]="15" />
+                      </button>
+                      <button
+                        type="button"
+                        class="row-action-btn delete-btn"
+                        (click)="deleteExpense.emit(item)"
+                        title="Eliminar"
+                      >
+                        <app-icon name="trash-2" [size]="15" />
+                      </button>
+                    </div>
+                  }
                 </td>
               </tr>
             }

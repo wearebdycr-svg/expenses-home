@@ -3,6 +3,7 @@ import {
   Component,
   computed,
   effect,
+  inject,
   input,
   output,
   signal,
@@ -12,6 +13,7 @@ import { Select, type SelectOption } from '../../../../shared/ui/select/select';
 import type { ExpensePerson } from '../../data/tc.model';
 import { EXPENSE_PERSONS, TC_DEFAULT_CATEGORIES, type TcExpense, type TcExpenseDraft } from '../../data/tc.model';
 import { formatThousands, parseThousands } from '../../../../shared/utils/format.utils';
+import { ProjectsService } from '../../../proyectos/data/projects.service';
 
 function todayIso(): string {
   const now = new Date();
@@ -68,12 +70,35 @@ export class TcFormModal {
     }),
   );
 
-  protected readonly categoryOptions: readonly SelectOption<string>[] = TC_DEFAULT_CATEGORIES.map(
-    (cat) => ({
+  private readonly projectsService = inject(ProjectsService);
+
+  protected readonly categoryOptions = computed<readonly SelectOption<string>[]>(() => {
+    // 1. Categorías por defecto de TC
+    const standard: SelectOption<string>[] = TC_DEFAULT_CATEGORIES.map((cat) => ({
       value: cat,
       label: cat,
-    }),
-  );
+    }));
+
+    // 2. Proyectos & Eventos activos y vigentes (se descartan si endDate < hoy)
+    const activeProjects = this.projectsService.activeProjectCategories();
+    const projectOptions: SelectOption<string>[] = activeProjects.map((p) => ({
+      value: p.name,
+      label: `🎯 ${p.name} (Evento)`,
+    }));
+
+    const all = [...standard, ...projectOptions];
+
+    // 3. Preservar categoría si el gasto ya la tenía guardada (ej. evento ya finalizado)
+    const currentCat = this.category();
+    if (currentCat && !all.some((o) => o.value === currentCat)) {
+      all.push({
+        value: currentCat,
+        label: `${currentCat} (Finalizado)`,
+      });
+    }
+
+    return all;
+  });
 
   constructor() {
     effect(() => {

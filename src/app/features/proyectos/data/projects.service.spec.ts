@@ -210,4 +210,92 @@ describe('ProjectsService - Módulo Proyectos & Eventos', () => {
     expect(service.projects().length).toBe(0);
     expect(service.projectExpenses().length).toBe(0);
   });
+
+  it('filters activeProjectCategories and removes projects whose endDate has passed', async () => {
+    // 1. Proyecto vigente con endDate en el futuro
+    await service.addProject({
+      name: 'Paseo Futuro',
+      budgetAmount: 2_000_000,
+      person: 'Compartido',
+      icon: '🏖️',
+      color: '#3B82F6',
+      status: 'activo',
+      endDate: '2099-12-31',
+    });
+
+    // 2. Proyecto ya finalizado con endDate en el pasado
+    await service.addProject({
+      name: 'Paseo Pasado',
+      budgetAmount: 1_000_000,
+      person: 'Compartido',
+      icon: '🏖️',
+      color: '#10B981',
+      status: 'activo',
+      endDate: '2020-01-01',
+    });
+
+    // 3. Proyecto sin fecha fin (siempre vigente mientras esté activo)
+    await service.addProject({
+      name: 'Remodelación Casa',
+      budgetAmount: 5_000_000,
+      person: 'Charlie',
+      icon: '🏠',
+      color: '#F59E0B',
+      status: 'activo',
+    });
+
+    // 4. Proyecto completado (no debe salir)
+    await service.addProject({
+      name: 'Evento Completado',
+      budgetAmount: 500_000,
+      person: 'Benny',
+      icon: '🎉',
+      color: '#8B5CF6',
+      status: 'completado',
+      endDate: '2099-12-31',
+    });
+
+    const activeCategories = service.activeProjectCategories();
+    const names = activeCategories.map((p) => p.name);
+
+    expect(names).toContain('Paseo Futuro');
+    expect(names).toContain('Remodelación Casa');
+    expect(names).not.toContain('Paseo Pasado');
+    expect(names).not.toContain('Evento Completado');
+  });
+
+  it('automatically discounts TC expenses categorized with the project name from the budget', async () => {
+    const project = await service.addProject({
+      name: 'Paseo San Juan',
+      budgetAmount: 3_000_000,
+      person: 'Compartido',
+      icon: '✈️',
+      color: '#3B82F6',
+      status: 'activo',
+      endDate: '2099-12-31',
+    });
+
+    // Obtenemos TcService y agregamos un consumo con categoría = 'Paseo San Juan'
+    const tcService = TestBed.inject((await import('../../tc-compartida/data/tc.service')).TcService);
+    await tcService.addTcExpense({
+      date: '2026-10-27',
+      description: 'Hotel Paseo San Juan',
+      amount: 800_000,
+      person: 'Charlie',
+      category: 'Paseo San Juan',
+    });
+
+    // Verificamos que el proyecto calcule el gasto de la TC y descuente de su presupuesto
+    const metrics = service.getProjectMetrics(project.id);
+    expect(metrics.totalExpenses).toBe(800_000);
+    expect(metrics.remainingBudget).toBe(2_200_000);
+    expect(metrics.isOverBudget).toBe(false);
+    expect(metrics.byPerson.Charlie).toBe(800_000);
+
+    // Verificamos que el gasto aparezca en los gastos del proyecto con source = 'tc'
+    const allExpenses = service.getAllExpensesForProject(project.id);
+    expect(allExpenses.length).toBe(1);
+    expect(allExpenses[0].description).toBe('Hotel Paseo San Juan');
+    expect(allExpenses[0].source).toBe('tc');
+  });
 });

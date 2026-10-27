@@ -24,6 +24,7 @@ import type { Debt } from '../../../deudas/data/debt.model';
 import { TcService } from '../../../tc-compartida/data/tc.service';
 import type { TcCard } from '../../../tc-compartida/data/tc-card.model';
 import { ExpensesService } from '../../data/expenses.service';
+import { ProjectsService } from '../../../proyectos/data/projects.service';
 import { formatThousands, parseThousands } from '../../../../shared/utils/format.utils';
 
 function todayIso(): string {
@@ -44,6 +45,7 @@ export class ExpenseFormModal {
   private readonly debtsService = inject(DebtsService);
   protected readonly tcService = inject(TcService);
   private readonly expensesService = inject(ExpensesService);
+  private readonly projectsService = inject(ProjectsService);
 
   expense = input<Expense | null>(null);
   save = output<ExpenseDraft>();
@@ -106,17 +108,24 @@ export class ExpenseFormModal {
       label: `Deuda: ${d.name}`,
     }));
 
-    // Preservar la categoría actual si se está editando y pertenece a una deuda saldada
+    // 4. Categorías dinámicas provenientes de Proyectos & Eventos activos y vigentes
+    const activeProjects = this.projectsService.activeProjectCategories();
+    const projectOptions: SelectOption<ExpenseCategory>[] = activeProjects.map((p) => ({
+      value: p.name as ExpenseCategory,
+      label: `🎯 ${p.name} (Evento)`,
+    }));
+
+    // Preservar la categoría actual si se está editando y pertenece a una deuda saldada o evento finalizado
     const currentCat = this.category();
-    const allOptions = [...standard, ...cardOptions, ...debtOptions];
+    const allOptions = [...standard, ...cardOptions, ...debtOptions, ...projectOptions];
     if (currentCat && !allOptions.some((o) => o.value === currentCat)) {
       debtOptions.push({
         value: currentCat,
-        label: `Deuda: ${currentCat} (Inactiva)`,
+        label: `${currentCat}`,
       });
     }
 
-    return [...standard, ...cardOptions, ...debtOptions];
+    return [...standard, ...cardOptions, ...debtOptions, ...projectOptions];
   });
 
   protected readonly selectedTcCard = computed<TcCard | null>(() => {

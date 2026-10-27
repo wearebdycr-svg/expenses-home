@@ -58,6 +58,7 @@ export interface ProjectExpense {
   person: ExpensePerson;
   category?: string;
   createdAt?: string;
+  source?: 'direct' | 'tc' | 'daily';
 }
 
 export type ProjectExpenseDraft = Omit<ProjectExpense, 'id' | 'createdAt'>;

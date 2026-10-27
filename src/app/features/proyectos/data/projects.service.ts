@@ -1,6 +1,8 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseService } from '../../../core/services/supabase.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { TcService } from '../../tc-compartida/data/tc.service';
+import { ExpensesService } from '../../gastos/data/expenses.service';
 import type { ExpensePerson, ExpensePersonFilter } from '../../gastos/data/expense.model';
 import type {
   Project,
@@ -20,6 +22,8 @@ const STORAGE_PROJECT_EXPENSES_KEY = 'expenses_home_project_expenses_v1';
 export class ProjectsService {
   private readonly supabase = inject(SupabaseService);
   private readonly toastService = inject(ToastService);
+  private readonly tcService = inject(TcService);
+  private readonly expensesService = inject(ExpensesService);
 
   private readonly projectsSignal = signal<Project[]>(this.loadProjectsFromStorage());
   readonly projects = this.projectsSignal.asReadonly();
@@ -54,17 +58,95 @@ export class ProjectsService {
     });
   });
 
+  private getTodayIso(): string {
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${now.getFullYear()}-${month}-${day}`;
+  }
+
+  /**
+   * Proyectos activos y vigentes para ser usados como categoría en TC o Gastos.
+   * Se descartan automáticamente cuando su fecha fin (endDate) ya pasó respecto a hoy.
+   */
+  readonly activeProjectCategories = computed<Project[]>(() => {
+    const today = this.getTodayIso();
+    return this.projectsSignal().filter((p) => {
+      if (p.status !== 'activo') return false;
+      if (p.endDate && p.endDate < today) {
+        return false;
+      }
+      return true;
+    });
+  });
+
+  /**
+   * Agrega todos los gastos asociados a un proyecto:
+   * 1. Registros directos en la tabla project_expenses
+   * 2. Consumos en tc_expenses cuya categoría coincida con el nombre del proyecto
+   * 3. Gastos diarios en expenses cuya categoría coincida con el nombre del proyecto
+   */
+  getAllExpensesForProject(projectId: string): ProjectExpense[] {
+    const project = this.projectsSignal().find((p) => p.id === projectId);
+    if (!project) return [];
+
+    const projName = project.name.trim().toLowerCase();
+
+    // 1. Gastos directos de Proyectos
+    const direct: ProjectExpense[] = this.projectExpensesSignal()
+      .filter((e) => e.projectId === projectId)
+      .map((e) => ({ ...e, source: (e.source || 'direct') as 'direct' | 'tc' | 'daily' }));
+
+    // 2. Consumos de TC Compartida
+    const tcExpenses: ProjectExpense[] = this.tcService
+      .allTcExpenses()
+      .filter((tc) => {
+        const cat = (tc.category || '').trim().toLowerCase();
+        return cat === projName || cat === project.id.toLowerCase();
+      })
+      .map((tc): ProjectExpense => ({
+        id: `tc_${tc.id}`,
+        projectId: project.id,
+        date: tc.date,
+        description: tc.description,
+        amount: tc.amount,
+        person: tc.person,
+        category: tc.category || 'TC Compartida',
+        createdAt: tc.createdAt,
+        source: 'tc',
+      }));
+
+    // 3. Gastos Diarios
+    const dailyExpenses: ProjectExpense[] = this.expensesService
+      .allExpenses()
+      .filter((exp) => {
+        const cat = (exp.category || '').trim().toLowerCase();
+        return cat === projName || cat === project.id.toLowerCase();
+      })
+      .map((exp): ProjectExpense => ({
+        id: `daily_${exp.id}`,
+        projectId: project.id,
+        date: exp.date,
+        description: exp.description,
+        amount: exp.amount,
+        person: exp.person,
+        category: exp.category,
+        source: 'daily',
+      }));
+
+    return [...direct, ...tcExpenses, ...dailyExpenses];
+  }
+
   readonly currentProjectExpenses = computed<ProjectExpense[]>(() => {
     const current = this.selectedProject();
     if (!current) return [];
-    return this.projectExpensesSignal()
-      .filter((e) => e.projectId === current.id)
+    return this.getAllExpensesForProject(current.id)
       .sort((a, b) => b.date.localeCompare(a.date));
   });
 
   getProjectMetrics(projectId: string): ProjectMetrics {
     const project = this.projectsSignal().find((p) => p.id === projectId);
-    const expenses = this.projectExpensesSignal().filter((e) => e.projectId === projectId);
+    const expenses = this.getAllExpensesForProject(projectId);
     const budget = project?.budgetAmount ?? 0;
 
     const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
@@ -422,6 +504,14 @@ export class ProjectsService {
   }
 
   async updateProjectExpense(id: string, draft: ProjectExpenseDraft): Promise<void> {
+    if (id.startsWith('tc_')) {
+      this.toastService.show('Este gasto proviene de TC Compartida. Modifícalo desde la sección TC Compartida.', { type: 'info' });
+      return;
+    }
+    if (id.startsWith('daily_')) {
+      this.toastService.show('Este gasto proviene de Gastos Diarios. Modifícalo desde la sección Gastos Diarios.', { type: 'info' });
+      return;
+    }
     this.lastLocalMutationTime = Date.now();
     this.projectExpensesSignal.update((list) => {
       const updated = list.map((e) =>
@@ -457,6 +547,14 @@ export class ProjectsService {
   }
 
   async deleteProjectExpense(id: string): Promise<void> {
+    if (id.startsWith('tc_')) {
+      this.toastService.show('Este gasto proviene de TC Compartida. Cámbiale la categoría o elimínalo desde TC Compartida.', { type: 'info' });
+      return;
+    }
+    if (id.startsWith('daily_')) {
+      this.toastService.show('Este gasto proviene de Gastos Diarios. Cámbiale la categoría o elimínalo desde Gastos Diarios.', { type: 'info' });
+      return;
+    }
     this.lastLocalMutationTime = Date.now();
     this.projectExpensesSignal.update((list) => {
       const updated = list.filter((e) => e.id !== id);
