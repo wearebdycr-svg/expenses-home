@@ -1,0 +1,96 @@
+<app-modal [title]="modalTitle()" (close)="cancel.emit()">
+  <form class="expense-form" (submit)="$event.preventDefault(); onSubmit()">
+    
+    <!-- Fecha y Categoría -->
+    <div class="form-row">
+      <div class="form-group flex-1">
+        <label class="form-label" for="pe-date">Fecha <span class="required">*</span></label>
+        <input
+          id="pe-date"
+          type="date"
+          class="form-input"
+          [class.has-error]="hasSubmitted() && errors()['date']"
+          [value]="date()"
+          (input)="date.set($any($event.target).value)"
+        />
+        @if (hasSubmitted() && errors()['date']) {
+          <span class="field-error">{{ errors()['date'] }}</span>
+        }
+      </div>
+
+      <div class="form-group flex-1">
+        <app-select
+          label="Categoría del Rubro"
+          [options]="categoryOptions"
+          [value]="category()"
+          (valueChange)="category.set($event)"
+        />
+      </div>
+    </div>
+
+    <!-- Descripción del Gasto -->
+    <div class="form-group">
+      <label class="form-label" for="pe-desc">
+        Descripción del Gasto <span class="required">*</span>
+      </label>
+      <input
+        id="pe-desc"
+        type="text"
+        class="form-input"
+        [class.has-error]="hasSubmitted() && errors()['description']"
+        placeholder="Ej: Peajes ida, Carbón y carnes, Hotel noche 1..."
+        [value]="description()"
+        (input)="description.set($any($event.target).value)"
+      />
+      @if (hasSubmitted() && errors()['description']) {
+        <span class="field-error">{{ errors()['description'] }}</span>
+      }
+    </div>
+
+    <!-- Monto y Quién lo pagó -->
+    <div class="form-row">
+      <div class="form-group flex-1">
+        <label class="form-label" for="pe-amount">
+          Valor Gastado ($ COP) <span class="required">*</span>
+        </label>
+        <div class="input-prefix-wrapper">
+          <span class="input-prefix">$</span>
+          <input
+            id="pe-amount"
+            type="text"
+            inputmode="numeric"
+            class="form-input input-with-prefix"
+            [class.has-error]="hasSubmitted() && errors()['amount']"
+            placeholder="Ej: 120.000"
+            [value]="amount()"
+            (input)="onAmountInput($event)"
+          />
+        </div>
+        @if (hasSubmitted() && errors()['amount']) {
+          <span class="field-error">{{ errors()['amount'] }}</span>
+        }
+      </div>
+
+      <div class="form-group flex-1">
+        <app-select
+          label="¿Quién lo pagó?"
+          [options]="personOptions"
+          [value]="person()"
+          (valueChange)="person.set($event)"
+        />
+      </div>
+    </div>
+
+    <!-- Botones de Acción -->
+    <div class="modal-actions">
+      <button type="button" class="btn btn-secondary" (click)="cancel.emit()">
+        Cancelar
+      </button>
+      <button type="submit" class="btn btn-primary">
+        <app-icon [name]="isEditMode() ? 'check-circle' : 'plus'" [size]="18" />
+        <span>{{ isEditMode() ? 'Guardar Cambios' : 'Agregar Gasto' }}</span>
+      </button>
+    </div>
+
+  </form>
+</app-modal>

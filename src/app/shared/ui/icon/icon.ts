@@ -23,7 +23,8 @@ export type IconName =
   | 'log-out'
   | 'eye'
   | 'eye-off'
-  | 'fingerprint';
+  | 'fingerprint'
+  | 'target';
 
 @Component({
   selector: 'app-icon',
@@ -152,6 +153,11 @@ export type IconName =
           <path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2" />
           <path d="M8.65 22c.21-.66.45-1.32.57-2" />
           <path d="M9 6.8a6 6 0 0 1 9 5.2v2" />
+        }
+        @case ('target') {
+          <circle cx="12" cy="12" r="10" />
+          <circle cx="12" cy="12" r="6" />
+          <circle cx="12" cy="12" r="2" />
         }
       }
     </svg>

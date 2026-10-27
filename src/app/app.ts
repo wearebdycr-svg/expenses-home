@@ -12,6 +12,7 @@ import { IngresosPage } from './features/ingresos/ingresos';
 import { ResumenPage } from './features/resumen/resumen';
 import { TcPage } from './features/tc-compartida/tc';
 import { TcService } from './features/tc-compartida/data/tc.service';
+import { ProyectosPage } from './features/proyectos/proyectos';
 import { Sidebar, type SidebarPageId } from './shared/ui/sidebar/sidebar';
 import { DailyReminderBanner } from './shared/ui/daily-reminder-banner/daily-reminder-banner';
 import { SplashScreen } from './shared/ui/splash-screen/splash-screen';
@@ -32,6 +33,7 @@ export const VALID_SIDEBAR_PAGES: readonly SidebarPageId[] = [
   'categoria',
   'deudas',
   'tc-compartida',
+  'proyectos',
 ];
 
 function getInitialPage(): SidebarPageId {
@@ -64,6 +66,7 @@ function getInitialPage(): SidebarPageId {
     CategoriaPage,
     DeudasPage,
     TcPage,
+    ProyectosPage,
     DailyReminderBanner,
     SplashScreen,
     ToastContainer,

@@ -1,0 +1,116 @@
+<div
+  class="project-card"
+  [style.--card-accent]="project().color"
+  [class.is-completed]="project().status === 'completado'"
+  [class.is-overbudget]="metrics().isOverBudget"
+  (click)="view.emit(project())"
+>
+  <!-- Card Header -->
+  <div class="card-header">
+    <div class="project-title-area">
+      <span class="project-icon-badge">{{ project().icon }}</span>
+      <div class="project-title-text">
+        <h3 class="project-name">{{ project().name }}</h3>
+        <div class="project-badges">
+          <span class="badge badge-person badge-{{ project().person.toLowerCase() }}">
+            {{ project().person }}
+          </span>
+          <span class="badge badge-status badge-{{ project().status }}">
+            {{ project().status === 'activo' ? 'En curso' : project().status === 'completado' ? 'Completado' : 'Archivado' }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick action menu/buttons -->
+    <div class="card-quick-actions" (click)="$event.stopPropagation()">
+      <button
+        type="button"
+        class="icon-action-btn"
+        (click)="edit.emit(project())"
+        title="Editar Proyecto"
+      >
+        <app-icon name="pencil" [size]="15" />
+      </button>
+      <button
+        type="button"
+        class="icon-action-btn delete-btn"
+        (click)="delete.emit(project())"
+        title="Eliminar Proyecto"
+      >
+        <app-icon name="trash-2" [size]="15" />
+      </button>
+    </div>
+  </div>
+
+  @if (project().description) {
+    <p class="project-desc">{{ project().description }}</p>
+  }
+
+  <!-- Progress Bar / Thermometer -->
+  <div class="progress-section">
+    <div class="progress-labels">
+      <span class="progress-pct" [class.text-danger]="metrics().isOverBudget">
+        {{ metrics().progressPercentage }}% gastado
+      </span>
+      <span class="expenses-count">
+        {{ metrics().expenseCount }} {{ metrics().expenseCount === 1 ? 'gasto' : 'gastos' }}
+      </span>
+    </div>
+
+    <div class="progress-bar-track">
+      <div
+        class="progress-bar-fill {{ progressColorClass() }}"
+        [style.width.%]="progressFillWidth()"
+      ></div>
+    </div>
+  </div>
+
+  <!-- Numbers Breakdown (Budget vs Spent vs Remaining) -->
+  <div class="card-finances-grid">
+    <div class="finance-col">
+      <span class="finance-label">Presupuesto</span>
+      <span class="finance-value font-budget">
+        ${{ project().budgetAmount.toLocaleString('es-CO') }}
+      </span>
+    </div>
+
+    <div class="finance-col">
+      <span class="finance-label">Gastado</span>
+      <span class="finance-value font-spent">
+        ${{ metrics().totalExpenses.toLocaleString('es-CO') }}
+      </span>
+    </div>
+
+    <div class="finance-col">
+      <span class="finance-label">
+        {{ metrics().isOverBudget ? 'Excedido por' : 'Disponible' }}
+      </span>
+      <span
+        class="finance-value"
+        [class.font-overbudget]="metrics().isOverBudget"
+        [class.font-remaining]="!metrics().isOverBudget"
+      >
+        {{ metrics().isOverBudget ? '-' : '' }}${{ (metrics().isOverBudget ? metrics().overBudgetAmount : metrics().remainingBudget).toLocaleString('es-CO') }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Exceeded banner if over budget -->
+  @if (metrics().isOverBudget) {
+    <div class="alert-overbudget">
+      <app-icon name="alert-circle" [size]="15" />
+      <span>¡Presupuesto superado por ${{ metrics().overBudgetAmount.toLocaleString('es-CO') }}!</span>
+    </div>
+  }
+
+  <!-- Dates footer if present -->
+  @if (project().startDate || project().endDate) {
+    <div class="card-footer-dates">
+      <app-icon name="calendar" [size]="13" />
+      <span>
+        {{ project().startDate || 'Inicio' }} {{ project().endDate ? 'hasta ' + project().endDate : '' }}
+      </span>
+    </div>
+  }
+</div>

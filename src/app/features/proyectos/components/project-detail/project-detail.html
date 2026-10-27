@@ -1,0 +1,238 @@
+<div class="project-detail-container">
+  
+  <!-- Top Navigation & Action Header -->
+  <div class="detail-top-nav">
+    <button type="button" class="btn btn-back" (click)="back.emit()">
+      <app-icon name="arrow-left" [size]="18" />
+      <span>Volver a Proyectos</span>
+    </button>
+
+    <div class="detail-header-actions">
+      <button
+        type="button"
+        class="btn btn-secondary btn-sm"
+        (click)="toggleStatus.emit(project())"
+      >
+        <app-icon name="check-circle" [size]="16" />
+        <span>{{ project().status === 'activo' ? 'Marcar Completado' : 'Reactivar' }}</span>
+      </button>
+
+      <button
+        type="button"
+        class="btn btn-secondary btn-sm"
+        (click)="editProject.emit(project())"
+      >
+        <app-icon name="pencil" [size]="16" />
+        <span>Editar</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Hero Budget Banner -->
+  <div class="hero-budget-card" [style.--hero-accent]="project().color">
+    <div class="hero-card-header">
+      <div class="hero-title-group">
+        <span class="hero-icon">{{ project().icon }}</span>
+        <div>
+          <h1 class="hero-project-name">{{ project().name }}</h1>
+          <div class="hero-badges">
+            <span class="badge badge-person badge-{{ project().person.toLowerCase() }}">
+              {{ project().person }}
+            </span>
+            <span class="badge badge-status badge-{{ project().status }}">
+              {{ project().status === 'activo' ? 'En curso' : project().status === 'completado' ? 'Completado' : 'Archivado' }}
+            </span>
+            @if (project().startDate || project().endDate) {
+              <span class="dates-pill">
+                <app-icon name="calendar" [size]="12" />
+                {{ project().startDate || '' }} {{ project().endDate ? '→ ' + project().endDate : '' }}
+              </span>
+            }
+          </div>
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-primary btn-add-expense" (click)="addExpense.emit()">
+        <app-icon name="plus" [size]="18" />
+        <span>+ Registrar Gasto</span>
+      </button>
+    </div>
+
+    @if (project().description) {
+      <p class="hero-description">{{ project().description }}</p>
+    }
+
+    <!-- Visual Progress & Meter -->
+    <div class="hero-progress-block">
+      <div class="hero-progress-header">
+        <div class="progress-big-stat">
+          <span class="hero-pct-text" [class.text-danger]="metrics().isOverBudget">
+            {{ metrics().progressPercentage }}%
+          </span>
+          <span class="hero-pct-label">del presupuesto ejecutado</span>
+        </div>
+
+        @if (metrics().isOverBudget) {
+          <div class="hero-overbudget-alert">
+            <app-icon name="alert-circle" [size]="18" />
+            <span>⚠️ Presupuesto excedido en ${{ metrics().overBudgetAmount.toLocaleString('es-CO') }}</span>
+          </div>
+        }
+      </div>
+
+      <div class="hero-progress-track">
+        <div
+          class="hero-progress-fill {{ progressColorClass() }}"
+          [style.width.%]="progressFillWidth()"
+        ></div>
+      </div>
+    </div>
+
+    <!-- 3 Big Numbers -->
+    <div class="hero-numbers-grid">
+      <div class="number-card">
+        <span class="number-label">Presupuesto Meta</span>
+        <span class="number-value val-budget">
+          ${{ project().budgetAmount.toLocaleString('es-CO') }}
+        </span>
+      </div>
+
+      <div class="number-card">
+        <span class="number-label">Total Gastado</span>
+        <span class="number-value val-spent">
+          ${{ metrics().totalExpenses.toLocaleString('es-CO') }}
+        </span>
+      </div>
+
+      <div class="number-card">
+        <span class="number-label">
+          {{ metrics().isOverBudget ? 'Sobregiro / Exceso' : 'Saldo Disponible' }}
+        </span>
+        <span
+          class="number-value"
+          [class.val-danger]="metrics().isOverBudget"
+          [class.val-success]="!metrics().isOverBudget"
+        >
+          {{ metrics().isOverBudget ? '-' : '' }}${{ (metrics().isOverBudget ? metrics().overBudgetAmount : metrics().remainingBudget).toLocaleString('es-CO') }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Breakdown por Persona si es Compartido -->
+    @if (project().person === 'Compartido') {
+      <div class="contributions-panel">
+        <h4 class="contributions-title">Aportes por Persona en este Evento</h4>
+        <div class="contributions-row">
+          <div class="contrib-item">
+            <span class="contrib-person charlie">Charlie</span>
+            <span class="contrib-val">${{ metrics().byPerson.Charlie.toLocaleString('es-CO') }}</span>
+          </div>
+          <div class="contrib-item">
+            <span class="contrib-person benny">Benny</span>
+            <span class="contrib-val">${{ metrics().byPerson.Benny.toLocaleString('es-CO') }}</span>
+          </div>
+          @if (metrics().byPerson.Compartido > 0) {
+            <div class="contrib-item">
+              <span class="contrib-person compartido">Fondo Común</span>
+              <span class="contrib-val">${{ metrics().byPerson.Compartido.toLocaleString('es-CO') }}</span>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Rubros / Categorías -->
+    @if (categoryBreakdown().length > 0) {
+      <div class="categories-pills-row">
+        @for (cat of categoryBreakdown(); track cat.name) {
+          <span class="category-pill">
+            <strong>{{ cat.name }}:</strong> ${{ cat.amount.toLocaleString('es-CO') }}
+          </span>
+        }
+      </div>
+    }
+
+  </div>
+
+  <!-- Expenses Section -->
+  <div class="expenses-section">
+    <div class="section-header">
+      <div class="section-title-group">
+        <h2 class="section-title">Historial de Gastos del Evento</h2>
+        <span class="badge-count">{{ expenses().length }}</span>
+      </div>
+
+      <button type="button" class="btn btn-primary btn-sm" (click)="addExpense.emit()">
+        <app-icon name="plus" [size]="16" />
+        <span>Agregar Gasto</span>
+      </button>
+    </div>
+
+    @if (expenses().length === 0) {
+      <div class="empty-expenses-box">
+        <app-icon name="receipt" [size]="40" />
+        <h3>Aún no hay gastos registrados</h3>
+        <p>Comienza a registrar las compras y egresos asociados a este proyecto.</p>
+        <button type="button" class="btn btn-primary" (click)="addExpense.emit()">
+          <app-icon name="plus" [size]="18" />
+          <span>Registrar Primer Gasto</span>
+        </button>
+      </div>
+    } @else {
+      <div class="expenses-table-card">
+        <table class="expenses-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Descripción</th>
+              <th>Categoría</th>
+              <th>Pagado por</th>
+              <th class="text-right">Valor</th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of expenses(); track item.id) {
+              <tr>
+                <td class="date-col">{{ item.date }}</td>
+                <td class="desc-col font-medium">{{ item.description }}</td>
+                <td>
+                  <span class="cat-tag">{{ item.category || 'General' }}</span>
+                </td>
+                <td>
+                  <span class="person-tag tag-{{ item.person.toLowerCase() }}">
+                    {{ item.person }}
+                  </span>
+                </td>
+                <td class="text-right amount-col font-semibold">
+                  ${{ item.amount.toLocaleString('es-CO') }}
+                </td>
+                <td class="text-center actions-col">
+                  <div class="row-actions">
+                    <button
+                      type="button"
+                      class="row-action-btn"
+                      (click)="editExpense.emit(item)"
+                      title="Editar"
+                    >
+                      <app-icon name="pencil" [size]="15" />
+                    </button>
+                    <button
+                      type="button"
+                      class="row-action-btn delete-btn"
+                      (click)="deleteExpense.emit(item)"
+                      title="Eliminar"
+                    >
+                      <app-icon name="trash-2" [size]="15" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+
+</div>

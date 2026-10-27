@@ -1,0 +1,167 @@
+<div class="proyectos-page">
+  
+  @if (projectsService.selectedProject()) {
+    <!-- VISTA DETALLE DEL PROYECTO SELECCIONADO -->
+    <app-project-detail
+      [project]="projectsService.selectedProject()!"
+      [metrics]="projectsService.currentProjectMetrics()!"
+      [expenses]="projectsService.currentProjectExpenses()"
+      (back)="projectsService.selectProject(null)"
+      (editProject)="openEditProject($event)"
+      (toggleStatus)="onToggleStatus($event)"
+      (addExpense)="openCreateExpense()"
+      (editExpense)="openEditExpense($event)"
+      (deleteExpense)="onDeleteExpense($event)"
+    />
+  } @else {
+    <!-- VISTA PRINCIPAL: RESUMEN Y GRID DE PROYECTOS -->
+    <header class="page-header">
+      <div class="header-text">
+        <h1 class="page-title">Proyectos & Eventos</h1>
+        <p class="page-subtitle">
+          Control de presupuestos para paseos, asados, remodelaciones y eventos especiales.
+        </p>
+      </div>
+
+      <button type="button" class="btn btn-primary" (click)="openCreateProject()">
+        <app-icon name="plus" [size]="18" />
+        <span>+ Nuevo Proyecto / Evento</span>
+      </button>
+    </header>
+
+    <!-- Top KPIs Summary -->
+    <div class="kpis-grid">
+      <div class="kpi-card">
+        <span class="kpi-label">Presupuesto Total Planeado</span>
+        <span class="kpi-value font-budget">
+          ${{ projectsService.summary().totalBudget.toLocaleString('es-CO') }}
+        </span>
+        <span class="kpi-hint">
+          {{ projectsService.summary().totalProjects }} {{ projectsService.summary().totalProjects === 1 ? 'proyecto' : 'proyectos' }}
+        </span>
+      </div>
+
+      <div class="kpi-card">
+        <span class="kpi-label">Total Ejecutado / Gastado</span>
+        <span class="kpi-value font-spent">
+          ${{ projectsService.summary().totalSpent.toLocaleString('es-CO') }}
+        </span>
+        <span class="kpi-hint">Suma de consumos registrados</span>
+      </div>
+
+      <div class="kpi-card">
+        <span class="kpi-label">
+          {{ projectsService.summary().isOverBudget ? 'Sobregiro Consolidado' : 'Saldo Disponible Total' }}
+        </span>
+        <span
+          class="kpi-value"
+          [class.font-overbudget]="projectsService.summary().isOverBudget"
+          [class.font-remaining]="!projectsService.summary().isOverBudget"
+        >
+          ${{ projectsService.summary().totalRemaining.toLocaleString('es-CO') }}
+        </span>
+        <span class="kpi-hint">
+          {{ projectsService.summary().isOverBudget ? '⚠️ Gastos superaron presupuestos' : 'Dentro de lo presupuestado' }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Filtros de Persona y Estado -->
+    <div class="filters-toolbar">
+      <div class="filter-group">
+        <span class="filter-label">Persona:</span>
+        <div class="pill-group">
+          @for (p of ['Todos', 'Compartido', 'Charlie', 'Benny']; track p) {
+            <button
+              type="button"
+              class="filter-pill"
+              [class.active]="projectsService.personFilter() === p"
+              (click)="onPersonFilterChange($any(p))"
+            >
+              {{ p }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <span class="filter-label">Estado:</span>
+        <div class="pill-group">
+          <button
+            type="button"
+            class="filter-pill"
+            [class.active]="projectsService.statusFilter() === 'activo'"
+            (click)="onStatusFilterChange('activo')"
+          >
+            Activos
+          </button>
+          <button
+            type="button"
+            class="filter-pill"
+            [class.active]="projectsService.statusFilter() === 'completado'"
+            (click)="onStatusFilterChange('completado')"
+          >
+            Completados
+          </button>
+          <button
+            type="button"
+            class="filter-pill"
+            [class.active]="projectsService.statusFilter() === 'todos'"
+            (click)="onStatusFilterChange('todos')"
+          >
+            Todos
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grid de Proyectos -->
+    @if (projectsService.filteredProjects().length === 0) {
+      <div class="empty-state">
+        <div class="empty-icon-circle">
+          <app-icon name="target" [size]="36" />
+        </div>
+        <h3 class="empty-title">No hay proyectos en esta vista</h3>
+        <p class="empty-desc">
+          Crea tu primer proyecto para presupuestar tu próximo paseo, asado o meta familiar.
+        </p>
+        <button type="button" class="btn btn-primary" (click)="openCreateProject()">
+          <app-icon name="plus" [size]="18" />
+          <span>Crear Primer Proyecto</span>
+        </button>
+      </div>
+    } @else {
+      <div class="projects-grid">
+        @for (project of projectsService.filteredProjects(); track project.id) {
+          <app-project-card
+            [project]="project"
+            [metrics]="projectsService.getProjectMetrics(project.id)"
+            (view)="projectsService.selectProject($event)"
+            (edit)="openEditProject($event)"
+            (toggleStatus)="onToggleStatus($event)"
+            (delete)="onDeleteProject($event)"
+          />
+        }
+      </div>
+    }
+  }
+
+  <!-- Modals -->
+  @if (isProjectModalOpen()) {
+    <app-project-form-modal
+      [project]="editingProject()"
+      (save)="onSaveProject($event)"
+      (cancel)="closeProjectModal()"
+    />
+  }
+
+  @if (isExpenseModalOpen() && projectsService.selectedProject()) {
+    <app-project-expense-modal
+      [project]="projectsService.selectedProject()!"
+      [expense]="editingExpense()"
+      (save)="onSaveExpense($event)"
+      (cancel)="closeExpenseModal()"
+    />
+  }
+
+</div>

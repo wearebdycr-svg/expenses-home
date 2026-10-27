@@ -1,0 +1,152 @@
+<app-modal [title]="modalTitle()" (close)="cancel.emit()">
+  <form class="project-form" (submit)="$event.preventDefault(); onSubmit()">
+    
+    <!-- Selección de Ícono / Emoji -->
+    <div class="form-group">
+      <label class="form-label">Ícono Representativo</label>
+      <div class="icon-selector-grid">
+        @for (item of icons; track item) {
+          <button
+            type="button"
+            class="icon-bubble-btn"
+            [class.selected]="icon() === item"
+            (click)="selectIcon(item)"
+          >
+            {{ item }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Nombre del Proyecto / Evento -->
+    <div class="form-group">
+      <label class="form-label" for="proj-name">
+        Nombre del Proyecto o Evento <span class="required">*</span>
+      </label>
+      <input
+        id="proj-name"
+        type="text"
+        class="form-input"
+        [class.has-error]="hasSubmitted() && errors()['name']"
+        placeholder="Ej: Paseo Fin de Año, Asado Familiar, Remodelación..."
+        [value]="name()"
+        (input)="name.set($any($event.target).value)"
+      />
+      @if (hasSubmitted() && errors()['name']) {
+        <span class="field-error">{{ errors()['name'] }}</span>
+      }
+    </div>
+
+    <!-- Presupuesto Estimado y Responsable en fila -->
+    <div class="form-row">
+      <div class="form-group flex-1">
+        <label class="form-label" for="proj-budget">
+          Presupuesto Meta ($ COP) <span class="required">*</span>
+        </label>
+        <div class="input-prefix-wrapper">
+          <span class="input-prefix">$</span>
+          <input
+            id="proj-budget"
+            type="text"
+            inputmode="numeric"
+            class="form-input input-with-prefix"
+            [class.has-error]="hasSubmitted() && errors()['budgetAmount']"
+            placeholder="Ej: 5.000.000"
+            [value]="budgetAmount()"
+            (input)="onAmountInput($event)"
+          />
+        </div>
+        @if (hasSubmitted() && errors()['budgetAmount']) {
+          <span class="field-error">{{ errors()['budgetAmount'] }}</span>
+        }
+      </div>
+
+      <div class="form-group flex-1">
+        <app-select
+          label="Responsable / Alcance"
+          [options]="personOptions"
+          [value]="person()"
+          (valueChange)="person.set($event)"
+        />
+      </div>
+    </div>
+
+    <!-- Fechas Inicio / Fin (Opcional) -->
+    <div class="form-row">
+      <div class="form-group flex-1">
+        <label class="form-label" for="proj-start">Fecha Inicio (Opcional)</label>
+        <input
+          id="proj-start"
+          type="date"
+          class="form-input"
+          [value]="startDate()"
+          (input)="startDate.set($any($event.target).value)"
+        />
+      </div>
+
+      <div class="form-group flex-1">
+        <label class="form-label" for="proj-end">Fecha Fin (Opcional)</label>
+        <input
+          id="proj-end"
+          type="date"
+          class="form-input"
+          [value]="endDate()"
+          (input)="endDate.set($any($event.target).value)"
+        />
+      </div>
+    </div>
+
+    <!-- Color Tema -->
+    <div class="form-group">
+      <label class="form-label">Color del Proyecto</label>
+      <div class="theme-colors-row">
+        @for (th of themes; track th.id) {
+          <button
+            type="button"
+            class="color-circle-btn"
+            [style.background-color]="th.color"
+            [class.selected]="color() === th.color"
+            (click)="selectTheme(th)"
+            [title]="th.name"
+          ></button>
+        }
+      </div>
+    </div>
+
+    @if (isEditMode()) {
+      <div class="form-group">
+        <app-select
+          label="Estado del Proyecto"
+          [options]="statusOptions"
+          [value]="status()"
+          (valueChange)="status.set($event)"
+        />
+      </div>
+    }
+
+    <!-- Descripción / Notas -->
+    <div class="form-group">
+      <label class="form-label" for="proj-desc">Notas o Detalles (Opcional)</label>
+      <textarea
+        id="proj-desc"
+        class="form-textarea"
+        rows="2"
+        placeholder="Ej: Finca reservada con 50% de anticipo, presupuesto incluye gasolina y comida..."
+        [value]="description()"
+        (input)="description.set($any($event.target).value)"
+      ></textarea>
+    </div>
+
+    <!-- Botones de Acción -->
+    <div class="modal-actions">
+      <button type="button" class="btn btn-secondary" (click)="cancel.emit()">
+        Cancelar
+      </button>
+      <button type="submit" class="btn btn-primary">
+        <app-icon [name]="isEditMode() ? 'check-circle' : 'plus'" [size]="18" />
+        <span>{{ isEditMode() ? 'Guardar Cambios' : 'Crear Proyecto' }}</span>
+      </button>
+    </div>
+
+  </form>
+</app-modal>
