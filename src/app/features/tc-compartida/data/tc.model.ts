@@ -34,6 +34,9 @@ export interface TcExpense {
   category?: string;
   cardId?: string;
   createdAt?: string;
+  currency?: 'COP' | 'USD';
+  amountUsd?: number;
+  exchangeRate?: number;
 }
 
 export type TcExpenseDraft = Omit<TcExpense, 'id' | 'createdAt'>;

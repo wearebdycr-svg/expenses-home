@@ -801,6 +801,9 @@ export class TcService {
             category: item.category ? String(item.category) : 'General',
             cardId,
             createdAt: item.created_at ? String(item.created_at) : undefined,
+            currency: (item.currency as 'COP' | 'USD') || 'COP',
+            amountUsd: item.amount_usd != null ? Number(item.amount_usd) : undefined,
+            exchangeRate: item.exchange_rate != null ? Number(item.exchange_rate) : undefined,
           };
         });
 
@@ -844,6 +847,9 @@ export class TcService {
             description: dbDescription,
             amount: draft.amount,
             category: draft.category || 'General',
+            currency: draft.currency || 'COP',
+            amount_usd: draft.amountUsd ?? null,
+            exchange_rate: draft.exchangeRate ?? null,
           },
         ])
         .select()
@@ -898,6 +904,9 @@ export class TcService {
           description: dbDescription,
           amount: draft.amount,
           category: draft.category || 'General',
+          currency: draft.currency || 'COP',
+          amount_usd: draft.amountUsd ?? null,
+          exchange_rate: draft.exchangeRate ?? null,
         })
         .eq('id', id);
 

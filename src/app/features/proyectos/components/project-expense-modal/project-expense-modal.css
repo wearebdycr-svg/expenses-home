@@ -87,6 +87,127 @@
   padding-left: 1.75rem;
 }
 
+.input-with-usd {
+  padding-left: 2.35rem;
+}
+
+.usd-prefix {
+  font-size: 0.825rem;
+  color: #047857;
+  font-weight: 700;
+}
+
+/* Currency Selector */
+.currency-selector-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.75rem 0.9rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.currency-group-label {
+  font-size: 0.775rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.03em;
+}
+
+.currency-toggle-pills {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.currency-pill {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.currency-pill:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.currency-pill.active {
+  background: #1e293b;
+  color: #ffffff;
+  border-color: #1e293b;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.12);
+}
+
+/* USD Converter Box */
+.usd-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1rem;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+}
+
+.trm-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.trm-loading-tag {
+  font-size: 0.7rem;
+  color: #0284c7;
+  font-weight: 600;
+}
+
+.conversion-preview-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: #ffffff;
+  border: 1px solid #86efac;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+}
+
+.conversion-icon {
+  font-size: 1.5rem;
+}
+
+.conversion-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.conversion-formula {
+  font-size: 0.8rem;
+  color: #475569;
+}
+
+.conversion-result {
+  font-size: 0.925rem;
+  color: #15803d;
+}
+
+.conversion-result strong {
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;
@@ -136,5 +257,9 @@
 @media (max-width: 640px) {
   .form-row {
     grid-template-columns: 1fr;
+  }
+
+  .currency-toggle-pills {
+    flex-direction: column;
   }
 }

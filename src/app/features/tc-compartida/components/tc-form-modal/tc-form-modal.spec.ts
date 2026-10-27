@@ -45,6 +45,9 @@ describe('TcFormModal', () => {
       category: 'Supermercado',
       description: 'Supermercado',
       amount: 150_000,
+      currency: 'COP',
+      amountUsd: undefined,
+      exchangeRate: undefined,
     });
   });
 
@@ -78,5 +81,29 @@ describe('TcFormModal', () => {
     const projectOpt = options.find((o: any) => o.value === 'Paseo San Juan');
     expect(projectOpt).toBeTruthy();
     expect(projectOpt.label).toContain('Paseo San Juan');
+  });
+
+  it('submits correctly in USD mode with TRM conversion', () => {
+    const saveSpy = vi.spyOn(component.save, 'emit');
+
+    (component as any).setCurrency('USD');
+    (component as any).description.set('Cena Puerto Rico');
+    (component as any).amountUsd.set('100');
+    (component as any).exchangeRate.set('4100');
+    (component as any).person.set('Charlie');
+    (component as any).date.set('2026-10-27');
+
+    (component as any).onSubmit();
+
+    expect(saveSpy).toHaveBeenCalledWith({
+      date: '2026-10-27',
+      person: 'Charlie',
+      category: 'General',
+      description: 'Cena Puerto Rico',
+      amount: 410_000,
+      currency: 'USD',
+      amountUsd: 100,
+      exchangeRate: 4100,
+    });
   });
 });

@@ -1,7 +1,30 @@
 <app-modal [title]="modalTitle()" (close)="cancel.emit()">
   <form class="expense-form" (submit)="$event.preventDefault(); onSubmit()">
-    
-    <!-- Fecha y Categoría -->
+
+    <!-- Selector de Moneda (COP vs USD) -->
+    <div class="currency-selector-group">
+      <span class="currency-group-label">Moneda del Gasto:</span>
+      <div class="currency-toggle-pills">
+        <button
+          type="button"
+          class="currency-pill"
+          [class.active]="currency() === 'COP'"
+          (click)="setCurrency('COP')"
+        >
+          🇨🇴 Pesos Colombianos (COP)
+        </button>
+        <button
+          type="button"
+          class="currency-pill"
+          [class.active]="currency() === 'USD'"
+          (click)="setCurrency('USD')"
+        >
+          🇺🇸 Dólares (USD)
+        </button>
+      </div>
+    </div>
+
+    <!-- Fila Fecha y Categoría -->
     <div class="form-row">
       <div class="form-group flex-1">
         <label class="form-label" for="pe-date">Fecha <span class="required">*</span></label>
@@ -9,7 +32,6 @@
           id="pe-date"
           type="date"
           class="form-input"
-          [class.has-error]="hasSubmitted() && errors()['date']"
           [value]="date()"
           (input)="date.set($any($event.target).value)"
         />
@@ -38,7 +60,7 @@
         type="text"
         class="form-input"
         [class.has-error]="hasSubmitted() && errors()['description']"
-        placeholder="Ej: Peajes ida, Carbón y carnes, Hotel noche 1..."
+        placeholder="Ej: Hotel San Juan, Peajes, Restaurante Caribe..."
         [value]="description()"
         (input)="description.set($any($event.target).value)"
       />
@@ -47,31 +69,115 @@
       }
     </div>
 
-    <!-- Monto y Quién lo pagó -->
-    <div class="form-row">
-      <div class="form-group flex-1">
-        <label class="form-label" for="pe-amount">
-          Valor Gastado ($ COP) <span class="required">*</span>
-        </label>
-        <div class="input-prefix-wrapper">
-          <span class="input-prefix">$</span>
-          <input
-            id="pe-amount"
-            type="text"
-            inputmode="numeric"
-            class="form-input input-with-prefix"
-            [class.has-error]="hasSubmitted() && errors()['amount']"
-            placeholder="Ej: 120.000"
-            [value]="amount()"
-            (input)="onAmountInput($event)"
+    <!-- Bloque de Monto Condicional: USD con TRM vs COP normal -->
+    @if (currency() === 'USD') {
+      <div class="usd-box">
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label class="form-label" for="pe-usd">
+              Valor en Dólares (USD) <span class="required">*</span>
+            </label>
+            <div class="input-prefix-wrapper">
+              <span class="input-prefix usd-prefix">US$</span>
+              <input
+                id="pe-usd"
+                type="number"
+                step="0.01"
+                min="0.01"
+                class="form-input input-with-usd"
+                [class.has-error]="hasSubmitted() && errors()['amountUsd']"
+                placeholder="Ej: 150.00"
+                [value]="amountUsd()"
+                (input)="amountUsd.set($any($event.target).value)"
+              />
+            </div>
+            @if (hasSubmitted() && errors()['amountUsd']) {
+              <span class="field-error">{{ errors()['amountUsd'] }}</span>
+            }
+          </div>
+
+          <div class="form-group flex-1">
+            <div class="trm-header-row">
+              <label class="form-label" for="pe-trm">
+                Tasa de Cambio (TRM) <span class="required">*</span>
+              </label>
+              @if (trmService.loading()) {
+                <span class="trm-loading-tag">Consultando TRM...</span>
+              }
+            </div>
+            <div class="input-prefix-wrapper">
+              <span class="input-prefix">$</span>
+              <input
+                id="pe-trm"
+                type="number"
+                step="0.01"
+                min="100"
+                class="form-input input-with-prefix"
+                [class.has-error]="hasSubmitted() && errors()['exchangeRate']"
+                placeholder="Ej: 4150"
+                [value]="exchangeRate()"
+                (input)="exchangeRate.set($any($event.target).value)"
+              />
+            </div>
+            @if (hasSubmitted() && errors()['exchangeRate']) {
+              <span class="field-error">{{ errors()['exchangeRate'] }}</span>
+            }
+          </div>
+        </div>
+
+        <!-- Tarjeta de Conversión en Vivo -->
+        <div class="conversion-preview-card">
+          <div class="conversion-icon">🔄</div>
+          <div class="conversion-text">
+            <div class="conversion-formula">
+              <strong>US$ {{ (amountUsdNumber() || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</strong>
+              &times; ${{ (exchangeRateNumber() || 0).toLocaleString('es-CO') }}
+            </div>
+            <div class="conversion-result">
+              Equivalente en Pesos: <strong>${{ calculatedCopAmount().toLocaleString('es-CO') }} COP</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    } @else {
+      <!-- Modo Pesos (COP) Estándar -->
+      <div class="form-row">
+        <div class="form-group flex-1">
+          <label class="form-label" for="pe-amount">
+            Valor Gastado ($ COP) <span class="required">*</span>
+          </label>
+          <div class="input-prefix-wrapper">
+            <span class="input-prefix">$</span>
+            <input
+              id="pe-amount"
+              type="text"
+              inputmode="numeric"
+              class="form-input input-with-prefix"
+              [class.has-error]="hasSubmitted() && errors()['amount']"
+              placeholder="Ej: 120.000"
+              [value]="amount()"
+              (input)="onAmountInput($event)"
+            />
+          </div>
+          @if (hasSubmitted() && errors()['amount']) {
+            <span class="field-error">{{ errors()['amount'] }}</span>
+          }
+        </div>
+
+        <div class="form-group flex-1">
+          <app-select
+            label="¿Quién lo pagó?"
+            [options]="personOptions"
+            [value]="person()"
+            (valueChange)="person.set($event)"
           />
         </div>
-        @if (hasSubmitted() && errors()['amount']) {
-          <span class="field-error">{{ errors()['amount'] }}</span>
-        }
       </div>
+    }
 
-      <div class="form-group flex-1">
+    <!-- Si estamos en modo USD, ponemos el selector de quién lo pagó aquí -->
+    @if (currency() === 'USD') {
+      <div class="form-group">
         <app-select
           label="¿Quién lo pagó?"
           [options]="personOptions"
@@ -79,15 +185,15 @@
           (valueChange)="person.set($event)"
         />
       </div>
-    </div>
+    }
 
-    <!-- Botones de Acción -->
+    <!-- Acciones del Modal -->
     <div class="modal-actions">
       <button type="button" class="btn btn-secondary" (click)="cancel.emit()">
         Cancelar
       </button>
       <button type="submit" class="btn btn-primary">
-        <app-icon [name]="isEditMode() ? 'check-circle' : 'plus'" [size]="18" />
+        <app-icon name="plus" [size]="18" />
         <span>{{ isEditMode() ? 'Guardar Cambios' : 'Agregar Gasto' }}</span>
       </button>
     </div>

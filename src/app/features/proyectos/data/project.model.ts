@@ -59,6 +59,9 @@ export interface ProjectExpense {
   category?: string;
   createdAt?: string;
   source?: 'direct' | 'tc' | 'daily';
+  currency?: 'COP' | 'USD';
+  amountUsd?: number;
+  exchangeRate?: number;
 }
 
 export type ProjectExpenseDraft = Omit<ProjectExpense, 'id' | 'createdAt'>;

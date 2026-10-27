@@ -114,6 +114,9 @@ export class ProjectsService {
         category: tc.category || 'TC Compartida',
         createdAt: tc.createdAt,
         source: 'tc',
+        currency: tc.currency || 'COP',
+        amountUsd: tc.amountUsd,
+        exchangeRate: tc.exchangeRate,
       }));
 
     // 3. Gastos Diarios
@@ -431,6 +434,9 @@ export class ProjectsService {
           person: row.person as ExpensePerson,
           category: row.category ? String(row.category) : 'General',
           createdAt: row.created_at ? String(row.created_at) : undefined,
+          currency: (row.currency as 'COP' | 'USD') || 'COP',
+          amountUsd: row.amount_usd != null ? Number(row.amount_usd) : undefined,
+          exchangeRate: row.exchange_rate != null ? Number(row.exchange_rate) : undefined,
         }));
 
         this.projectExpensesSignal.set(mapped);
@@ -464,6 +470,9 @@ export class ProjectsService {
       amount: draft.amount,
       person: draft.person,
       category: draft.category || 'General',
+      currency: draft.currency || 'COP',
+      amount_usd: draft.amountUsd ?? null,
+      exchange_rate: draft.exchangeRate ?? null,
     };
 
     try {
@@ -528,6 +537,9 @@ export class ProjectsService {
       amount: draft.amount,
       person: draft.person,
       category: draft.category || 'General',
+      currency: draft.currency || 'COP',
+      amount_usd: draft.amountUsd ?? null,
+      exchange_rate: draft.exchangeRate ?? null,
     };
 
     try {

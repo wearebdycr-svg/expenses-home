@@ -3,6 +3,7 @@ import {
   Component,
   computed,
   effect,
+  inject,
   input,
   output,
   signal,
@@ -15,6 +16,7 @@ import type { ExpensePerson } from '../../../gastos/data/expense.model';
 import { EXPENSE_PERSONS } from '../../../gastos/data/expense.model';
 import type { Project, ProjectExpense, ProjectExpenseDraft } from '../../data/project.model';
 import { formatThousands, parseThousands } from '../../../../shared/utils/format.utils';
+import { TrmService } from '../../../../core/services/trm.service';
 
 export const PROJECT_EXPENSE_CATEGORIES = [
   'General',
@@ -36,6 +38,8 @@ export const PROJECT_EXPENSE_CATEGORIES = [
   styleUrl: './project-expense-modal.css',
 })
 export class ProjectExpenseModal {
+  protected readonly trmService = inject(TrmService);
+
   project = input.required<Project>();
   expense = input<ProjectExpense | null>(null);
   save = output<ProjectExpenseDraft>();
@@ -49,10 +53,27 @@ export class ProjectExpenseModal {
   // Form signals
   protected readonly date = signal(new Date().toISOString().split('T')[0]);
   protected readonly description = signal('');
-  protected readonly amount = signal('');
   protected readonly person = signal<ExpensePerson>('Compartido');
   protected readonly category = signal('General');
+  protected readonly currency = signal<'COP' | 'USD'>('COP');
+  protected readonly amount = signal('');
+  protected readonly amountUsd = signal('');
+  protected readonly exchangeRate = signal('');
   protected readonly hasSubmitted = signal(false);
+
+  protected readonly amountUsdNumber = computed(() => {
+    const val = parseFloat(this.amountUsd());
+    return isNaN(val) ? 0 : val;
+  });
+
+  protected readonly exchangeRateNumber = computed(() => {
+    const val = parseFloat(this.exchangeRate());
+    return isNaN(val) || val <= 0 ? this.trmService.trm() : val;
+  });
+
+  protected readonly calculatedCopAmount = computed(() => {
+    return Math.round(this.amountUsdNumber() * this.exchangeRateNumber());
+  });
 
   protected readonly personOptions: readonly SelectOption<ExpensePerson>[] = EXPENSE_PERSONS.map(
     (p) => ({
@@ -72,8 +93,19 @@ export class ProjectExpenseModal {
     const errs: Record<string, string> = {};
     if (!this.date()) errs['date'] = 'La fecha es obligatoria';
     if (!this.description().trim()) errs['description'] = 'La descripción es obligatoria';
-    const num = parseThousands(this.amount());
-    if (num <= 0) errs['amount'] = 'Ingresa un valor mayor a cero';
+
+    if (this.currency() === 'COP') {
+      const num = parseThousands(this.amount());
+      if (num <= 0) errs['amount'] = 'Ingresa un valor mayor a cero';
+    } else {
+      if (this.amountUsdNumber() <= 0) {
+        errs['amountUsd'] = 'Ingresa un valor en USD mayor a cero';
+      }
+      if (this.exchangeRateNumber() <= 0) {
+        errs['exchangeRate'] = 'Ingresa una TRM válida';
+      }
+    }
+
     return errs;
   });
 
@@ -85,19 +117,41 @@ export class ProjectExpenseModal {
       if (current) {
         this.date.set(current.date);
         this.description.set(current.description);
-        this.amount.set(formatThousands(current.amount));
         this.person.set(current.person);
         this.category.set(current.category || 'General');
+
+        if (current.currency === 'USD' || (current.amountUsd && current.amountUsd > 0)) {
+          this.currency.set('USD');
+          this.amountUsd.set(current.amountUsd?.toString() || '');
+          this.exchangeRate.set(
+            (current.exchangeRate || this.trmService.trm()).toString(),
+          );
+          this.amount.set(formatThousands(current.amount));
+        } else {
+          this.currency.set('COP');
+          this.amount.set(formatThousands(current.amount));
+          this.amountUsd.set('');
+          this.exchangeRate.set(this.trmService.trm().toString());
+        }
       } else {
         this.date.set(new Date().toISOString().split('T')[0]);
         this.description.set('');
-        this.amount.set('');
-        // Asignar por defecto la persona del proyecto si no es Compartido
         this.person.set(this.project()?.person || 'Compartido');
         this.category.set('General');
+        this.currency.set('COP');
+        this.amount.set('');
+        this.amountUsd.set('');
+        this.exchangeRate.set(this.trmService.trm().toString());
       }
       this.hasSubmitted.set(false);
     });
+  }
+
+  protected setCurrency(c: 'COP' | 'USD'): void {
+    this.currency.set(c);
+    if (c === 'USD' && !this.exchangeRate()) {
+      this.exchangeRate.set(this.trmService.trm().toString());
+    }
   }
 
   protected onAmountInput(event: Event): void {
@@ -111,13 +165,21 @@ export class ProjectExpenseModal {
     this.hasSubmitted.set(true);
     if (this.hasErrors()) return;
 
+    const isUsd = this.currency() === 'USD';
+    const finalCopAmount = isUsd
+      ? this.calculatedCopAmount()
+      : parseThousands(this.amount());
+
     this.save.emit({
       projectId: this.project().id,
       date: this.date(),
       description: this.description().trim(),
-      amount: parseThousands(this.amount()),
+      amount: finalCopAmount,
       person: this.person(),
       category: this.category(),
+      currency: isUsd ? 'USD' : 'COP',
+      amountUsd: isUsd ? this.amountUsdNumber() : undefined,
+      exchangeRate: isUsd ? this.exchangeRateNumber() : undefined,
     });
   }
 }

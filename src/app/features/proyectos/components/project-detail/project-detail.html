@@ -187,7 +187,9 @@
               <th>Descripción</th>
               <th>Categoría</th>
               <th>Pagado por</th>
-              <th class="text-right">Valor</th>
+              <th class="text-right">Gasto en Dólares</th>
+              <th class="text-right">TRM</th>
+              <th class="text-right">Gasto en Pesos</th>
               <th class="text-center">Acciones</th>
             </tr>
           </thead>
@@ -212,6 +214,24 @@
                   <span class="person-tag tag-{{ item.person.toLowerCase() }}">
                     {{ item.person }}
                   </span>
+                </td>
+                <td class="text-right amount-usd-col">
+                  @if (item.currency === 'USD' || (item.amountUsd && item.amountUsd > 0)) {
+                    <span class="badge-usd-value">
+                      US$ {{ (item.amountUsd || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+                    </span>
+                  } @else {
+                    <span class="dash-empty">—</span>
+                  }
+                </td>
+                <td class="text-right trm-col">
+                  @if (item.currency === 'USD' || (item.amountUsd && item.amountUsd > 0)) {
+                    <span class="trm-value">
+                      ${{ (item.exchangeRate || 0).toLocaleString('es-CO') }}
+                    </span>
+                  } @else {
+                    <span class="dash-empty">—</span>
+                  }
                 </td>
                 <td class="text-right amount-col font-semibold">
                   ${{ item.amount.toLocaleString('es-CO') }}

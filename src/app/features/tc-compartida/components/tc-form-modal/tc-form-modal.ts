@@ -8,12 +8,14 @@ import {
   output,
   signal,
 } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { Modal } from '../../../../shared/ui/modal/modal';
 import { Select, type SelectOption } from '../../../../shared/ui/select/select';
 import type { ExpensePerson } from '../../data/tc.model';
 import { EXPENSE_PERSONS, TC_DEFAULT_CATEGORIES, type TcExpense, type TcExpenseDraft } from '../../data/tc.model';
 import { formatThousands, parseThousands } from '../../../../shared/utils/format.utils';
 import { ProjectsService } from '../../../proyectos/data/projects.service';
+import { TrmService } from '../../../../core/services/trm.service';
 
 function todayIso(): string {
   const now = new Date();
@@ -25,12 +27,15 @@ function todayIso(): string {
 @Component({
   selector: 'app-tc-form-modal',
   standalone: true,
-  imports: [Modal, Select],
+  imports: [CommonModule, Modal, Select],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './tc-form-modal.html',
   styleUrl: './tc-form-modal.css',
 })
 export class TcFormModal {
+  private readonly projectsService = inject(ProjectsService);
+  protected readonly trmService = inject(TrmService);
+
   tcExpense = input<TcExpense | null>(null);
   save = output<TcExpenseDraft>();
   cancel = output<void>();
@@ -47,8 +52,25 @@ export class TcFormModal {
   protected readonly person = signal<ExpensePerson | ''>('');
   protected readonly category = signal<string>('General');
   protected readonly description = signal('');
+  protected readonly currency = signal<'COP' | 'USD'>('COP');
   protected readonly amount = signal('');
+  protected readonly amountUsd = signal('');
+  protected readonly exchangeRate = signal('');
   protected readonly hasSubmitted = signal(false);
+
+  protected readonly amountUsdNumber = computed(() => {
+    const val = parseFloat(this.amountUsd());
+    return isNaN(val) ? 0 : val;
+  });
+
+  protected readonly exchangeRateNumber = computed(() => {
+    const val = parseFloat(this.exchangeRate());
+    return isNaN(val) || val <= 0 ? this.trmService.trm() : val;
+  });
+
+  protected readonly calculatedCopAmount = computed(() => {
+    return Math.round(this.amountUsdNumber() * this.exchangeRateNumber());
+  });
 
   protected readonly errors = computed(() => {
     if (!this.hasSubmitted()) return {};
@@ -56,8 +78,18 @@ export class TcFormModal {
     if (!this.date()) errs['date'] = 'La fecha es obligatoria';
     if (!this.person()) errs['person'] = 'Debes seleccionar la persona';
     if (!this.description().trim()) errs['description'] = 'La descripción es obligatoria';
-    const numAmount = parseThousands(this.amount());
-    if (!this.amount() || numAmount <= 0) errs['amount'] = 'El monto debe ser mayor a 0';
+
+    if (this.currency() === 'COP') {
+      const numAmount = parseThousands(this.amount());
+      if (!this.amount() || numAmount <= 0) errs['amount'] = 'El monto debe ser mayor a 0';
+    } else {
+      if (this.amountUsdNumber() <= 0) {
+        errs['amountUsd'] = 'Ingresa un valor en USD mayor a 0';
+      }
+      if (this.exchangeRateNumber() <= 0) {
+        errs['exchangeRate'] = 'Ingresa una TRM válida';
+      }
+    }
     return errs;
   });
 
@@ -69,8 +101,6 @@ export class TcFormModal {
       label: person,
     }),
   );
-
-  private readonly projectsService = inject(ProjectsService);
 
   protected readonly categoryOptions = computed<readonly SelectOption<string>[]>(() => {
     // 1. Categorías por defecto de TC
@@ -108,16 +138,37 @@ export class TcFormModal {
         this.person.set(exp.person);
         this.category.set(exp.category ?? 'General');
         this.description.set(exp.description);
-        this.amount.set(formatThousands(exp.amount));
+
+        if (exp.currency === 'USD' || (exp.amountUsd && exp.amountUsd > 0)) {
+          this.currency.set('USD');
+          this.amountUsd.set(exp.amountUsd?.toString() || '');
+          this.exchangeRate.set((exp.exchangeRate || this.trmService.trm()).toString());
+          this.amount.set(formatThousands(exp.amount));
+        } else {
+          this.currency.set('COP');
+          this.amount.set(formatThousands(exp.amount));
+          this.amountUsd.set('');
+          this.exchangeRate.set(this.trmService.trm().toString());
+        }
       } else {
         this.date.set(todayIso());
         this.person.set('');
         this.category.set('General');
         this.description.set('');
+        this.currency.set('COP');
         this.amount.set('');
+        this.amountUsd.set('');
+        this.exchangeRate.set(this.trmService.trm().toString());
       }
       this.hasSubmitted.set(false);
     });
+  }
+
+  protected setCurrency(c: 'COP' | 'USD'): void {
+    this.currency.set(c);
+    if (c === 'USD' && !this.exchangeRate()) {
+      this.exchangeRate.set(this.trmService.trm().toString());
+    }
   }
 
   protected onAmountInput(event: Event): void {
@@ -129,20 +180,26 @@ export class TcFormModal {
 
   protected onSubmit(): void {
     this.hasSubmitted.set(true);
-    const desc = this.description().trim();
-    const numAmount = parseThousands(this.amount());
-    const person = this.person();
+    if (this.hasErrors()) return;
 
-    if (!person || !desc || !numAmount || numAmount <= 0 || !this.date()) {
-      return;
-    }
+    const desc = this.description().trim();
+    const person = this.person();
+    if (!person || !desc) return;
+
+    const isUsd = this.currency() === 'USD';
+    const finalCopAmount = isUsd
+      ? this.calculatedCopAmount()
+      : parseThousands(this.amount());
 
     this.save.emit({
       date: this.date(),
       person: person as ExpensePerson,
       category: this.category() || 'General',
       description: desc,
-      amount: numAmount,
+      amount: finalCopAmount,
+      currency: isUsd ? 'USD' : 'COP',
+      amountUsd: isUsd ? this.amountUsdNumber() : undefined,
+      exchangeRate: isUsd ? this.exchangeRateNumber() : undefined,
     });
   }
 }

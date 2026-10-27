@@ -63,7 +63,15 @@
                 <span class="category-chip">{{ expense.category || 'General' }}</span>
               </td>
               <td class="col-description">{{ expense.description }}</td>
-              <td class="col-amount amount-value">{{ formatCOP(expense.amount) }}</td>
+              <td class="col-amount amount-value">
+                <div class="main-amount">{{ formatCOP(expense.amount) }}</div>
+                @if (expense.currency === 'USD' || (expense.amountUsd && expense.amountUsd > 0)) {
+                  <div class="tc-usd-badge">
+                    US$ {{ (expense.amountUsd || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+                    <span class="tc-trm-sub">(TRM ${{ (expense.exchangeRate || 0).toLocaleString('es-CO') }})</span>
+                  </div>
+                }
+              </td>
               <td class="col-actions">
                 <button
                   type="button"

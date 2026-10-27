@@ -6,6 +6,29 @@
       </div>
     }
 
+    <!-- Selector de Moneda (COP vs USD) -->
+    <div class="currency-selector-group">
+      <span class="currency-group-label">Moneda del Consumo:</span>
+      <div class="currency-toggle-pills">
+        <button
+          type="button"
+          class="currency-pill"
+          [class.active]="currency() === 'COP'"
+          (click)="setCurrency('COP')"
+        >
+          🇨🇴 Pesos Colombianos (COP)
+        </button>
+        <button
+          type="button"
+          class="currency-pill"
+          [class.active]="currency() === 'USD'"
+          (click)="setCurrency('USD')"
+        >
+          🇺🇸 Dólares (USD)
+        </button>
+      </div>
+    </div>
+
     <div class="form-row">
       <label class="field" [class.has-error]="errors()['date']">
         <span class="field-label">Fecha del consumo</span>
@@ -32,30 +55,106 @@
       />
     </div>
 
-    <div class="form-row">
-      <app-select
-        label="Categoría / Tipo"
-        [options]="categoryOptions()"
-        [value]="category()"
-        (valueChange)="category.set($event)"
-      />
-
-      <label class="field" [class.has-error]="errors()['amount']">
-        <span class="field-label">Monto (COP)</span>
-        <input
-          class="field-control"
-          [class.control-error]="errors()['amount']"
-          type="text"
-          inputmode="numeric"
-          placeholder="Ej: 150.000"
-          [value]="amount()"
-          (input)="onAmountInput($event)"
+    <!-- Categoría y Monto (en COP) -->
+    @if (currency() === 'COP') {
+      <div class="form-row">
+        <app-select
+          label="Categoría / Tipo"
+          [options]="categoryOptions()"
+          [value]="category()"
+          (valueChange)="category.set($event)"
         />
-        @if (errors()['amount']) {
-          <span class="field-error-msg">{{ errors()['amount'] }}</span>
-        }
-      </label>
-    </div>
+
+        <label class="field" [class.has-error]="errors()['amount']">
+          <span class="field-label">Monto (COP)</span>
+          <input
+            class="field-control"
+            [class.control-error]="errors()['amount']"
+            type="text"
+            inputmode="numeric"
+            placeholder="Ej: 150.000"
+            [value]="amount()"
+            (input)="onAmountInput($event)"
+          />
+          @if (errors()['amount']) {
+            <span class="field-error-msg">{{ errors()['amount'] }}</span>
+          }
+        </label>
+      </div>
+    } @else {
+      <!-- Modo Dólares (USD con TRM) -->
+      <div class="form-group">
+        <app-select
+          label="Categoría / Tipo"
+          [options]="categoryOptions()"
+          [value]="category()"
+          (valueChange)="category.set($event)"
+        />
+      </div>
+
+      <div class="usd-box">
+        <div class="form-row">
+          <label class="field" [class.has-error]="errors()['amountUsd']">
+            <span class="field-label">Monto en Dólares (USD) *</span>
+            <div class="input-prefix-wrapper">
+              <span class="input-prefix usd-prefix">US$</span>
+              <input
+                class="field-control input-with-usd"
+                [class.control-error]="errors()['amountUsd']"
+                type="number"
+                step="0.01"
+                min="0.01"
+                placeholder="Ej: 150.00"
+                [value]="amountUsd()"
+                (input)="amountUsd.set($any($event.target).value)"
+              />
+            </div>
+            @if (errors()['amountUsd']) {
+              <span class="field-error-msg">{{ errors()['amountUsd'] }}</span>
+            }
+          </label>
+
+          <label class="field" [class.has-error]="errors()['exchangeRate']">
+            <div class="trm-header-row">
+              <span class="field-label">Tasa de Cambio (TRM) *</span>
+              @if (trmService.loading()) {
+                <span class="trm-loading-tag">Consultando...</span>
+              }
+            </div>
+            <div class="input-prefix-wrapper">
+              <span class="input-prefix">$</span>
+              <input
+                class="field-control input-with-prefix"
+                [class.control-error]="errors()['exchangeRate']"
+                type="number"
+                step="0.01"
+                min="100"
+                placeholder="Ej: 4150"
+                [value]="exchangeRate()"
+                (input)="exchangeRate.set($any($event.target).value)"
+              />
+            </div>
+            @if (errors()['exchangeRate']) {
+              <span class="field-error-msg">{{ errors()['exchangeRate'] }}</span>
+            }
+          </label>
+        </div>
+
+        <!-- Tarjeta de Conversión en Vivo -->
+        <div class="conversion-preview-card">
+          <div class="conversion-icon">🔄</div>
+          <div class="conversion-text">
+            <div class="conversion-formula">
+              <strong>US$ {{ (amountUsdNumber() || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</strong>
+              &times; ${{ (exchangeRateNumber() || 0).toLocaleString('es-CO') }}
+            </div>
+            <div class="conversion-result">
+              Equivalente en Pesos: <strong>${{ calculatedCopAmount().toLocaleString('es-CO') }} COP</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
 
     <label class="field" [class.has-error]="errors()['description']">
       <span class="field-label">Descripción del consumo</span>
@@ -63,7 +162,7 @@
         class="field-control"
         [class.control-error]="errors()['description']"
         type="text"
-        placeholder="Ej: Mercado mensual, Pasajes, Cena fin de semana..."
+        placeholder="Ej: Hotel San Juan, Mercado mensual, Pasajes..."
         maxlength="120"
         [value]="description()"
         (input)="description.set($any($event.target).value)"
