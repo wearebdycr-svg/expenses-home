@@ -114,9 +114,9 @@
                 min="100"
                 class="form-input input-with-prefix"
                 [class.has-error]="hasSubmitted() && errors()['exchangeRate']"
-                placeholder="Ej: 4150"
-                [value]="exchangeRate()"
-                (input)="exchangeRate.set($any($event.target).value)"
+                placeholder="Ej: 3155"
+                [value]="displayTrm()"
+                (input)="onTrmInput($event)"
               />
             </div>
             @if (hasSubmitted() && errors()['exchangeRate']) {
@@ -131,7 +131,7 @@
           <div class="conversion-text">
             <div class="conversion-formula">
               <strong>US$ {{ (amountUsdNumber() || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</strong>
-              &times; ${{ (exchangeRateNumber() || 0).toLocaleString('es-CO') }}
+              &times; ${{ effectiveTrm().toLocaleString('es-CO') }}
             </div>
             <div class="conversion-result">
               Equivalente en Pesos: <strong>${{ calculatedCopAmount().toLocaleString('es-CO') }} COP</strong>

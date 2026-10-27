@@ -89,7 +89,7 @@ describe('TcFormModal', () => {
     (component as any).setCurrency('USD');
     (component as any).description.set('Cena Puerto Rico');
     (component as any).amountUsd.set('100');
-    (component as any).exchangeRate.set('4100');
+    (component as any).customTrm.set('4100');
     (component as any).person.set('Charlie');
     (component as any).date.set('2026-10-27');
 

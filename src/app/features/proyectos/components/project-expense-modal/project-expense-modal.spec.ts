@@ -45,7 +45,7 @@ describe('ProjectExpenseModal', () => {
     expect((component as any).currency()).toBe('USD');
 
     (component as any).amountUsd.set('150');
-    (component as any).exchangeRate.set('4000');
+    (component as any).customTrm.set('4000');
 
     expect((component as any).calculatedCopAmount()).toBe(600_000);
   });
@@ -57,7 +57,7 @@ describe('ProjectExpenseModal', () => {
     (component as any).description.set('Hotel San Juan');
     (component as any).setCurrency('USD');
     (component as any).amountUsd.set('200');
-    (component as any).exchangeRate.set('4100');
+    (component as any).customTrm.set('4100');
     (component as any).person.set('Charlie');
 
     (component as any).onSubmit();

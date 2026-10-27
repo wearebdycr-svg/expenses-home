@@ -58,21 +58,35 @@ export class ProjectExpenseModal {
   protected readonly currency = signal<'COP' | 'USD'>('COP');
   protected readonly amount = signal('');
   protected readonly amountUsd = signal('');
-  protected readonly exchangeRate = signal('');
+  protected readonly customTrm = signal<string | null>(null);
   protected readonly hasSubmitted = signal(false);
+
+  protected readonly effectiveTrm = computed<number>(() => {
+    const custom = this.customTrm();
+    if (custom !== null && custom.trim() !== '') {
+      const parsed = parseFloat(custom);
+      if (!isNaN(parsed) && parsed > 0) {
+        return parsed;
+      }
+    }
+    return this.trmService.trm();
+  });
+
+  protected readonly displayTrm = computed<string>(() => {
+    const custom = this.customTrm();
+    if (custom !== null) {
+      return custom;
+    }
+    return this.effectiveTrm().toString();
+  });
 
   protected readonly amountUsdNumber = computed(() => {
     const val = parseFloat(this.amountUsd());
     return isNaN(val) ? 0 : val;
   });
 
-  protected readonly exchangeRateNumber = computed(() => {
-    const val = parseFloat(this.exchangeRate());
-    return isNaN(val) || val <= 0 ? this.trmService.trm() : val;
-  });
-
   protected readonly calculatedCopAmount = computed(() => {
-    return Math.round(this.amountUsdNumber() * this.exchangeRateNumber());
+    return Math.round(this.amountUsdNumber() * this.effectiveTrm());
   });
 
   protected readonly personOptions: readonly SelectOption<ExpensePerson>[] = EXPENSE_PERSONS.map(
@@ -101,7 +115,7 @@ export class ProjectExpenseModal {
       if (this.amountUsdNumber() <= 0) {
         errs['amountUsd'] = 'Ingresa un valor en USD mayor a cero';
       }
-      if (this.exchangeRateNumber() <= 0) {
+      if (this.effectiveTrm() <= 0) {
         errs['exchangeRate'] = 'Ingresa una TRM válida';
       }
     }
@@ -123,15 +137,13 @@ export class ProjectExpenseModal {
         if (current.currency === 'USD' || (current.amountUsd && current.amountUsd > 0)) {
           this.currency.set('USD');
           this.amountUsd.set(current.amountUsd?.toString() || '');
-          this.exchangeRate.set(
-            (current.exchangeRate || this.trmService.trm()).toString(),
-          );
+          this.customTrm.set(current.exchangeRate != null ? current.exchangeRate.toString() : null);
           this.amount.set(formatThousands(current.amount));
         } else {
           this.currency.set('COP');
           this.amount.set(formatThousands(current.amount));
           this.amountUsd.set('');
-          this.exchangeRate.set(this.trmService.trm().toString());
+          this.customTrm.set(null);
         }
       } else {
         this.date.set(new Date().toISOString().split('T')[0]);
@@ -141,7 +153,7 @@ export class ProjectExpenseModal {
         this.currency.set('COP');
         this.amount.set('');
         this.amountUsd.set('');
-        this.exchangeRate.set(this.trmService.trm().toString());
+        this.customTrm.set(null);
       }
       this.hasSubmitted.set(false);
     });
@@ -149,9 +161,11 @@ export class ProjectExpenseModal {
 
   protected setCurrency(c: 'COP' | 'USD'): void {
     this.currency.set(c);
-    if (c === 'USD' && !this.exchangeRate()) {
-      this.exchangeRate.set(this.trmService.trm().toString());
-    }
+  }
+
+  protected onTrmInput(event: Event): void {
+    const val = (event.target as HTMLInputElement).value;
+    this.customTrm.set(val);
   }
 
   protected onAmountInput(event: Event): void {
@@ -179,7 +193,7 @@ export class ProjectExpenseModal {
       category: this.category(),
       currency: isUsd ? 'USD' : 'COP',
       amountUsd: isUsd ? this.amountUsdNumber() : undefined,
-      exchangeRate: isUsd ? this.exchangeRateNumber() : undefined,
+      exchangeRate: isUsd ? this.effectiveTrm() : undefined,
     });
   }
 }

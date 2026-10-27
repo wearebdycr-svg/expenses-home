@@ -1,7 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 
-const STORAGE_TRM_KEY = 'expenses_home_trm_v1';
-const DEFAULT_TRM = 4150;
+const STORAGE_TRM_KEY = 'expenses_home_trm_v2';
+const DEFAULT_TRM = 3155;
 
 export interface CachedTrmData {
   rate: number;
