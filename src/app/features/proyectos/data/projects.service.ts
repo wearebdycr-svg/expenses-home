@@ -247,13 +247,18 @@ export class ProjectsService {
           createdAt: String(row.created_at || new Date().toISOString()),
         }));
 
-        this.projectsSignal.set(mapped);
-        this.saveProjectsToStorage(mapped);
+        if (mapped.length > 0) {
+          this.projectsSignal.set(mapped);
+          this.saveProjectsToStorage(mapped);
+        } else if (this.projectsSignal().length > 0) {
+          // Si Supabase aún no tiene registros pero en local hay proyectos, los sincronizamos
+          this.syncLocalProjectsToSupabase();
+        }
 
         // Actualizar referencia del proyecto seleccionado si está abierto
         const currentSelected = this.selectedProject();
         if (currentSelected) {
-          const fresh = mapped.find((p) => p.id === currentSelected.id) ?? null;
+          const fresh = this.projectsSignal().find((p) => p.id === currentSelected.id) ?? null;
           this.selectedProject.set(fresh);
         }
       }
@@ -608,6 +613,29 @@ export class ProjectsService {
       localStorage.setItem(STORAGE_PROJECTS_KEY, JSON.stringify(projects));
     } catch (e) {
       console.warn('Error guardando proyectos en localStorage:', e);
+    }
+  }
+
+  private async syncLocalProjectsToSupabase(): Promise<void> {
+    const locals = this.projectsSignal();
+    for (const p of locals) {
+      try {
+        const payload: Record<string, any> = {
+          name: p.name,
+          budget_amount: p.budgetAmount,
+          person: p.person,
+          icon: p.icon,
+          color: p.color,
+          status: p.status || 'activo',
+        };
+        if (p.startDate) payload['start_date'] = p.startDate;
+        if (p.endDate) payload['end_date'] = p.endDate;
+        if (p.description) payload['description'] = p.description;
+
+        await this.supabase.client.from('projects').insert([payload]);
+      } catch {
+        // Silently retry next time
+      }
     }
   }
 
