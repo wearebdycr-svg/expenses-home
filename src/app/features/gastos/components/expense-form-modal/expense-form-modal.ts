@@ -25,6 +25,7 @@ import { TcService } from '../../../tc-compartida/data/tc.service';
 import type { TcCard } from '../../../tc-compartida/data/tc-card.model';
 import { ExpensesService } from '../../data/expenses.service';
 import { ProjectsService } from '../../../proyectos/data/projects.service';
+import { TrmService } from '../../../../core/services/trm.service';
 import { formatThousands, parseThousands } from '../../../../shared/utils/format.utils';
 
 function todayIso(): string {
@@ -46,6 +47,7 @@ export class ExpenseFormModal {
   protected readonly tcService = inject(TcService);
   private readonly expensesService = inject(ExpensesService);
   private readonly projectsService = inject(ProjectsService);
+  protected readonly trmService = inject(TrmService);
 
   expense = input<Expense | null>(null);
   save = output<ExpenseDraft>();
@@ -62,8 +64,39 @@ export class ExpenseFormModal {
   protected readonly person = signal<ExpensePerson | ''>('');
   protected readonly category = signal<ExpenseCategory>('Mercado');
   protected readonly description = signal('');
+  protected readonly currency = signal<'COP' | 'USD'>('COP');
   protected readonly amount = signal('');
+  protected readonly amountUsd = signal('');
+  protected readonly customTrm = signal<string | null>(null);
   protected readonly hasSubmitted = signal(false);
+
+  protected readonly effectiveTrm = computed<number>(() => {
+    const custom = this.customTrm();
+    if (custom !== null && custom.trim() !== '') {
+      const parsed = parseFloat(custom);
+      if (!isNaN(parsed) && parsed > 0) {
+        return parsed;
+      }
+    }
+    return this.trmService.trm();
+  });
+
+  protected readonly displayTrm = computed<string>(() => {
+    const custom = this.customTrm();
+    if (custom !== null) {
+      return custom;
+    }
+    return this.effectiveTrm().toString();
+  });
+
+  protected readonly amountUsdNumber = computed(() => {
+    const val = parseFloat(this.amountUsd());
+    return isNaN(val) ? 0 : val;
+  });
+
+  protected readonly calculatedCopAmount = computed(() => {
+    return Math.round(this.amountUsdNumber() * this.effectiveTrm());
+  });
 
   protected readonly errors = computed(() => {
     if (!this.hasSubmitted()) return {};
@@ -72,8 +105,19 @@ export class ExpenseFormModal {
     if (!this.person()) errs['person'] = 'Debes seleccionar la persona';
     if (!this.category()) errs['category'] = 'Debes seleccionar una categoría';
     if (!this.description().trim()) errs['description'] = 'La descripción es obligatoria';
-    const amountVal = parseThousands(this.amount());
-    if (!this.amount() || amountVal <= 0) errs['amount'] = 'El monto debe ser mayor a 0';
+
+    if (this.currency() === 'COP') {
+      const amountVal = parseThousands(this.amount());
+      if (!this.amount() || amountVal <= 0) errs['amount'] = 'El monto debe ser mayor a 0';
+    } else {
+      if (this.amountUsdNumber() <= 0) {
+        errs['amountUsd'] = 'Ingresa un valor en USD mayor a 0';
+      }
+      if (this.effectiveTrm() <= 0) {
+        errs['exchangeRate'] = 'Ingresa una TRM válida';
+      }
+    }
+
     return errs;
   });
 
@@ -149,7 +193,8 @@ export class ExpenseFormModal {
   protected readonly isOverdraft = computed(() => {
     const debt = this.selectedDebt();
     if (!debt) return false;
-    const entered = parseThousands(this.amount());
+    const isUsd = this.currency() === 'USD';
+    const entered = isUsd ? this.calculatedCopAmount() : parseThousands(this.amount());
     return entered > debt.currentBalance;
   });
 
@@ -160,9 +205,35 @@ export class ExpenseFormModal {
       this.person.set(existing?.person ?? '');
       this.category.set(existing?.category ?? 'Mercado');
       this.description.set(existing?.description ?? '');
-      this.amount.set(existing ? formatThousands(existing.amount) : '');
+      if (existing) {
+        if (existing.currency === 'USD' || (existing.amountUsd && existing.amountUsd > 0)) {
+          this.currency.set('USD');
+          this.amountUsd.set(existing.amountUsd?.toString() || '');
+          this.customTrm.set(existing.exchangeRate != null ? existing.exchangeRate.toString() : null);
+          this.amount.set(formatThousands(existing.amount));
+        } else {
+          this.currency.set('COP');
+          this.amount.set(formatThousands(existing.amount));
+          this.amountUsd.set('');
+          this.customTrm.set(null);
+        }
+      } else {
+        this.currency.set('COP');
+        this.amount.set('');
+        this.amountUsd.set('');
+        this.customTrm.set(null);
+      }
       this.hasSubmitted.set(false);
     });
+  }
+
+  protected setCurrency(c: 'COP' | 'USD'): void {
+    this.currency.set(c);
+  }
+
+  protected onTrmInput(event: Event): void {
+    const val = (event.target as HTMLInputElement).value;
+    this.customTrm.set(val);
   }
 
   protected onAmountInput(event: Event): void {
@@ -176,13 +247,20 @@ export class ExpenseFormModal {
 
   protected onSubmit(): void {
     this.hasSubmitted.set(true);
-    const description = this.description().trim().slice(0, 100);
-    const amount = parseThousands(this.amount());
-    const person = this.person();
+    if (this.hasErrors()) return;
 
-    if (!person || !description || !this.amount() || amount <= 0 || !this.date() || !this.category()) {
+    const description = this.description().trim().slice(0, 100);
+    const person = this.person();
+    if (!person || !description || !this.date() || !this.category()) {
       return;
     }
+
+    const isUsd = this.currency() === 'USD';
+    const finalCopAmount = isUsd
+      ? this.calculatedCopAmount()
+      : parseThousands(this.amount());
+
+    if (finalCopAmount <= 0) return;
 
     const tc = this.selectedTcCard();
 
@@ -199,8 +277,11 @@ export class ExpenseFormModal {
         person: 'Compartido',
         category: expenseCategory || 'General',
         description,
-        amount,
+        amount: finalCopAmount,
         cardId: tcCardId,
+        currency: isUsd ? 'USD' : 'COP',
+        amountUsd: isUsd ? this.amountUsdNumber() : undefined,
+        exchangeRate: isUsd ? this.effectiveTrm() : undefined,
       });
 
       if (this.isEditMode()) {
@@ -233,25 +314,37 @@ export class ExpenseFormModal {
 
   protected emitSave(): void {
     const description = this.description().trim().slice(0, 100);
-    const amount = parseThousands(this.amount());
     const person = this.person();
     const tc = this.selectedTcCard();
     const category = tc
       ? (tc.id === 'tc-compartida' ? 'TC-compartida' : `TC: ${tc.name}`)
       : this.category();
 
+    const isUsd = this.currency() === 'USD';
+    const finalCopAmount = isUsd
+      ? this.calculatedCopAmount()
+      : parseThousands(this.amount());
+
     this.save.emit({
       date: this.date(),
       person: person as ExpensePerson,
       category,
       description,
-      amount,
+      amount: finalCopAmount,
+      currency: isUsd ? 'USD' : 'COP',
+      amountUsd: isUsd ? this.amountUsdNumber() : undefined,
+      exchangeRate: isUsd ? this.effectiveTrm() : undefined,
     });
   }
 
   protected confirmPersonalTcMovement(type: 'expense' | 'payment'): void {
     const tc = this.selectedTcCard();
     if (!tc) return;
+
+    const isUsd = this.currency() === 'USD';
+    const finalCopAmount = isUsd
+      ? this.calculatedCopAmount()
+      : parseThousands(this.amount());
 
     if (type === 'expense') {
       // Registrar como consumo directo dentro de esa TC personal
@@ -262,8 +355,11 @@ export class ExpenseFormModal {
         person: (this.person() as ExpensePerson) || tc.person,
         category: expenseCategory || 'General',
         description: this.description().trim().slice(0, 100),
-        amount: parseThousands(this.amount()),
+        amount: finalCopAmount,
         cardId: tc.id,
+        currency: isUsd ? 'USD' : 'COP',
+        amountUsd: isUsd ? this.amountUsdNumber() : undefined,
+        exchangeRate: isUsd ? this.effectiveTrm() : undefined,
       });
       this.confirmationType.set('none');
       this.cancel.emit();

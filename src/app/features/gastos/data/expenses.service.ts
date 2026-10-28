@@ -218,6 +218,9 @@ export class ExpensesService {
           category: item.category as ExpenseCategory,
           description: String(item.description),
           amount: Number(item.amount),
+          currency: item.currency || 'COP',
+          amountUsd: item.amount_usd != null ? Number(item.amount_usd) : undefined,
+          exchangeRate: item.exchange_rate != null ? Number(item.exchange_rate) : undefined,
         }));
         this.expenses.set(mapped);
         this.error.set(null);
@@ -248,6 +251,9 @@ export class ExpensesService {
             category: expenseCategory,
             description: item.description,
             amount: item.amount,
+            currency: item.currency || 'COP',
+            amount_usd: item.amount_usd,
+            exchange_rate: item.exchange_rate,
           },
         ]);
         await this.supabase.client.from('expenses').delete().eq('id', item.id);
@@ -276,6 +282,9 @@ export class ExpensesService {
             category: draft.category,
             description: draft.description,
             amount: draft.amount,
+            currency: draft.currency || 'COP',
+            amount_usd: draft.amountUsd,
+            exchange_rate: draft.exchangeRate,
           },
         ])
         .select()
@@ -321,6 +330,9 @@ export class ExpensesService {
           category: draft.category,
           description: draft.description,
           amount: draft.amount,
+          currency: draft.currency || 'COP',
+          amount_usd: draft.amountUsd,
+          exchange_rate: draft.exchangeRate,
         })
         .eq('id', id);
 
@@ -349,6 +361,9 @@ export class ExpensesService {
         category: existing.category,
         description: existing.description,
         amount: existing.amount,
+        currency: existing.currency,
+        amountUsd: existing.amountUsd,
+        exchangeRate: existing.exchangeRate,
       };
       this.toastService.success('Gasto eliminado', {
         label: 'Deshacer',

@@ -28,6 +28,12 @@ export interface Expense {
   category: ExpenseCategory;
   description: string;
   amount: number;
+  /** Moneda del gasto: 'COP' por defecto o 'USD' */
+  currency?: 'COP' | 'USD';
+  /** Monto original en USD si se registró en dólares */
+  amountUsd?: number;
+  /** Tasa representativa del mercado utilizada al momento del registro */
+  exchangeRate?: number;
 }
 
 export type ExpenseDraft = Omit<Expense, 'id'>;

@@ -18,4 +18,10 @@ ALTER TABLE public.tc_expenses
     ADD COLUMN IF NOT EXISTS amount_usd NUMERIC,
     ADD COLUMN IF NOT EXISTS exchange_rate NUMERIC;
 
+-- 3. Soporte en expenses (Gastos Diarios)
+ALTER TABLE public.expenses 
+    ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'COP',
+    ADD COLUMN IF NOT EXISTS amount_usd NUMERIC,
+    ADD COLUMN IF NOT EXISTS exchange_rate NUMERIC;
+
 COMMIT;

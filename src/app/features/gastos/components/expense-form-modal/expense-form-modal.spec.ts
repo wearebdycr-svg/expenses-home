@@ -81,6 +81,9 @@ describe('ExpenseFormModal', () => {
       category: 'Mercado',
       description: 'Supermercado',
       amount: 161_657,
+      currency: 'COP',
+      amountUsd: undefined,
+      exchangeRate: undefined,
     });
   });
 
@@ -263,6 +266,33 @@ describe('ExpenseFormModal', () => {
         amount: 120_000,
       }),
     );
+  });
+
+  it('supports USD mode with real-time TRM conversion in Gastos Diarios', () => {
+    const saveSpy = vi.fn();
+    component.save.subscribe(saveSpy);
+
+    component['setCurrency']('USD');
+    component['person'].set('Charlie');
+    component['category'].set('Viajes');
+    component['description'].set('Hotel San Juan');
+    component['amountUsd'].set('100');
+    component['customTrm'].set('3155');
+
+    expect(component['calculatedCopAmount']()).toBe(315_500);
+
+    fixture.nativeElement.querySelector('form').dispatchEvent(new Event('submit'));
+
+    expect(saveSpy).toHaveBeenCalledWith({
+      date: component['date'](),
+      person: 'Charlie',
+      category: 'Viajes',
+      description: 'Hotel San Juan',
+      amount: 315_500,
+      currency: 'USD',
+      amountUsd: 100,
+      exchangeRate: 3155,
+    });
   });
 });
 
