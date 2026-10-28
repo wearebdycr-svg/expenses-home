@@ -80,7 +80,7 @@ export class DebtsService {
   private readonly pushNotificationService = inject(PushNotificationService);
   private lastLocalMutationTime = 0;
 
-  readonly debts = signal<Debt[]>(DEFAULT_DEBTS);
+  readonly debts = signal<Debt[]>([]);
 
   /**
    * Deudas con saldo pendiente y estado calculados en tiempo real:
@@ -281,14 +281,32 @@ export class DebtsService {
   });
 
   async loadDebts(): Promise<void> {
-    // 1. Cargar primero de localStorage si contiene deudas válidas
+    // 1. Cargar primero de localStorage (con recuperación automática de v1 si v2 quedó vacío)
     if (typeof localStorage !== 'undefined') {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
+      const savedV2 = localStorage.getItem(STORAGE_KEY);
+      const savedV1 = localStorage.getItem('expenses_home_debts_v1');
+      let loadedFromLocal = false;
+
+      if (savedV2) {
         try {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            this.debts.set(parsed);
+          const parsedV2 = JSON.parse(savedV2);
+          if (Array.isArray(parsedV2) && parsedV2.length > 0) {
+            this.debts.set(parsedV2);
+            loadedFromLocal = true;
+          }
+        } catch {
+          // JSON malformado
+        }
+      }
+
+      // Si v2 estaba vacío o no existía, intentar recuperar de v1
+      if (!loadedFromLocal && savedV1) {
+        try {
+          const parsedV1 = JSON.parse(savedV1);
+          if (Array.isArray(parsedV1) && parsedV1.length > 0) {
+            this.debts.set(parsedV1);
+            this.persistLocal(parsedV1);
+            loadedFromLocal = true;
           }
         } catch {
           // JSON malformado
@@ -296,7 +314,7 @@ export class DebtsService {
       }
     }
 
-    // 2. Sincronizar desde Supabase si la tabla existe
+    // 2. Sincronizar desde Supabase si la tabla existe y tiene registros
     try {
       const { data, error } = await this.supabase.client
         .from('debts')
@@ -308,6 +326,8 @@ export class DebtsService {
         return;
       }
 
+      // Solo sobreescribir si la base de datos realmente tiene registros guardados.
+      // NUNCA sobreescribir con un arreglo vacío si la base de datos viene vacía.
       if (data && data.length > 0) {
         const mapped: Debt[] = data.map((item: any, idx: number) => ({
           id: String(item.id),
@@ -329,13 +349,8 @@ export class DebtsService {
           status: item.status || 'activa',
         }));
 
-        // Supabase es la fuente oficial de verdad cuando tiene registros:
         this.debts.set(mapped);
         this.persistLocal(mapped);
-      } else if (this.debts().length === 0) {
-        // Si la base de datos no tiene deudas registradas todavía, mantener las deudas por defecto del hogar
-        this.debts.set(DEFAULT_DEBTS);
-        this.persistLocal(DEFAULT_DEBTS);
       }
     } catch (err: any) {
       console.warn('Error conectando a Supabase para deudas:', err);
