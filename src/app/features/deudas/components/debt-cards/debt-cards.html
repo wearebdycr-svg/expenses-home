@@ -20,17 +20,39 @@
         <div class="card-header">
           <div class="card-title-wrap">
             <h3 class="debt-name">{{ debt.name }}</h3>
-            <app-badge [color]="personColors[debt.person]">{{ debt.person }}</app-badge>
-            @if (debt.status === 'saldada' || debt.currentBalance <= 0) {
-              <app-badge color="#10b981">Saldada 🎉</app-badge>
-            }
+            <div class="card-badges-row">
+              <app-badge [color]="personColors[debt.person]">{{ debt.person }}</app-badge>
+              @if (debt.status === 'saldada' || debt.currentBalance <= 0) {
+                <app-badge color="#10b981">Saldada 🎉</app-badge>
+              }
+            </div>
           </div>
           <span class="debt-dot" [style.background-color]="debt.color"></span>
         </div>
 
-        <div class="card-amounts">
-          <div class="balance-val">{{ formatCOP(debt.currentBalance) }}</div>
-          <div class="original-val">de {{ formatCOP(debt.originalAmount) }}</div>
+        <!-- Métricas Rápidas Independientes de la Deuda -->
+        <div class="card-metric-highlight">
+          <div class="metric-highlight-col">
+            <span class="metric-label">Saldo Actual</span>
+            <span
+              class="metric-val-large"
+              [class.text-red]="debt.currentBalance > 0"
+              [class.text-green]="debt.currentBalance <= 0"
+            >
+              {{ formatCOP(debt.currentBalance) }}
+            </span>
+            <span class="metric-sub-val">de {{ formatCOP(debt.originalAmount) }}</span>
+          </div>
+
+          <div class="metric-highlight-col text-right">
+            <span class="metric-label">Cuota / Mes</span>
+            <span class="metric-val-large text-slate-dark">
+              {{ formatCOP(debt.monthlyPayment) }}
+            </span>
+            @if (debt.annualInterestRate) {
+              <span class="metric-rate-pill">{{ debt.annualInterestRate | number: '1.1-1' }}% E.A.</span>
+            }
+          </div>
         </div>
 
         <div class="progress-wrap">

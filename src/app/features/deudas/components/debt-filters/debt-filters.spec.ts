@@ -22,11 +22,11 @@ describe('DebtFilters', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should render indicators: DEUDA TOTAL, CUOTAS/MES, % PAGADO', () => {
+  it('should render person filter and debts count badge', () => {
     const el = fixture.nativeElement as HTMLElement;
-    const labels = el.querySelectorAll('.kpi-label');
-    expect(labels[0].textContent).toContain('DEUDA TOTAL');
-    expect(labels[1].textContent).toContain('CUOTAS/MES');
-    expect(labels[2].textContent).toContain('% PAGADO');
+    expect(el.textContent).toContain('PERSONA');
+    const badge = el.querySelector('.badge-debts-count');
+    expect(badge).toBeTruthy();
+    expect(badge?.textContent).toContain('deudas registradas');
   });
 });

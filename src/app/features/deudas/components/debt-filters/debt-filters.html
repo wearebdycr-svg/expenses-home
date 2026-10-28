@@ -9,18 +9,9 @@
     />
   </div>
 
-  <div class="kpi-group">
-    <div class="kpi-item">
-      <span class="kpi-label">DEUDA TOTAL</span>
-      <span class="kpi-value kpi-value--total">{{ formatCOP(kpis().totalDebt) }}</span>
-    </div>
-    <div class="kpi-item">
-      <span class="kpi-label">CUOTAS/MES</span>
-      <span class="kpi-value kpi-value--payment">{{ formatCOP(kpis().monthlyPayment) }}</span>
-    </div>
-    <div class="kpi-item">
-      <span class="kpi-label">% PAGADO</span>
-      <span class="kpi-value kpi-value--paid">{{ kpis().paidPercentage | number: '1.1-1' }}%</span>
-    </div>
+  <div class="filters-count-info">
+    <span class="badge-debts-count">
+      {{ debtsService.filteredDebts().length }} {{ debtsService.filteredDebts().length === 1 ? 'deuda registrada' : 'deudas registradas' }}
+    </span>
   </div>
 </section>
