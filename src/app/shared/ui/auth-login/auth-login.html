@@ -2,16 +2,9 @@
   <div class="auth-card">
     <div class="auth-header">
       <div class="auth-logo">
-        <app-icon name="shield-check" [size]="28" />
+        <app-icon name="home" [size]="28" />
       </div>
       <h1 class="auth-title">Expenses Home</h1>
-      <p class="auth-subtitle">
-        {{ isSignUpMode() ? 'Crear Nuevo Usuario' : 'Acceso Seguro Bancario' }}
-      </p>
-      <div class="security-pill">
-        <app-icon name="lock" [size]="12" />
-        <span>Sesión bancaria · Inactividad 10 min</span>
-      </div>
     </div>
 
     @if (authPinService.expiredNotice()) {
@@ -37,14 +30,7 @@
       </div>
     }
 
-    @if (successMessage()) {
-      <div class="auth-alert success">
-        <app-icon name="check-circle" [size]="18" />
-        <span>{{ successMessage() }}</span>
-      </div>
-    }
-
-    @if (authPinService.isBiometricAvailable() && authPinService.hasBiometricEnrolled() && !isSignUpMode()) {
+    @if (authPinService.isBiometricAvailable() && authPinService.hasBiometricEnrolled()) {
       <button
         type="button"
         class="biometric-login-btn"
@@ -54,35 +40,17 @@
         <app-icon name="fingerprint" [size]="26" />
         <div class="biometric-btn-text">
           <span class="bio-main">Ingresar con {{ authPinService.biometryTypeName() }}</span>
-          <span class="bio-sub">Huella registrada en tu dispositivo</span>
         </div>
       </button>
 
       <div class="divider">
-        <span>o ingresa con usuario y contraseña</span>
+        <span>o ingresa con tu contraseña</span>
       </div>
     }
 
     <form class="auth-form" (ngSubmit)="onSubmit()">
-      @if (isSignUpMode()) {
-        <div class="form-group">
-          <label for="auth-fullname">Nombre o apodo</label>
-          <div class="input-wrapper">
-            <input
-              id="auth-fullname"
-              type="text"
-              name="fullname"
-              [ngModel]="fullName()"
-              (ngModelChange)="fullName.set($event)"
-              placeholder="Ej: Charlie"
-              autocomplete="name"
-            />
-          </div>
-        </div>
-      }
-
       <div class="form-group">
-        <label for="auth-username">Usuario o Correo</label>
+        <label for="auth-username">Usuario</label>
         <div class="input-wrapper">
           <input
             id="auth-username"
@@ -90,7 +58,7 @@
             name="username"
             [ngModel]="username()"
             (ngModelChange)="username.set($event)"
-            placeholder="charlie, benny o tu usuario"
+            placeholder="Usuario"
             required
             autocomplete="username"
           />
@@ -122,30 +90,6 @@
         </div>
       </div>
 
-      @if (!isSignUpMode()) {
-        <div class="quick-accounts">
-          <span class="quick-title">Usuarios precargados:</span>
-          <div class="quick-chips">
-            <button
-              type="button"
-              class="chip-btn"
-              (click)="fillQuickAccount('charlie', 'charlie2026')"
-              title="Cargar usuario Charlie"
-            >
-              👤 Charlie
-            </button>
-            <button
-              type="button"
-              class="chip-btn"
-              (click)="fillQuickAccount('benny', 'benny2026')"
-              title="Cargar usuaria Benny"
-            >
-              👤 Benny
-            </button>
-          </div>
-        </div>
-      }
-
       <button
         type="submit"
         class="submit-btn"
@@ -155,18 +99,10 @@
           <span class="spinner"></span>
           <span>Verificando...</span>
         } @else {
-          <app-icon [name]="isSignUpMode() ? 'user-plus' : 'shield-check'" [size]="18" />
-          <span>{{ isSignUpMode() ? 'Crear Cuenta Segura' : 'Iniciar Sesión' }}</span>
+          <app-icon name="lock" [size]="18" />
+          <span>Iniciar Sesión</span>
         }
       </button>
     </form>
-
-    <div class="auth-footer">
-      <button type="button" class="toggle-mode-btn" (click)="toggleMode()">
-        {{ isSignUpMode()
-          ? '¿Ya tienes un usuario? Inicia sesión aquí'
-          : '¿Primera vez o nuevo usuario? Regístrate aquí' }}
-      </button>
-    </div>
   </div>
 </div>
