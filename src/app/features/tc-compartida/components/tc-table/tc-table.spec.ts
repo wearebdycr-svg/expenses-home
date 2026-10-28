@@ -63,4 +63,32 @@ describe('TcTable', () => {
 
     expect(editSpy).toHaveBeenCalled();
   });
+
+  it('renders USD and TRM columns properly for USD consumptions', () => {
+    tcService.addTcExpense({
+      date: '2026-07-15',
+      person: 'Charlie',
+      description: 'Restaurante San Juan',
+      amount: 157_750,
+      category: 'Entretenimiento/salidas',
+      currency: 'USD',
+      amountUsd: 50,
+      exchangeRate: 3155,
+    });
+
+    fixture.detectChanges();
+
+    const headers = Array.from(fixture.nativeElement.querySelectorAll('thead th')).map(
+      (th: any) => th.textContent.trim(),
+    );
+    expect(headers).toContain('Gasto en Dólares');
+    expect(headers).toContain('TRM');
+    expect(headers).toContain('Gasto en Pesos');
+
+    const usdBadge = fixture.nativeElement.querySelector('.badge-usd-value');
+    expect(usdBadge?.textContent).toContain('US$ 50.00');
+
+    const trmCell = fixture.nativeElement.querySelector('.trm-value');
+    expect(trmCell?.textContent).toContain('$3.155');
+  });
 });

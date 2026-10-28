@@ -70,4 +70,31 @@ describe('ExpenseTable', () => {
     fixture.nativeElement.querySelector('.icon-btn--delete').click();
     expect(service.filteredExpenses().length).toBe(0);
   });
+
+  it('renders USD and TRM columns properly for USD expenses', () => {
+    service.addExpense({
+      date: '2026-07-28',
+      person: 'Charlie',
+      category: 'Viajes',
+      description: 'Tour San Juan',
+      amount: 315_500,
+      currency: 'USD',
+      amountUsd: 100,
+      exchangeRate: 3155,
+    });
+    fixture.detectChanges();
+
+    const headers = Array.from(fixture.nativeElement.querySelectorAll('thead th')).map(
+      (th: any) => th.textContent.trim(),
+    );
+    expect(headers).toContain('Gasto en Dólares');
+    expect(headers).toContain('TRM');
+    expect(headers).toContain('Gasto en Pesos');
+
+    const usdBadge = fixture.nativeElement.querySelector('.badge-usd-value');
+    expect(usdBadge?.textContent).toContain('US$ 100.00');
+
+    const trmCell = fixture.nativeElement.querySelector('.trm-value');
+    expect(trmCell?.textContent).toContain('$3.155');
+  });
 });

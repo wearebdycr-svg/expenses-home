@@ -91,29 +91,30 @@
   color: #dc2626; /* Resaltado en rojo según HU03-Gastos-1.png */
 }
 
-.main-amount {
-  font-weight: 600;
-}
-
-.expense-usd-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.72rem;
+.badge-usd-value {
+  display: inline-block;
+  font-size: 0.8rem;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-weight: 700;
   color: #047857;
   background: #ecfdf5;
   border: 1px solid #a7f3d0;
-  padding: 0.1rem 0.4rem;
-  border-radius: 4px;
-  margin-top: 0.2rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  white-space: nowrap;
 }
 
-.expense-trm-sub {
-  font-size: 0.67rem;
-  font-weight: 500;
+.trm-value {
+  font-size: 0.8rem;
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
   color: #64748b;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dash-empty {
+  color: #94a3b8;
+  font-weight: 500;
 }
 
 .col-actions {

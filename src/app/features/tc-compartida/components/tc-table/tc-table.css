@@ -135,6 +135,30 @@
   color: #0f172a;
 }
 
+.badge-usd-value {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #047857;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.trm-value {
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dash-empty {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
 .main-amount {
   font-weight: 700;
 }

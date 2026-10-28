@@ -15,7 +15,9 @@
             <th>Persona</th>
             <th>Categoría</th>
             <th>Descripción</th>
-            <th class="col-amount">Monto</th>
+            <th class="col-amount">Gasto en Dólares</th>
+            <th class="col-amount">TRM</th>
+            <th class="col-amount">Gasto en Pesos</th>
             <th class="col-actions" aria-hidden="true"></th>
           </tr>
         </thead>
@@ -28,14 +30,26 @@
               </td>
               <td>{{ expense.category }}</td>
               <td>{{ expense.description }}</td>
-              <td class="col-amount amount-value">
-                <div class="main-amount">{{ formatCOP(expense.amount) }}</div>
+              <td class="col-amount amount-usd-col">
                 @if (expense.currency === 'USD' || (expense.amountUsd && expense.amountUsd > 0)) {
-                  <div class="expense-usd-badge">
+                  <span class="badge-usd-value">
                     US$ {{ (expense.amountUsd || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
-                    <span class="expense-trm-sub">(TRM ${{ (expense.exchangeRate || 0).toLocaleString('es-CO') }})</span>
-                  </div>
+                  </span>
+                } @else {
+                  <span class="dash-empty">—</span>
                 }
+              </td>
+              <td class="col-amount trm-col">
+                @if (expense.currency === 'USD' || (expense.amountUsd && expense.amountUsd > 0)) {
+                  <span class="trm-value">
+                    ${{ (expense.exchangeRate || 0).toLocaleString('es-CO') }}
+                  </span>
+                } @else {
+                  <span class="dash-empty">—</span>
+                }
+              </td>
+              <td class="col-amount amount-value">
+                {{ formatCOP(expense.amount) }}
               </td>
               <td class="col-actions">
                 <button
