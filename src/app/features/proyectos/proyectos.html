@@ -19,7 +19,7 @@
       <div class="header-text">
         <h1 class="page-title">Proyectos & Eventos</h1>
         <p class="page-subtitle">
-          Control de presupuestos para paseos, asados, remodelaciones y eventos especiales.
+          Control de presupuestos y gastos individuales por cada evento o proyecto familiar.
         </p>
       </div>
 
@@ -28,43 +28,6 @@
         <span>+ Nuevo Proyecto / Evento</span>
       </button>
     </header>
-
-    <!-- Top KPIs Summary -->
-    <div class="kpis-grid">
-      <div class="kpi-card">
-        <span class="kpi-label">Presupuesto Total Planeado</span>
-        <span class="kpi-value font-budget">
-          ${{ projectsService.summary().totalBudget.toLocaleString('es-CO') }}
-        </span>
-        <span class="kpi-hint">
-          {{ projectsService.summary().totalProjects }} {{ projectsService.summary().totalProjects === 1 ? 'proyecto' : 'proyectos' }}
-        </span>
-      </div>
-
-      <div class="kpi-card">
-        <span class="kpi-label">Total Ejecutado / Gastado</span>
-        <span class="kpi-value font-spent">
-          ${{ projectsService.summary().totalSpent.toLocaleString('es-CO') }}
-        </span>
-        <span class="kpi-hint">Suma de consumos registrados</span>
-      </div>
-
-      <div class="kpi-card">
-        <span class="kpi-label">
-          {{ projectsService.summary().isOverBudget ? 'Sobregiro Consolidado' : 'Saldo Disponible Total' }}
-        </span>
-        <span
-          class="kpi-value"
-          [class.font-overbudget]="projectsService.summary().isOverBudget"
-          [class.font-remaining]="!projectsService.summary().isOverBudget"
-        >
-          ${{ projectsService.summary().totalRemaining.toLocaleString('es-CO') }}
-        </span>
-        <span class="kpi-hint">
-          {{ projectsService.summary().isOverBudget ? '⚠️ Gastos superaron presupuestos' : 'Dentro de lo presupuestado' }}
-        </span>
-      </div>
-    </div>
 
     <!-- Filtros de Persona y Estado -->
     <div class="filters-toolbar">
