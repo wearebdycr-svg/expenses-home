@@ -1,0 +1,101 @@
+<app-modal title="Configurar Topes Presupuestales" (close)="close.emit()">
+  <div class="budget-modal-content">
+    <p class="modal-intro">
+      Establece o actualiza los topes mensuales de gasto por categoría para recibir alertas preventivas y monitorear el consumo familiar.
+    </p>
+
+    <!-- Formulario para fijar o editar un tope -->
+    <div class="budget-form-box">
+      <div class="form-row">
+        <app-select
+          label="Categoría"
+          placeholder="Seleccionar categoría..."
+          [options]="categoryOptions()"
+          [value]="selectedCategory()"
+          (valueChange)="onCategoryChange($any($event))"
+        />
+
+        <label class="field" [class.has-error]="hasSubmitted() && (!amount() || amount() === '0')">
+          <span class="field-label">Tope mensual (COP)</span>
+          <div class="input-prefix-wrap">
+            <span class="input-prefix">$</span>
+            <input
+              class="field-control with-prefix"
+              type="text"
+              inputmode="numeric"
+              placeholder="Ej: 2.000.000"
+              [value]="amount()"
+              (input)="onAmountInput($event)"
+              (keydown.enter)="$event.preventDefault(); onSave()"
+            />
+          </div>
+          @if (hasSubmitted() && (!amount() || amount() === '0')) {
+            <span class="field-error-msg">Ingresa un valor mayor a 0 para el tope</span>
+          }
+        </label>
+      </div>
+
+      <div class="form-actions-row">
+        @if (hasCurrentBudget()) {
+          <button
+            type="button"
+            class="btn btn-outline-danger"
+            [disabled]="isSaving()"
+            (click)="onRemove()"
+          >
+            <app-icon name="trash-2" [size]="14" />
+            Quitar tope
+          </button>
+        }
+
+        <div class="actions-right">
+          <button
+            type="button"
+            class="btn btn-primary"
+            [disabled]="isSaving()"
+            (click)="onSave()"
+          >
+            <app-icon name="check-circle" [size]="15" />
+            {{ hasCurrentBudget() ? 'Actualizar tope' : 'Guardar tope' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lista de topes activos configurados actualmente -->
+    <div class="existing-budgets-section">
+      <div class="section-header">
+        <h3 class="section-title">Topes activos configurados</h3>
+        <span class="badge-count">{{ currentBudgetsList().length }} activos</span>
+      </div>
+
+      @if (currentBudgetsList().length === 0) {
+        <p class="empty-budgets-text">No hay topes configurados actualmente. Selecciona una categoría arriba para asignar uno.</p>
+      } @else {
+        <div class="budgets-chip-grid">
+          @for (item of currentBudgetsList(); track item.category) {
+            <div
+              class="budget-chip"
+              [class.chip-selected]="selectedCategory() === item.category"
+              (click)="selectExistingBudget(item)"
+              role="button"
+              tabindex="0"
+            >
+              <div class="chip-main">
+                <span class="chip-dot" [style.background-color]="item.color"></span>
+                <span class="chip-cat">{{ item.category }}</span>
+              </div>
+              <div class="chip-val">{{ formatCOP(item.amount) }}</div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="modal-footer-actions">
+      <button type="button" class="btn btn-secondary w-full" (click)="close.emit()">
+        Listo / Cerrar
+      </button>
+    </div>
+  </div>
+</app-modal>

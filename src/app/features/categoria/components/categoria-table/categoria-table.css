@@ -147,7 +147,8 @@
   text-align: right;
 }
 
-.budget-badge {
+.budget-badge,
+.budget-badge-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -158,6 +159,43 @@
   font-weight: 600;
   font-size: 0.8rem;
   border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.budget-badge-btn:hover {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+.budget-edit-icon {
+  opacity: 0.45;
+  transition: opacity 0.15s ease;
+}
+
+.budget-badge-btn:hover .budget-edit-icon {
+  opacity: 1;
+}
+
+.btn-assign-budget {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  background: transparent;
+  color: #64748b;
+  border: 1px dashed #cbd5e1;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-assign-budget:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #2563eb;
 }
 
 .budget-lock-icon {

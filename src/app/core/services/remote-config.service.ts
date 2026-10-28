@@ -1,4 +1,4 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import {
   getRemoteConfig,
@@ -7,6 +7,9 @@ import {
   RemoteConfig,
 } from 'firebase/remote-config';
 import { environment } from '../../../environments/environment';
+import { SupabaseService } from './supabase.service';
+
+const STORAGE_CUSTOM_BUDGETS_KEY = 'expenses_home_category_budgets_v1';
 
 export interface RemoteConfigValues {
   daily_reminder_morning_hour: number;
@@ -46,6 +49,7 @@ export const DEFAULT_REMOTE_CONFIG: RemoteConfigValues = {
   providedIn: 'root',
 })
 export class RemoteConfigService {
+  private readonly supabase = inject(SupabaseService);
   private remoteConfigInstance: RemoteConfig | null = null;
 
   // Signals reactivos para el estado global (Criterio 1.1 y 2.1)
@@ -65,30 +69,164 @@ export class RemoteConfigService {
   readonly alertThresholdPct = signal<number>(DEFAULT_REMOTE_CONFIG.alert_threshold_pct);
   readonly enablePushAlerts = signal<boolean>(DEFAULT_REMOTE_CONFIG.enable_push_alerts);
 
+  // Topes personalizados definidos por el usuario (sobreescriben o complementan los defaults)
+  readonly customBudgets = signal<Record<string, number>>(this.loadCustomBudgetsFromStorage());
+
   /**
    * Mapa de presupuestos por categoría normalizada para consulta inmediata en UI
    */
-  readonly budgetsByCategory = computed<Record<string, number>>(() => ({
-    Hogar: this.budgetHogar(),
-    Mercado: this.budgetAlimentacion(),
-    Alimentación: this.budgetAlimentacion(),
-    Transporte: this.budgetTransporte(),
-    'Entretenimiento/salidas': this.budgetEntretenimiento(),
-    Restaurantes: this.budgetRestaurantes(),
-    'Restaurantes/domicilios': this.budgetRestaurantes(),
-  }));
+  readonly budgetsByCategory = computed<Record<string, number>>(() => {
+    const base: Record<string, number> = {
+      Hogar: this.budgetHogar(),
+      Mercado: this.budgetAlimentacion(),
+      Alimentación: this.budgetAlimentacion(),
+      Transporte: this.budgetTransporte(),
+      'Entretenimiento/salidas': this.budgetEntretenimiento(),
+      Restaurantes: this.budgetRestaurantes(),
+      'Restaurantes/domicilios': this.budgetRestaurantes(),
+    };
+
+    const customs = this.customBudgets();
+    const merged = { ...base };
+    for (const [cat, amt] of Object.entries(customs)) {
+      if (amt > 0) {
+        merged[cat] = amt;
+      } else if (amt === 0) {
+        delete merged[cat];
+      }
+    }
+    return merged;
+  });
 
   constructor() {
     this.initRemoteConfig();
+    this.loadBudgetsFromDb();
+    this.setupRealtime();
   }
 
   /**
-   * Retorna el tope presupuestal configurado en Remote Config para una categoría dada,
+   * Retorna el tope presupuestal para una categoría dada,
    * o null si no tiene un tope predefinido.
    */
   getBudgetForCategory(category: string): number | null {
     const map = this.budgetsByCategory();
     return map[category] ?? null;
+  }
+
+  /**
+   * Asigna o elimina el tope presupuestal de una categoría
+   * Si amount es null o <= 0, se remueve el tope.
+   */
+  async setCategoryBudget(category: string, amount: number | null): Promise<void> {
+    const current = { ...this.customBudgets() };
+    if (amount === null || amount <= 0) {
+      current[category] = 0; // 0 indica explícitamente sin tope
+    } else {
+      current[category] = Math.round(amount);
+    }
+
+    this.customBudgets.set(current);
+    this.saveCustomBudgetsToStorage(current);
+
+    await this.syncBudgetToDb(category, amount && amount > 0 ? Math.round(amount) : 0);
+  }
+
+  private loadCustomBudgetsFromStorage(): Record<string, number> {
+    if (typeof localStorage === 'undefined') return {};
+    try {
+      const stored = localStorage.getItem(STORAGE_CUSTOM_BUDGETS_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed && typeof parsed === 'object') return parsed;
+      }
+    } catch (e) {
+      console.warn('Error leyendo topes de localStorage:', e);
+    }
+    return {};
+  }
+
+  private saveCustomBudgetsToStorage(budgets: Record<string, number>): void {
+    if (typeof localStorage === 'undefined') return;
+    try {
+      localStorage.setItem(STORAGE_CUSTOM_BUDGETS_KEY, JSON.stringify(budgets));
+    } catch (e) {
+      console.warn('Error guardando topes en localStorage:', e);
+    }
+  }
+
+  async loadBudgetsFromDb(): Promise<void> {
+    const proc = (globalThis as any).process;
+    if (proc?.env?.['NODE_ENV'] === 'test' || proc?.env?.['VITEST']) {
+      return;
+    }
+
+    try {
+      const { data, error } = await this.supabase.client
+        .from('category_budgets')
+        .select('*');
+
+      if (error) {
+        // Si la tabla no existe en la base de datos aún, continuamos con localStorage
+        return;
+      }
+
+      if (data && Array.isArray(data)) {
+        const map: Record<string, number> = {};
+        for (const row of data) {
+          if (row.category) {
+            map[String(row.category)] = Number(row.amount);
+          }
+        }
+        this.customBudgets.set(map);
+        this.saveCustomBudgetsToStorage(map);
+      }
+    } catch {
+      // Offline / tolerante a fallos
+    }
+  }
+
+  private async syncBudgetToDb(category: string, amount: number): Promise<void> {
+    const proc = (globalThis as any).process;
+    if (proc?.env?.['NODE_ENV'] === 'test' || proc?.env?.['VITEST']) {
+      return;
+    }
+
+    try {
+      if (amount <= 0) {
+        await this.supabase.client
+          .from('category_budgets')
+          .delete()
+          .eq('category', category);
+      } else {
+        await this.supabase.client
+          .from('category_budgets')
+          .upsert({ category, amount, updated_at: new Date().toISOString() }, { onConflict: 'category' });
+      }
+    } catch (err) {
+      console.warn('No se pudo sincronizar tope en Supabase:', err);
+    }
+  }
+
+  private setupRealtime(): void {
+    const proc = (globalThis as any).process;
+    if (proc?.env?.['NODE_ENV'] === 'test' || proc?.env?.['VITEST']) {
+      return;
+    }
+
+    try {
+      this.supabase.client
+        .channel('public:category_budgets')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'category_budgets' },
+          () => {
+            this.loadBudgetsFromDb();
+          },
+        )
+        .subscribe();
+    } catch (err) {
+      console.warn('Realtime subscription no disponible para category_budgets:', err);
+    }
   }
 
   /**

@@ -62,12 +62,25 @@
 
               <td class="col-budget">
                 @if (row.budget !== null && row.budget !== undefined) {
-                  <span class="budget-badge" title="Tope mensual presupuestado">
+                  <button
+                    type="button"
+                    class="budget-badge-btn"
+                    title="Editar tope de {{ row.category }}"
+                    (click)="onConfigureBudget(row.category)"
+                  >
                     <span class="budget-lock-icon" aria-hidden="true">🎯</span>
                     {{ formatCOP(row.budget) }}
-                  </span>
+                    <app-icon name="pencil" [size]="11" class="budget-edit-icon" />
+                  </button>
                 } @else {
-                  <span class="muted-dash">-</span>
+                  <button
+                    type="button"
+                    class="btn-assign-budget"
+                    title="Asignar tope a {{ row.category }}"
+                    (click)="onConfigureBudget(row.category)"
+                  >
+                    + Asignar
+                  </button>
                 }
               </td>
 

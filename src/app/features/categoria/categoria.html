@@ -4,10 +4,16 @@
       <h1 class="page-title">Gastos por Categoría</h1>
       <p class="page-subtitle">Análisis de distribución de gastos</p>
     </div>
-    <div class="remote-config-status">
-      <span class="rc-badge" title="Topes mensuales configurados">
-        <span class="rc-lock">🎯</span> Control de presupuestos
-      </span>
+    <div class="header-actions">
+      <button
+        type="button"
+        class="btn-config-budgets"
+        title="Abrir panel de configuración de topes mensuales"
+        (click)="openBudgetModal()"
+      >
+        <span class="rc-lock">🎯</span>
+        <span>Configurar Topes</span>
+      </button>
     </div>
   </header>
 
@@ -22,5 +28,12 @@
     </div>
   </div>
 
-  <app-categoria-table />
+  <app-categoria-table (configureBudget)="openBudgetModal($event)" />
+
+  @if (isBudgetModalOpen()) {
+    <app-category-budget-modal
+      [initialCategory]="selectedCategoryForBudget()"
+      (close)="closeBudgetModal()"
+    />
+  }
 </div>

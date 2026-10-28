@@ -24,6 +24,10 @@ export class CategoriaService {
   readonly alertThresholdPct = computed(() => this.remoteConfig.alertThresholdPct());
   readonly budgetsByCategory = this.remoteConfig.budgetsByCategory;
 
+  async setCategoryBudget(category: string, amount: number | null): Promise<void> {
+    await this.remoteConfig.setCategoryBudget(category, amount);
+  }
+
   readonly year = signal<number>(new Date().getFullYear());
   readonly month = signal<MonthFilter>('Todos');
   readonly day = signal<DayFilter>('Todos');
