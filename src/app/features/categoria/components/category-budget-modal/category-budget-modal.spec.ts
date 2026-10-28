@@ -16,39 +16,52 @@ describe('CategoryBudgetModal', () => {
     fixture.detectChanges();
   });
 
-  it('renders title and initial selected category', () => {
-    expect(fixture.nativeElement.querySelector('.modal-title').textContent).toContain('Configurar Topes Presupuestales');
-    expect(component['selectedCategory']()).toBe('Mercado');
+  it('renders default title when no category is preselected', () => {
+    expect(fixture.nativeElement.querySelector('.modal-title').textContent).toContain('Configurar Tope Mensual');
+    expect(component['isCategoryFixed']()).toBe(false);
   });
 
-  it('preloads initial category when set via input', async () => {
+  it('renders fixed category view and title when initialCategory is provided', async () => {
     fixture.componentRef.setInput('initialCategory', 'Transporte');
     fixture.detectChanges();
     await fixture.whenStable();
 
-    expect(component['selectedCategory']()).toBe('Transporte');
+    expect(component['isCategoryFixed']()).toBe(true);
+    expect(component['currentCategory']()).toBe('Transporte');
+    expect(fixture.nativeElement.querySelector('.modal-title').textContent).toContain('Tope: Transporte');
     expect(component['amount']()).toBe('800.000');
+    expect(fixture.nativeElement.querySelector('.category-badge-chip').textContent).toContain('Transporte');
   });
 
-  it('allows saving updated budget value', async () => {
+  it('allows saving updated budget value and emits close', async () => {
     const spy = vi.spyOn(remoteConfig, 'setCategoryBudget').mockResolvedValue(undefined);
+    const closeSpy = vi.fn();
+    component.close.subscribe(closeSpy);
 
-    component['selectedCategory'].set('Compras');
+    fixture.componentRef.setInput('initialCategory', 'Compras');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
     component['amount'].set('1.500.000');
 
     await component['onSave']();
 
     expect(spy).toHaveBeenCalledWith('Compras', 1500000);
+    expect(closeSpy).toHaveBeenCalled();
   });
 
-  it('allows removing budget value', async () => {
+  it('allows removing budget value and emits close', async () => {
     const spy = vi.spyOn(remoteConfig, 'setCategoryBudget').mockResolvedValue(undefined);
+    const closeSpy = vi.fn();
+    component.close.subscribe(closeSpy);
 
-    component['selectedCategory'].set('Transporte');
+    fixture.componentRef.setInput('initialCategory', 'Transporte');
+    fixture.detectChanges();
+    await fixture.whenStable();
 
     await component['onRemove']();
 
     expect(spy).toHaveBeenCalledWith('Transporte', null);
-    expect(component['amount']()).toBe('');
+    expect(closeSpy).toHaveBeenCalled();
   });
 });

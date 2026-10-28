@@ -109,8 +109,18 @@ export class RemoteConfigService {
    * o null si no tiene un tope predefinido.
    */
   getBudgetForCategory(category: string): number | null {
+    if (!category) return null;
     const map = this.budgetsByCategory();
-    return map[category] ?? null;
+    if (category in map) {
+      return map[category];
+    }
+    const clean = category.trim().toLowerCase();
+    for (const [k, v] of Object.entries(map)) {
+      if (k.trim().toLowerCase() === clean) {
+        return v;
+      }
+    }
+    return null;
   }
 
   /**
@@ -118,17 +128,19 @@ export class RemoteConfigService {
    * Si amount es null o <= 0, se remueve el tope.
    */
   async setCategoryBudget(category: string, amount: number | null): Promise<void> {
+    const cleanCat = category.trim();
     const current = { ...this.customBudgets() };
     if (amount === null || amount <= 0) {
-      current[category] = 0; // 0 indica explícitamente sin tope
+      current[cleanCat] = 0; // 0 indica explícitamente sin tope
     } else {
-      current[category] = Math.round(amount);
+      current[cleanCat] = Math.round(amount);
     }
 
     this.customBudgets.set(current);
     this.saveCustomBudgetsToStorage(current);
 
-    await this.syncBudgetToDb(category, amount && amount > 0 ? Math.round(amount) : 0);
+    // Sincronizar en segundo plano sin bloquear la UI
+    this.syncBudgetToDb(cleanCat, amount && amount > 0 ? Math.round(amount) : 0);
   }
 
   private loadCustomBudgetsFromStorage(): Record<string, number> {
@@ -170,8 +182,9 @@ export class RemoteConfigService {
         return;
       }
 
-      if (data && Array.isArray(data)) {
-        const map: Record<string, number> = {};
+      if (data && Array.isArray(data) && data.length > 0) {
+        const local = this.loadCustomBudgetsFromStorage();
+        const map: Record<string, number> = { ...local };
         for (const row of data) {
           if (row.category) {
             map[String(row.category)] = Number(row.amount);
