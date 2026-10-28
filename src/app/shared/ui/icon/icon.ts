@@ -24,6 +24,9 @@ export type IconName =
   | 'eye'
   | 'eye-off'
   | 'fingerprint'
+  | 'shield-check'
+  | 'clock'
+  | 'user-plus'
   | 'target';
 
 @Component({
@@ -153,6 +156,20 @@ export type IconName =
           <path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2" />
           <path d="M8.65 22c.21-.66.45-1.32.57-2" />
           <path d="M9 6.8a6 6 0 0 1 9 5.2v2" />
+        }
+        @case ('shield-check') {
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          <path d="m9 12 2 2 4-4" />
+        }
+        @case ('clock') {
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        }
+        @case ('user-plus') {
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <line x1="19" y1="8" x2="19" y2="14" />
+          <line x1="22" y1="11" x2="16" y2="11" />
         }
         @case ('target') {
           <circle cx="12" cy="12" r="10" />

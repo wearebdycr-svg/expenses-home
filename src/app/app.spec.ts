@@ -32,7 +32,7 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
-  it('loads directly into PIN lock on native app init if the app is locked without showing splash', () => {
+  it('loads directly into auth login on native app init if the app is locked without showing splash', () => {
     vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true);
     authPinService.isUnlocked.set(false);
     const fixture = TestBed.createComponent(App);
@@ -40,11 +40,11 @@ describe('App', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('app-splash-screen')).toBeFalsy();
-    expect(compiled.querySelector('app-pin-lock')).toBeTruthy();
+    expect(compiled.querySelector('app-auth-login')).toBeTruthy();
     expect(compiled.querySelector('app-sidebar')).toBeFalsy();
   });
 
-  it('loads directly into PIN lock on web init if locked without showing splash', () => {
+  it('loads directly into auth login on web init if locked without showing splash', () => {
     vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(false);
     authPinService.isUnlocked.set(false);
     const fixture = TestBed.createComponent(App);
@@ -52,7 +52,7 @@ describe('App', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('app-splash-screen')).toBeFalsy();
-    expect(compiled.querySelector('app-pin-lock')).toBeTruthy();
+    expect(compiled.querySelector('app-auth-login')).toBeTruthy();
   });
 
   it('loads directly into the app on refresh/init if the app is already unlocked without showing splash', () => {

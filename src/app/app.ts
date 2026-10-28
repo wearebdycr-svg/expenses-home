@@ -16,7 +16,7 @@ import { ProyectosPage } from './features/proyectos/proyectos';
 import { Sidebar, type SidebarPageId } from './shared/ui/sidebar/sidebar';
 import { DailyReminderBanner } from './shared/ui/daily-reminder-banner/daily-reminder-banner';
 import { ToastContainer } from './shared/ui/toast-container/toast-container';
-import { PinLock } from './shared/ui/pin-lock/pin-lock';
+import { AuthLogin } from './shared/ui/auth-login/auth-login';
 import { AuthPinService } from './core/services/auth-pin.service';
 import { SupabaseAuthService } from './core/services/supabase-auth.service';
 import { App as CapApp } from '@capacitor/app';
@@ -67,7 +67,7 @@ function getInitialPage(): SidebarPageId {
     ProyectosPage,
     DailyReminderBanner,
     ToastContainer,
-    PinLock,
+    AuthLogin,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app.html',

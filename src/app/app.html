@@ -1,5 +1,5 @@
 @if (!authPinService.isUnlocked()) {
-  <app-pin-lock (unlocked)="onAppUnlocked()" />
+  <app-auth-login (authenticated)="onAppUnlocked()" />
 } @else {
   <div class="app-shell">
     <app-sidebar
