@@ -2,32 +2,33 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 1.1rem;
-  padding: 1.35rem;
+  gap: 1rem;
+  padding: 1.25rem;
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-top: 5px solid var(--card-accent, #3b82f6);
-  border-radius: 16px;
+  border-radius: 18px;
   cursor: pointer;
-  box-shadow: 0 2px 6px -1px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 2px 6px -1px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.03);
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-  overflow: hidden;
+  box-sizing: border-box;
+  height: 100%;
 }
 
 .project-card:hover {
   transform: translateY(-3px);
   border-color: #cbd5e1;
-  box-shadow: 0 12px 24px -4px rgba(15, 23, 42, 0.1), 0 4px 8px -2px rgba(15, 23, 42, 0.05);
+  box-shadow: 0 12px 24px -4px rgba(15, 23, 42, 0.09), 0 4px 8px -2px rgba(15, 23, 42, 0.04);
 }
 
 .project-card.is-overbudget {
   border-top-color: #ef4444;
   border-color: #fecaca;
-  background: linear-gradient(180deg, #fff5f5 0%, #ffffff 100%);
+  background: linear-gradient(180deg, #fff7f7 0%, #ffffff 100%);
 }
 
 .project-card.is-completed {
-  opacity: 0.88;
+  opacity: 0.9;
 }
 
 /* Card Header */
@@ -41,50 +42,58 @@
 .project-title-area {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
+  gap: 0.75rem;
+  min-width: 0;
+  flex: 1;
 }
 
 .project-icon-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 3rem;
-  height: 3rem;
-  font-size: 1.6rem;
+  width: 2.85rem;
+  height: 2.85rem;
+  font-size: 1.5rem;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 14px;
+  border-radius: 12px;
   flex-shrink: 0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .project-title-text {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.3rem;
+  min-width: 0;
 }
 
 .project-name {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: #0f172a;
   line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .project-badges {
   display: flex;
-  gap: 0.4rem;
+  gap: 0.35rem;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .badge {
-  font-size: 0.675rem;
+  font-size: 0.65rem;
   font-weight: 700;
-  padding: 0.2rem 0.55rem;
+  padding: 0.18rem 0.5rem;
   border-radius: 6px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 
 .badge-person.badge-charlie {
@@ -126,15 +135,16 @@
 /* Header Action Buttons */
 .card-quick-actions {
   display: flex;
-  gap: 0.35rem;
+  gap: 0.3rem;
+  flex-shrink: 0;
 }
 
 .icon-action-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  width: 1.9rem;
+  height: 1.9rem;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
   background: #ffffff;
@@ -157,32 +167,39 @@
 
 .project-desc {
   margin: -0.25rem 0 0;
-  font-size: 0.85rem;
+  font-size: 0.825rem;
   color: #64748b;
   line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* Progress / Thermometer Section */
 .progress-section {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 0.4rem;
 }
 
 .progress-labels {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.5rem;
 }
 
 .progress-pct-badge {
-  font-size: 0.775rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: #0f172a;
   background: #f1f5f9;
-  padding: 0.2rem 0.65rem;
+  padding: 0.2rem 0.6rem;
   border-radius: 999px;
   border: 1px solid #e2e8f0;
+  white-space: nowrap;
 }
 
 .progress-pct-badge.warning {
@@ -198,9 +215,10 @@
 }
 
 .expenses-count {
-  font-size: 0.775rem;
+  font-size: 0.75rem;
   color: #64748b;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .progress-bar-track {
@@ -230,66 +248,66 @@
   background: linear-gradient(90deg, #ef4444 0%, #b91c1c 100%);
 }
 
-/* 3 Big Financial Metric Cards */
-.card-finances-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.65rem;
-  margin-top: 0.2rem;
-}
-
-.finance-card {
+/* FEATURED BALANCE CARD (El gran protagonista que nunca se corta) */
+.featured-balance-card {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  padding: 0.8rem 0.65rem;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  text-align: center;
+  gap: 0.3rem;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  border: 1px solid transparent;
   transition: transform 0.15s ease;
 }
 
-.finance-card.highlight-available {
-  background: #ecfdf5;
+.featured-balance-card.highlight-available {
+  background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
   border-color: #a7f3d0;
-  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.12);
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.08);
 }
 
-.finance-card.highlight-overbudget {
-  background: #fef2f2;
+.featured-balance-card.highlight-overbudget {
+  background: linear-gradient(135deg, #fef2f2 0%, #fff5f5 100%);
   border-color: #fecaca;
-  box-shadow: 0 1px 3px rgba(239, 68, 68, 0.12);
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.08);
 }
 
-.finance-label {
-  font-size: 0.7rem;
+.featured-balance-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.featured-label {
+  font-size: 0.725rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #64748b;
-}
-
-.finance-card.highlight-available .finance-label {
   color: #047857;
 }
 
-.finance-card.highlight-overbudget .finance-label {
+.featured-balance-card.highlight-overbudget .featured-label {
   color: #b91c1c;
 }
 
-.finance-value {
-  font-size: 1.15rem;
+.featured-sub {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #059669;
+  background: rgba(16, 185, 129, 0.15);
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+}
+
+.featured-balance-card.highlight-overbudget .featured-sub {
+  color: #b91c1c;
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.featured-value {
+  font-size: 1.45rem;
   font-weight: 800;
-  line-height: 1.2;
-}
-
-.font-budget {
-  color: #1e293b;
-}
-
-.font-spent {
-  color: #0284c7;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
 }
 
 .font-remaining {
@@ -300,28 +318,60 @@
   color: #dc2626;
 }
 
-/* Alert over budget */
-.alert-overbudget {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 0.75rem;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 10px;
-  color: #b91c1c;
-  font-size: 0.775rem;
-  font-weight: 600;
+/* 2 Columns: Presupuesto & Gastado */
+.card-finances-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
 }
 
-/* Footer */
+.finance-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.65rem 0.75rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  text-align: left;
+  min-width: 0;
+}
+
+.finance-label {
+  font-size: 0.675rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.finance-value {
+  font-size: 1.1rem;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.font-budget {
+  color: #1e293b;
+}
+
+.font-spent {
+  color: #0284c7;
+}
+
+/* Footer (al fondo siempre alineado) */
 .card-footer {
+  margin-top: auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 0.5rem;
+  padding-top: 0.6rem;
   border-top: 1px solid #f1f5f9;
-  font-size: 0.775rem;
+  font-size: 0.75rem;
+  gap: 0.5rem;
 }
 
 .card-footer-dates {
@@ -330,15 +380,18 @@
   gap: 0.35rem;
   color: #64748b;
   background: #f8fafc;
-  padding: 0.2rem 0.55rem;
+  padding: 0.2rem 0.5rem;
   border-radius: 6px;
   border: 1px solid #e2e8f0;
+  white-space: nowrap;
 }
 
 .card-view-hint {
   font-weight: 600;
   color: #0284c7;
+  white-space: nowrap;
   transition: transform 0.15s ease;
+  margin-left: auto;
 }
 
 .project-card:hover .card-view-hint {
@@ -346,11 +399,29 @@
   color: #0369a1;
 }
 
+/* Responsive celular / pantallas angostas */
 @media (max-width: 640px) {
-  .finance-value {
-    font-size: 0.975rem;
+  .project-card {
+    padding: 1.1rem;
+    gap: 0.85rem;
+    border-radius: 16px;
   }
-  .card-finances-grid {
-    gap: 0.4rem;
+
+  .project-icon-badge {
+    width: 2.6rem;
+    height: 2.6rem;
+    font-size: 1.35rem;
+  }
+
+  .project-name {
+    font-size: 1.05rem;
+  }
+
+  .featured-value {
+    font-size: 1.35rem;
+  }
+
+  .finance-value {
+    font-size: 1.05rem;
   }
 }

@@ -70,7 +70,30 @@
     </div>
   </div>
 
-  <!-- Numbers Breakdown (3 visual data boxes) -->
+  <!-- Featured Metric: DISPONIBLE / SOBREGIRO (Gran protagonista a ancho completo) -->
+  <div
+    class="featured-balance-card"
+    [class.highlight-overbudget]="metrics().isOverBudget"
+    [class.highlight-available]="!metrics().isOverBudget"
+  >
+    <div class="featured-balance-header">
+      <span class="featured-label">
+        {{ metrics().isOverBudget ? '⚠️ Presupuesto Excedido' : 'Saldo Disponible' }}
+      </span>
+      <span class="featured-sub">
+        {{ metrics().isOverBudget ? 'Sobregiro' : (100 - metrics().progressPercentage) + '% libre' }}
+      </span>
+    </div>
+    <div
+      class="featured-value"
+      [class.font-overbudget]="metrics().isOverBudget"
+      [class.font-remaining]="!metrics().isOverBudget"
+    >
+      {{ metrics().isOverBudget ? '-' : '' }}${{ (metrics().isOverBudget ? metrics().overBudgetAmount : metrics().remainingBudget).toLocaleString('es-CO') }}
+    </div>
+  </div>
+
+  <!-- 2 Columns Comparison: Presupuesto & Gastado -->
   <div class="card-finances-grid">
     <div class="finance-card">
       <span class="finance-label">Presupuesto</span>
@@ -85,32 +108,7 @@
         ${{ metrics().totalExpenses.toLocaleString('es-CO') }}
       </span>
     </div>
-
-    <div
-      class="finance-card"
-      [class.highlight-overbudget]="metrics().isOverBudget"
-      [class.highlight-available]="!metrics().isOverBudget"
-    >
-      <span class="finance-label">
-        {{ metrics().isOverBudget ? 'Excedido' : 'Disponible' }}
-      </span>
-      <span
-        class="finance-value"
-        [class.font-overbudget]="metrics().isOverBudget"
-        [class.font-remaining]="!metrics().isOverBudget"
-      >
-        {{ metrics().isOverBudget ? '-' : '' }}${{ (metrics().isOverBudget ? metrics().overBudgetAmount : metrics().remainingBudget).toLocaleString('es-CO') }}
-      </span>
-    </div>
   </div>
-
-  <!-- Exceeded banner if over budget -->
-  @if (metrics().isOverBudget) {
-    <div class="alert-overbudget">
-      <app-icon name="alert-circle" [size]="16" />
-      <span>¡Presupuesto superado por ${{ metrics().overBudgetAmount.toLocaleString('es-CO') }}!</span>
-    </div>
-  }
 
   <!-- Footer with dates & view hint -->
   <div class="card-footer">
