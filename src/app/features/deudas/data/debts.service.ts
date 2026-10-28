@@ -7,6 +7,7 @@ import type {
   Debt,
   DebtDraft,
   DebtPersonFilter,
+  DebtStatus,
   PrepaymentDraft,
 } from './debt.model';
 import {
@@ -453,6 +454,23 @@ export class DebtsService {
         await this.expensesService.renameCategory(oldName, newName);
       }
     }
+  }
+
+  async toggleDebtStatus(id: string): Promise<void> {
+    const debt = this.debts().find((d) => d.id === id);
+    if (!debt) return;
+    const nextStatus: DebtStatus = debt.status === 'saldada' ? 'activa' : 'saldada';
+    await this.updateDebt(id, {
+      name: debt.name,
+      person: debt.person,
+      startDate: debt.startDate,
+      originalAmount: debt.originalAmount,
+      currentBalance: nextStatus === 'saldada' ? 0 : (debt.currentBalance || debt.originalAmount),
+      monthlyPayment: debt.monthlyPayment,
+      annualInterestRate: debt.annualInterestRate,
+      totalMonths: debt.totalMonths,
+      status: nextStatus,
+    });
   }
 
   async deleteDebt(id: string): Promise<void> {

@@ -99,6 +99,7 @@ describe('DebtFormModal', () => {
       monthlyPayment: 450_000,
       annualInterestRate: 10.2,
       totalMonths: 36,
+      status: 'activa',
     });
   });
 

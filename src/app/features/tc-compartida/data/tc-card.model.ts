@@ -74,6 +74,7 @@ export interface TcCard {
   isDefault?: boolean;
   description?: string;
   createdAt?: string;
+  status?: 'activa' | 'cancelada';
 }
 
 export type TcCardDraft = Omit<TcCard, 'id' | 'gradient' | 'color' | 'isDefault' | 'createdAt'>;
@@ -92,6 +93,7 @@ export const DEFAULT_TC_CARDS: readonly TcCard[] = [
     paymentCategory: 'TC-compartida',
     isDefault: true,
     description: 'Tarjeta compartida principal de compras del hogar y mercado',
+    status: 'activa',
   },
   {
     id: 'tc-nu-charlie',
@@ -106,6 +108,7 @@ export const DEFAULT_TC_CARDS: readonly TcCard[] = [
     paymentCategory: 'Deudas',
     isDefault: false,
     description: 'Tarjeta de crédito personal Nu',
+    status: 'activa',
   },
 ];
 

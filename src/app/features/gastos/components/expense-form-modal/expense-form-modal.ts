@@ -139,13 +139,13 @@ export class ExpenseFormModal {
         label: cat,
       }));
 
-    // 2. Categorías dinámicas de Tarjetas de Crédito (TCs)
-    const cardOptions: SelectOption<ExpenseCategory>[] = this.tcService.cards().map((c) => ({
+    // 2. Categorías dinámicas de Tarjetas de Crédito (TCs) activas (excluye canceladas)
+    const cardOptions: SelectOption<ExpenseCategory>[] = this.tcService.activeCards().map((c) => ({
       value: c.id === 'tc-compartida' ? 'TC-compartida' : `TC: ${c.name}`,
       label: `Tarjeta: ${c.name} (•••• ${c.lastDigits})`,
     }));
 
-    // 3. Categorías dinámicas provenientes de deudas activas
+    // 3. Categorías dinámicas provenientes de deudas activas (excluye saldadas)
     const activeDebts = this.debtsService.activeDebts();
     const debtOptions: SelectOption<ExpenseCategory>[] = activeDebts.map((d: Debt) => ({
       value: d.name,
@@ -159,10 +159,10 @@ export class ExpenseFormModal {
       label: `🎯 ${p.name} (Evento)`,
     }));
 
-    // Preservar la categoría actual si se está editando y pertenece a una deuda saldada o evento finalizado
+    // Preservar la categoría actual SOLO si se está editando un gasto existente previamente guardado
     const currentCat = this.category();
     const allOptions = [...standard, ...cardOptions, ...debtOptions, ...projectOptions];
-    if (currentCat && !allOptions.some((o) => o.value === currentCat)) {
+    if (this.isEditMode() && currentCat && !allOptions.some((o) => o.value === currentCat)) {
       debtOptions.push({
         value: currentCat,
         label: `${currentCat}`,
@@ -176,7 +176,7 @@ export class ExpenseFormModal {
     const cat = this.category();
     if (!cat) return null;
     return (
-      this.tcService.cards().find((c) =>
+      this.tcService.activeCards().find((c) =>
         cat === (c.id === 'tc-compartida' ? 'TC-compartida' : `TC: ${c.name}`) ||
         cat === c.name ||
         cat === `TC: ${c.name}`

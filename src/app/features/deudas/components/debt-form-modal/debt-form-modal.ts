@@ -14,7 +14,7 @@ import {
   EXPENSE_PERSONS,
   type ExpensePerson,
 } from '../../../gastos/data/expense.model';
-import type { Debt, DebtDraft, DebtPerson } from '../../data/debt.model';
+import type { Debt, DebtDraft, DebtPerson, DebtStatus } from '../../data/debt.model';
 import { calculateMonthlyPayment } from '../../data/debt.model';
 import { formatThousands, parseThousands } from '../../../../shared/utils/format.utils';
 
@@ -50,7 +50,13 @@ export class DebtFormModal {
   protected readonly currentBalance = signal('');
   protected readonly monthlyPayment = signal('');
   protected readonly annualInterestRate = signal('');
+  protected readonly status = signal<DebtStatus>('activa');
   protected readonly hasSubmitted = signal(false);
+
+  protected readonly statusOptions: readonly SelectOption<DebtStatus>[] = [
+    { value: 'activa', label: '🟢 Activa (Pendiente de amortizar)' },
+    { value: 'saldada', label: '✅ Saldada (Totalmente pagada)' },
+  ];
 
   protected readonly errors = computed(() => {
     if (!this.hasSubmitted()) return {};
@@ -63,7 +69,11 @@ export class DebtFormModal {
     const months = Number(this.totalMonths());
     if (!this.totalMonths() || months <= 0) errs['totalMonths'] = 'El número de meses debe ser mayor a 0';
     const curr = this.currentBalance().trim() !== '' ? parseThousands(this.currentBalance()) : orig;
-    if (curr <= 0) errs['currentBalance'] = 'El saldo actual debe ser mayor a 0';
+    if (this.status() === 'saldada') {
+      if (curr < 0) errs['currentBalance'] = 'El saldo actual no puede ser negativo';
+    } else {
+      if (curr <= 0) errs['currentBalance'] = 'El saldo actual debe ser mayor a 0';
+    }
     const pay = parseThousands(this.monthlyPayment());
     if (!this.monthlyPayment() || pay <= 0) errs['monthlyPayment'] = 'La cuota mensual debe ser mayor a 0';
     return errs;
@@ -87,6 +97,7 @@ export class DebtFormModal {
         this.currentBalance.set(formatThousands(existing.currentBalance));
         this.monthlyPayment.set(formatThousands(existing.monthlyPayment));
         this.annualInterestRate.set(String(existing.annualInterestRate));
+        this.status.set(existing.status || 'activa');
       } else {
         this.person.set('');
         this.startDate.set(todayIso());
@@ -96,6 +107,7 @@ export class DebtFormModal {
         this.currentBalance.set('');
         this.monthlyPayment.set('');
         this.annualInterestRate.set('');
+        this.status.set('activa');
       }
       this.hasSubmitted.set(false);
     });
@@ -149,8 +161,10 @@ export class DebtFormModal {
     const current = this.currentBalance().trim() !== '' ? parseThousands(this.currentBalance()) : original;
     const payment = parseThousands(this.monthlyPayment());
     const rate = Number(this.annualInterestRate()) || 0;
+    const status = this.status();
 
-    if (!person || !name || original <= 0 || !months || months <= 0 || current <= 0 || payment <= 0 || isNaN(rate) || !this.startDate()) {
+    const isCurrentValid = status === 'saldada' ? current >= 0 : current > 0;
+    if (!person || !name || original <= 0 || !months || months <= 0 || !isCurrentValid || payment <= 0 || isNaN(rate) || !this.startDate()) {
       return;
     }
 
@@ -159,10 +173,11 @@ export class DebtFormModal {
       person: person as DebtPerson,
       startDate: this.startDate(),
       originalAmount: original,
-      currentBalance: current,
+      currentBalance: status === 'saldada' ? 0 : current,
       monthlyPayment: payment,
       annualInterestRate: rate,
       totalMonths: months,
+      status,
     });
   }
 }

@@ -12,6 +12,7 @@ import { generateTcExpenseId } from './tc.model';
 
 const STORAGE_KEY = 'expenses_home_tc_v1';
 const STORAGE_CARDS_KEY = 'expenses_home_tc_cards_v1';
+const STORAGE_DELETED_CARDS_KEY = 'expenses_home_tc_deleted_cards_v1';
 const CARD_TAG_REGEX = /^\[CARD:([^\]]+)\]\s*(.*)$/i;
 
 export type MonthFilter = number | 'Todos';
@@ -72,6 +73,9 @@ export class TcService {
   // Tarjetas registradas
   private readonly cardsSignal = signal<TcCard[]>(this.loadCardsFromStorage());
   readonly cards = this.cardsSignal.asReadonly();
+  readonly activeCards = computed<TcCard[]>(() =>
+    this.cards().filter((c) => c.status !== 'cancelada'),
+  );
 
   // Tarjeta seleccionada actualmente (null = Vista General de Cards)
   readonly selectedCard = signal<TcCard | null>(null);
@@ -129,21 +133,25 @@ export class TcService {
       const isTest = Boolean(proc?.env?.['NODE_ENV'] === 'test' || proc?.env?.['VITEST']);
 
       if (data && data.length > 0) {
-        const dbCards: TcCard[] = data.map((row: any) => ({
-          id: String(row.id),
-          name: String(row.name),
-          bank: String(row.bank),
-          lastDigits: String(row.last_digits || row.lastDigits || ''),
-          person: row.person as ExpensePerson,
-          themeId: String(row.theme_id || row.themeId || 'emerald'),
-          color: String(row.color),
-          gradient: String(row.gradient),
-          quota: row.quota != null ? Number(row.quota) : undefined,
-          paymentCategory: row.payment_category || row.paymentCategory || 'TC-compartida',
-          isDefault: Boolean(row.is_default ?? row.isDefault),
-          description: row.description ? String(row.description) : undefined,
-          createdAt: row.created_at ? String(row.created_at) : undefined,
-        }));
+        const deletedIds = this.getDeletedCardIds();
+        const dbCards: TcCard[] = data
+          .map((row: any) => ({
+            id: String(row.id),
+            name: String(row.name),
+            bank: String(row.bank),
+            lastDigits: String(row.last_digits || row.lastDigits || ''),
+            person: row.person as ExpensePerson,
+            themeId: String(row.theme_id || row.themeId || 'emerald'),
+            color: String(row.color),
+            gradient: String(row.gradient),
+            quota: row.quota != null ? Number(row.quota) : undefined,
+            paymentCategory: row.payment_category || row.paymentCategory || 'TC-compartida',
+            isDefault: Boolean(row.is_default ?? row.isDefault),
+            description: row.description ? String(row.description) : undefined,
+            createdAt: row.created_at ? String(row.created_at) : undefined,
+            status: (row.status === 'cancelada' ? 'cancelada' : 'activa') as 'activa' | 'cancelada',
+          }))
+          .filter((c) => !deletedIds.has(c.id));
 
         // Sincronización y reconciliación con tarjetas locales:
         // Si en este dispositivo ya existía alguna tarjeta creada que no esté en Supabase,
@@ -231,13 +239,16 @@ export class TcService {
   addCard(draft: TcCardDraft): TcCard {
     this.lastLocalMutationTime = Date.now();
     const theme = TC_CARD_THEMES.find((t) => t.id === draft.themeId) ?? TC_CARD_THEMES[0];
+    const newId = generateCardId(draft.name);
+    this.unmarkCardAsDeleted(newId);
     const newCard: TcCard = {
       ...draft,
-      id: generateCardId(draft.name),
+      id: newId,
       color: theme.primaryColor,
       gradient: theme.gradient,
       isDefault: false,
       createdAt: new Date().toISOString(),
+      status: 'activa',
     };
 
     this.cardsSignal.update((list) => {
@@ -318,6 +329,8 @@ export class TcService {
     this.lastLocalMutationTime = Date.now();
     const card = this.cardsSignal().find((c) => c.id === id);
     if (!card) return;
+
+    this.markCardAsDeleted(id);
 
     this.cardsSignal.update((list) => {
       const updated = list.filter((c) => c.id !== id);
@@ -963,19 +976,49 @@ export class TcService {
     }
   }
 
+  private getDeletedCardIds(): Set<string> {
+    try {
+      const stored = localStorage.getItem(STORAGE_DELETED_CARDS_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) return new Set(parsed);
+      }
+    } catch {}
+    return new Set();
+  }
+
+  private markCardAsDeleted(id: string): void {
+    try {
+      const set = this.getDeletedCardIds();
+      set.add(id);
+      localStorage.setItem(STORAGE_DELETED_CARDS_KEY, JSON.stringify([...set]));
+    } catch {}
+  }
+
+  private unmarkCardAsDeleted(id: string): void {
+    try {
+      const set = this.getDeletedCardIds();
+      if (set.has(id)) {
+        set.delete(id);
+        localStorage.setItem(STORAGE_DELETED_CARDS_KEY, JSON.stringify([...set]));
+      }
+    } catch {}
+  }
+
   private loadCardsFromStorage(): TcCard[] {
+    const deleted = this.getDeletedCardIds();
     try {
       const stored = localStorage.getItem(STORAGE_CARDS_KEY);
       if (stored !== null) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
-          return parsed;
+          return parsed.filter((c: TcCard) => !deleted.has(c.id));
         }
       }
     } catch (e) {
       console.warn('No se pudieron leer tarjetas de localStorage:', e);
     }
-    return [...DEFAULT_TC_CARDS];
+    return DEFAULT_TC_CARDS.filter((c) => !deleted.has(c.id));
   }
 
   private saveCardsToStorage(cards: TcCard[]): void {

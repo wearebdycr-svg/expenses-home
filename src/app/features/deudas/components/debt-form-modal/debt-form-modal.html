@@ -131,6 +131,18 @@
       </label>
     </div>
 
+    @if (isEditMode()) {
+      <div class="form-row">
+        <app-select
+          label="Estado de la deuda"
+          placeholder="Seleccionar estado..."
+          [options]="statusOptions"
+          [value]="status()"
+          (valueChange)="status.set($any($event))"
+        />
+      </div>
+    }
+
     <div class="form-actions">
       <button type="button" class="btn btn-secondary" (click)="cancel.emit()">
         Cancelar

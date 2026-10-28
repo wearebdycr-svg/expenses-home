@@ -4,17 +4,24 @@ export type ExpensePersonFilter = 'Todos' | 'Benny' | 'Charlie' | 'Compartido';
 export type StandardExpenseCategory =
   | 'Ahorro/inversión'
   | 'Compras'
+  | 'Cuidado personal'
   | 'Deudas'
   | 'Educación'
   | 'Entretenimiento/salidas'
   | 'Hogar'
+  | 'Impuestos/trámites'
+  | 'Mascotas'
   | 'Mercado'
   | 'Otros'
   | 'Regalos'
+  | 'Restaurantes/domicilios'
+  | 'Ropa y calzado'
   | 'Salud'
   | 'Servicios públicos'
   | 'Suscripciones'
+  | 'Tecnología'
   | 'Transporte'
+  | 'Vehículo/gasolina'
   | 'Viajes'
   | 'TC-compartida';
 
@@ -81,17 +88,24 @@ export const EXPENSE_PERSONS: readonly ExpensePerson[] = ['Benny', 'Charlie', 'C
 export const EXPENSE_CATEGORIES: readonly ExpenseCategory[] = [
   'Ahorro/inversión',
   'Compras',
+  'Cuidado personal',
   'Deudas',
   'Educación',
   'Entretenimiento/salidas',
   'Hogar',
+  'Impuestos/trámites',
+  'Mascotas',
   'Mercado',
   'Otros',
   'Regalos',
+  'Restaurantes/domicilios',
+  'Ropa y calzado',
   'Salud',
   'Servicios públicos',
   'Suscripciones',
+  'Tecnología',
   'Transporte',
+  'Vehículo/gasolina',
   'Viajes',
   'TC-compartida',
 ];
@@ -105,17 +119,24 @@ export const EXPENSE_PERSON_COLORS: Record<ExpensePerson, string> = {
 export const EXPENSE_CATEGORY_COLORS: Record<ExpenseCategory, string> = {
   'Ahorro/inversión': '#14b8a6',
   Compras: '#ec4899',
+  'Cuidado personal': '#d946ef',
   Deudas: '#ef4444',
   Educación: '#eab308',
   'Entretenimiento/salidas': '#a855f7',
   Hogar: '#84cc16',
+  'Impuestos/trámites': '#475569',
+  Mascotas: '#f59e0b',
   Mercado: '#10b981',
   Otros: '#94a3b8',
   Regalos: '#f97316',
+  'Restaurantes/domicilios': '#fb923c',
+  'Ropa y calzado': '#8b5cf6',
   Salud: '#06b6d4',
   'Servicios públicos': '#64748b',
   Suscripciones: '#6366f1',
+  Tecnología: '#3b82f6',
   Transporte: '#2563eb',
+  'Vehículo/gasolina': '#dc2626',
   Viajes: '#0ea5e9',
   'TC-compartida': '#8b5cf6',
 };
