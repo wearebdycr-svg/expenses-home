@@ -35,6 +35,8 @@ export interface Expense {
   category: ExpenseCategory;
   description: string;
   amount: number;
+  /** Fecha/hora de creación del registro en base de datos */
+  createdAt?: string;
   /** Moneda del gasto: 'COP' por defecto o 'USD' */
   currency?: 'COP' | 'USD';
   /** Monto original en USD si se registró en dólares */

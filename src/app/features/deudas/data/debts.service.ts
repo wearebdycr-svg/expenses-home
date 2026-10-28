@@ -118,17 +118,27 @@ export class DebtsService {
           desc.includes('capital') ||
           (desc.includes('abono') && !desc.includes('cuota'));
 
-        if (isPrepayment || im <= 0) {
-          // Abono directo a capital o crédito sin intereses
-          const amort = Math.min(balance, e.amount);
-          balance = Math.max(0, balance - amort);
-          totalAmortized += amort;
-        } else {
-          // Cuota periódica regular con amortización francesa
-          const interest = balance * im;
-          const amort = Math.min(balance, Math.max(0, e.amount - interest));
-          balance = Math.max(0, balance - amort);
-          totalAmortized += amort;
+        // Si el gasto fue registrado en el sistema antes de la creación de la deuda,
+        // su amortización ya está reflejada en el saldo actual base ingresado por el usuario.
+        const isPreExistingExpense = Boolean(
+          e.createdAt &&
+            d.createdAt &&
+            new Date(e.createdAt).getTime() < new Date(d.createdAt).getTime() - 60000,
+        );
+
+        if (!isPreExistingExpense) {
+          if (isPrepayment || im <= 0) {
+            // Abono directo a capital o crédito sin intereses
+            const amort = Math.min(balance, e.amount);
+            balance = Math.max(0, balance - amort);
+            totalAmortized += amort;
+          } else {
+            // Cuota periódica regular con amortización francesa
+            const interest = balance * im;
+            const amort = Math.min(balance, Math.max(0, e.amount - interest));
+            balance = Math.max(0, balance - amort);
+            totalAmortized += amort;
+          }
         }
 
         if (!isPrepayment) {
@@ -347,6 +357,7 @@ export class DebtsService {
               : undefined,
           color: item.color || DEBT_PALETTE[idx % DEBT_PALETTE.length],
           status: item.status || 'activa',
+          createdAt: item.created_at ? String(item.created_at) : undefined,
         }));
 
         this.debts.set(mapped);

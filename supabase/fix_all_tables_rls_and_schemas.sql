@@ -367,4 +367,60 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN NULL;
 END $$;
 
+
+-- ------------------------------------------------------------------------------
+-- 13. REGISTRO DE DEUDAS REALES DE PRODUCCIÓN
+-- ------------------------------------------------------------------------------
+INSERT INTO public.debts (
+  id,
+  name,
+  person,
+  start_date,
+  original_amount,
+  current_balance,
+  monthly_payment,
+  annual_interest_rate,
+  total_months,
+  color,
+  status
+) VALUES
+(
+  'e1a2b3c4-0001-4000-8000-000000000001',
+  'Hipotecario Medellin',
+  'Charlie',
+  '2026-09-01',
+  147425976,
+  146063143,
+  1199894,
+  8.9,
+  160,
+  '#3b82f6',
+  'activa'
+),
+(
+  'e1a2b3c4-0002-4000-8000-000000000002',
+  'Unificada',
+  'Charlie',
+  '2026-08-01',
+  112500000,
+  111047541,
+  2805503,
+  15.4,
+  60,
+  '#f59e0b',
+  'activa'
+)
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name,
+  person = EXCLUDED.person,
+  start_date = EXCLUDED.start_date,
+  original_amount = EXCLUDED.original_amount,
+  current_balance = EXCLUDED.current_balance,
+  monthly_payment = EXCLUDED.monthly_payment,
+  annual_interest_rate = EXCLUDED.annual_interest_rate,
+  total_months = EXCLUDED.total_months,
+  color = EXCLUDED.color,
+  status = EXCLUDED.status,
+  updated_at = now();
+
 COMMIT;

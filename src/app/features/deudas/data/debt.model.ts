@@ -19,6 +19,7 @@ export interface Debt {
   totalAmortized?: number;
   paidMonths?: number;
   paidInstallmentsCount?: number;
+  createdAt?: string;
 }
 
 export type DebtDraft = Omit<Debt, 'id' | 'color'>;

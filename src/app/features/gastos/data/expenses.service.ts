@@ -218,6 +218,7 @@ export class ExpensesService {
           category: item.category as ExpenseCategory,
           description: String(item.description),
           amount: Number(item.amount),
+          createdAt: item.created_at ? String(item.created_at) : undefined,
           currency: item.currency || 'COP',
           amountUsd: item.amount_usd != null ? Number(item.amount_usd) : undefined,
           exchangeRate: item.exchange_rate != null ? Number(item.exchange_rate) : undefined,
