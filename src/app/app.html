@@ -1,7 +1,3 @@
-@if (showSplash()) {
-  <app-splash-screen (completed)="onSplashCompleted()" />
-}
-
 @if (supabaseAuth.isLoading()) {
   <div class="auth-loading-overlay">
     <div class="auth-loading-spinner"></div>

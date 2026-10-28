@@ -32,66 +32,54 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
-  it('does NOT show splash on native app init if the app is locked', () => {
+  it('loads directly into PIN lock on native app init if the app is locked without showing splash', () => {
     vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true);
     authPinService.isUnlocked.set(false);
     const fixture = TestBed.createComponent(App);
-    const app = fixture.componentInstance;
     fixture.detectChanges();
 
-    expect(app['showSplash']()).toBe(false);
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('app-splash-screen')).toBeFalsy();
     expect(compiled.querySelector('app-pin-lock')).toBeTruthy();
     expect(compiled.querySelector('app-sidebar')).toBeFalsy();
   });
 
-  it('shows splash on web refresh/init even if locked', () => {
+  it('loads directly into PIN lock on web init if locked without showing splash', () => {
     vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(false);
     authPinService.isUnlocked.set(false);
     const fixture = TestBed.createComponent(App);
-    const app = fixture.componentInstance;
     fixture.detectChanges();
 
-    expect(app['showSplash']()).toBe(true);
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('app-splash-screen')).toBeTruthy();
+    expect(compiled.querySelector('app-splash-screen')).toBeFalsy();
+    expect(compiled.querySelector('app-pin-lock')).toBeTruthy();
   });
 
-  it('shows splash on refresh/init if the app is already unlocked', () => {
+  it('loads directly into the app on refresh/init if the app is already unlocked without showing splash', () => {
     authPinService.isUnlocked.set(true);
     const fixture = TestBed.createComponent(App);
-    const app = fixture.componentInstance;
     fixture.detectChanges();
 
-    expect(app['showSplash']()).toBe(true);
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('app-splash-screen')).toBeTruthy();
+    expect(compiled.querySelector('app-splash-screen')).toBeFalsy();
     expect(compiled.querySelector('app-sidebar')).toBeTruthy();
   });
 
-  it('shows splash upon unlocking via onAppUnlocked()', () => {
+  it('enters app immediately upon unlocking via onAppUnlocked() without splash delay', () => {
     vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true);
     authPinService.isUnlocked.set(false);
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
     fixture.detectChanges();
 
-    expect(app['showSplash']()).toBe(false);
-
     // Usuario desbloquea
     authPinService.isUnlocked.set(true);
     app['onAppUnlocked']();
     fixture.detectChanges();
 
-    expect(app['showSplash']()).toBe(true);
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('app-splash-screen')).toBeTruthy();
-
-    // Cuando termina el splash
-    app['onSplashCompleted']();
-    fixture.detectChanges();
-    expect(app['showSplash']()).toBe(false);
+    expect(compiled.querySelector('app-splash-screen')).toBeFalsy();
+    expect(compiled.querySelector('app-sidebar')).toBeTruthy();
   });
 
   it('renders the sidebar when the app is unlocked', () => {
@@ -178,7 +166,7 @@ describe('App', () => {
     expect(window.location.hash).toBe('#deudas');
   });
 
-  it('locks the app and hides splash when onLockApp() is called', () => {
+  it('locks the app when onLockApp() is called', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     const app = fixture.componentInstance;
@@ -187,7 +175,6 @@ describe('App', () => {
     fixture.detectChanges();
 
     expect(authPinService.isUnlocked()).toBe(false);
-    expect(app['showSplash']()).toBe(false);
   });
 
   it('has setupBackButtonHandler configured for hardware navigation', () => {

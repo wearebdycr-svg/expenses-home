@@ -15,7 +15,6 @@ import { TcService } from './features/tc-compartida/data/tc.service';
 import { ProyectosPage } from './features/proyectos/proyectos';
 import { Sidebar, type SidebarPageId } from './shared/ui/sidebar/sidebar';
 import { DailyReminderBanner } from './shared/ui/daily-reminder-banner/daily-reminder-banner';
-import { SplashScreen } from './shared/ui/splash-screen/splash-screen';
 import { ToastContainer } from './shared/ui/toast-container/toast-container';
 import { PinLock } from './shared/ui/pin-lock/pin-lock';
 import { AuthLogin } from './shared/ui/auth-login/auth-login';
@@ -68,7 +67,6 @@ function getInitialPage(): SidebarPageId {
     TcPage,
     ProyectosPage,
     DailyReminderBanner,
-    SplashScreen,
     ToastContainer,
     PinLock,
     AuthLogin,
@@ -84,34 +82,22 @@ export class App {
   protected readonly authPinService = inject(AuthPinService);
   protected readonly supabaseAuth = inject(SupabaseAuthService);
   protected readonly currentPage = signal<SidebarPageId>(getInitialPage());
-  protected readonly showSplash = signal<boolean>(
-    !Capacitor.isNativePlatform() || this.authPinService.isUnlocked()
-  );
-
-  protected onSplashCompleted(): void {
-    this.showSplash.set(false);
-  }
 
   protected onLockApp(): void {
     this.authPinService.lock();
-    this.showSplash.set(false);
   }
 
   protected onAppUnlocked(): void {
-    this.showSplash.set(true);
+    // Desbloqueo instantáneo sin splash screen ni retardos
   }
 
   protected onSupabaseAuthenticated(): void {
-    // Tras autenticarse en Supabase, el flujo sigue al PIN o vista principal
-    if (this.authPinService.isUnlocked()) {
-      this.showSplash.set(true);
-    }
+    // Tras autenticarse en Supabase, el flujo sigue al PIN o vista principal de inmediato
   }
 
   protected async onSignOutSupabase(): Promise<void> {
     await this.supabaseAuth.signOut();
     this.authPinService.lock();
-    this.showSplash.set(false);
   }
 
   constructor() {

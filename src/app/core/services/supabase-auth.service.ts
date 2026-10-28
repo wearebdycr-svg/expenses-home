@@ -10,6 +10,23 @@ function isTestEnvironment(): boolean {
   );
 }
 
+function hasSavedSupabaseSession(): boolean {
+  if (typeof localStorage === 'undefined') return false;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+        const item = localStorage.getItem(key);
+        if (item) {
+          const parsed = JSON.parse(item);
+          return Boolean(parsed?.access_token || parsed?.user);
+        }
+      }
+    }
+  } catch {}
+  return false;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -22,8 +39,12 @@ export class SupabaseAuthService {
   readonly user = signal<User | null>(
     isTestEnvironment() ? ({ id: 'test-user', email: 'test@familia.com' } as any) : null
   );
-  readonly isAuthenticated = signal<boolean>(isTestEnvironment());
-  readonly isLoading = signal<boolean>(!isTestEnvironment());
+  readonly isAuthenticated = signal<boolean>(
+    isTestEnvironment() || hasSavedSupabaseSession()
+  );
+  readonly isLoading = signal<boolean>(
+    !isTestEnvironment() && !hasSavedSupabaseSession()
+  );
 
   constructor() {
     if (!isTestEnvironment()) {
