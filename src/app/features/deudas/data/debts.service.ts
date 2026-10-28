@@ -32,6 +32,7 @@ export const DEFAULT_DEBTS: Debt[] = [
     annualInterestRate: 8.5,
     startDate: '2026-07-01',
     color: DEBT_PALETTE[0],
+    status: 'activa',
   },
   {
     id: 'debt-2',
@@ -43,6 +44,7 @@ export const DEFAULT_DEBTS: Debt[] = [
     annualInterestRate: 10.2,
     startDate: '2026-07-01',
     color: DEBT_PALETTE[1],
+    status: 'activa',
   },
   {
     id: 'debt-3',
@@ -54,6 +56,7 @@ export const DEFAULT_DEBTS: Debt[] = [
     annualInterestRate: 24.0,
     startDate: '2026-07-01',
     color: DEBT_PALETTE[2],
+    status: 'activa',
   },
   {
     id: 'debt-4',
@@ -65,6 +68,7 @@ export const DEFAULT_DEBTS: Debt[] = [
     annualInterestRate: 15.5,
     startDate: '2026-07-01',
     color: DEBT_PALETTE[3],
+    status: 'activa',
   },
 ];
 
@@ -76,7 +80,7 @@ export class DebtsService {
   private readonly pushNotificationService = inject(PushNotificationService);
   private lastLocalMutationTime = 0;
 
-  readonly debts = signal<Debt[]>([]);
+  readonly debts = signal<Debt[]>(DEFAULT_DEBTS);
 
   /**
    * Deudas con saldo pendiente y estado calculados en tiempo real:
@@ -277,12 +281,15 @@ export class DebtsService {
   });
 
   async loadDebts(): Promise<void> {
-    // 1. Cargar primero de localStorage para disponibilidad inmediata
+    // 1. Cargar primero de localStorage si contiene deudas válidas
     if (typeof localStorage !== 'undefined') {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         try {
-          this.debts.set(JSON.parse(saved));
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            this.debts.set(parsed);
+          }
         } catch {
           // JSON malformado
         }
@@ -301,7 +308,7 @@ export class DebtsService {
         return;
       }
 
-      if (data) {
+      if (data && data.length > 0) {
         const mapped: Debt[] = data.map((item: any, idx: number) => ({
           id: String(item.id),
           name: String(item.name),
@@ -322,9 +329,13 @@ export class DebtsService {
           status: item.status || 'activa',
         }));
 
-        // Supabase es la fuente oficial de verdad:
+        // Supabase es la fuente oficial de verdad cuando tiene registros:
         this.debts.set(mapped);
         this.persistLocal(mapped);
+      } else if (this.debts().length === 0) {
+        // Si la base de datos no tiene deudas registradas todavía, mantener las deudas por defecto del hogar
+        this.debts.set(DEFAULT_DEBTS);
+        this.persistLocal(DEFAULT_DEBTS);
       }
     } catch (err: any) {
       console.warn('Error conectando a Supabase para deudas:', err);
