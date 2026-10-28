@@ -220,9 +220,11 @@ export class TcService {
 
       if (error) {
         console.error('Error insertando tarjeta en Supabase (tc_cards):', error.message);
+        this.toastService.error(`Error guardando tarjeta en base de datos: ${error.message}`);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error de red al insertar tarjeta en Supabase:', err);
+      this.toastService.error('Error de conexión al guardar tarjeta en base de datos');
     }
   }
 
@@ -319,9 +321,11 @@ export class TcService {
 
       if (error) {
         console.error('Error actualizando tarjeta en Supabase:', error.message);
+        this.toastService.error(`Error actualizando tarjeta en base de datos: ${error.message}`);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error de red al actualizar tarjeta en Supabase:', err);
+      this.toastService.error('Error de conexión al actualizar tarjeta en base de datos');
     }
   }
 
@@ -355,9 +359,11 @@ export class TcService {
 
       if (error) {
         console.error('Error eliminando tarjeta en Supabase:', error.message);
+        this.toastService.error(`Error eliminando tarjeta en base de datos: ${error.message}`);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error de red al eliminar tarjeta en Supabase:', err);
+      this.toastService.error('Error de conexión al eliminar tarjeta en base de datos');
     }
   }
 
@@ -871,6 +877,7 @@ export class TcService {
       if (error) {
         console.error('Error insertando consumo TC en Supabase:', error);
         this.error.set(error.message);
+        this.toastService.error(`Error guardando consumo TC en base de datos: ${error.message}`);
         return;
       }
 
@@ -926,11 +933,13 @@ export class TcService {
       if (error) {
         console.error('Error actualizando consumo TC en Supabase:', error);
         this.error.set(error.message);
+        this.toastService.error(`Error actualizando consumo TC en base de datos: ${error.message}`);
         return;
       }
       this.toastService.success('Consumo de TC actualizado');
     } catch (err: any) {
       console.error('Error de red al actualizar consumo TC:', err);
+      this.toastService.error('Error de conexión al actualizar consumo TC');
     }
   }
 
@@ -970,9 +979,11 @@ export class TcService {
       if (error) {
         console.error('Error eliminando consumo TC en Supabase:', error);
         this.error.set(error.message);
+        this.toastService.error(`Error eliminando consumo TC en base de datos: ${error.message}`);
       }
     } catch (err: any) {
       console.error('Error de red al eliminar consumo TC:', err);
+      this.toastService.error('Error de conexión al eliminar consumo TC');
     }
   }
 

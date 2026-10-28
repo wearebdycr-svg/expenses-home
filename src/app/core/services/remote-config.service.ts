@@ -8,6 +8,7 @@ import {
 } from 'firebase/remote-config';
 import { environment } from '../../../environments/environment';
 import { SupabaseService } from './supabase.service';
+import { ToastService } from './toast.service';
 
 const STORAGE_CUSTOM_BUDGETS_KEY = 'expenses_home_category_budgets_v1';
 
@@ -50,6 +51,7 @@ export const DEFAULT_REMOTE_CONFIG: RemoteConfigValues = {
 })
 export class RemoteConfigService {
   private readonly supabase = inject(SupabaseService);
+  private readonly toastService = inject(ToastService);
   private remoteConfigInstance: RemoteConfig | null = null;
 
   // Signals reactivos para el estado global (Criterio 1.1 y 2.1)
@@ -139,8 +141,8 @@ export class RemoteConfigService {
     this.customBudgets.set(current);
     this.saveCustomBudgetsToStorage(current);
 
-    // Sincronizar en segundo plano sin bloquear la UI
-    this.syncBudgetToDb(cleanCat, amount && amount > 0 ? Math.round(amount) : 0);
+    // Sincronizar en base de datos Supabase
+    await this.syncBudgetToDb(cleanCat, amount && amount > 0 ? Math.round(amount) : 0);
   }
 
   private loadCustomBudgetsFromStorage(): Record<string, number> {
@@ -206,17 +208,28 @@ export class RemoteConfigService {
 
     try {
       if (amount <= 0) {
-        await this.supabase.client
+        const { error } = await this.supabase.client
           .from('category_budgets')
           .delete()
           .eq('category', category);
+
+        if (error) {
+          console.error('Error eliminando tope en Supabase:', error.message);
+          this.toastService.error(`Error guardando tope en BD: ${error.message}`);
+        }
       } else {
-        await this.supabase.client
+        const { error } = await this.supabase.client
           .from('category_budgets')
           .upsert({ category, amount, updated_at: new Date().toISOString() }, { onConflict: 'category' });
+
+        if (error) {
+          console.error('Error guardando tope en Supabase:', error.message);
+          this.toastService.error(`Error guardando tope en BD: ${error.message}`);
+        }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn('No se pudo sincronizar tope en Supabase:', err);
+      this.toastService.error('Error de conexión al guardar tope en base de datos');
     }
   }
 

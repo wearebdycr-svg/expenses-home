@@ -410,15 +410,13 @@ export class DebtsService {
 
       if (error) {
         console.error('Error insertando deuda en Supabase:', error.message);
-        // Si falló la inserción en la base de datos, revertir estado local para no mostrar registros fantasmas
-        this.debts.set(current);
-        this.persistLocal(current);
+        this.toastService.error(`Error guardando en la base de datos: ${error.message}`);
         return;
       } else if (data && data.id) {
         newDebt.id = String(data.id);
         this.persistLocal(this.debts());
       }
-      this.toastService.success('Deuda registrada exitosamente');
+      this.toastService.success('Deuda guardada exitosamente en la base de datos');
     } catch (err: any) {
       console.error('Error de red insertando deuda en Supabase:', err);
     }
@@ -466,6 +464,7 @@ export class DebtsService {
 
       if (error) {
         console.error('Error actualizando deuda en Supabase:', error.message);
+        this.toastService.error(`Error actualizando en la base de datos: ${error.message}`);
         return;
       }
 

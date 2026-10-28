@@ -182,6 +182,7 @@ export class IncomesService {
       if (error) {
         console.error('Error insertando en Supabase:', error);
         this.error.set(error.message);
+        this.toastService.error(`Error guardando ingreso en base de datos: ${error.message}`);
         this.incomes.update((list) => list.filter((inc) => inc.id !== tempId));
         return;
       }
@@ -221,11 +222,13 @@ export class IncomesService {
       if (error) {
         console.error('Error actualizando en Supabase:', error);
         this.error.set(error.message);
+        this.toastService.error(`Error actualizando ingreso en base de datos: ${error.message}`);
         return;
       }
       this.toastService.success('Ingreso actualizado correctamente');
     } catch (err: any) {
       console.error('Error de red actualizando en Supabase:', err);
+      this.toastService.error('Error de conexión al actualizar ingreso');
     }
   }
 
@@ -261,9 +264,11 @@ export class IncomesService {
       if (error) {
         console.error('Error eliminando en Supabase:', error);
         this.error.set(error.message);
+        this.toastService.error(`Error eliminando ingreso en base de datos: ${error.message}`);
       }
     } catch (err: any) {
       console.error('Error de red eliminando en Supabase:', err);
+      this.toastService.error('Error de conexión al eliminar ingreso');
     }
   }
 

@@ -306,6 +306,8 @@ export class ProjectsService {
 
       if (error) {
         console.error('Error insertando proyecto en Supabase:', error.message);
+        this.toastService.show(`Error guardando proyecto en base de datos: ${error.message}`, { type: 'error' });
+        return newProject;
       } else if (data) {
         newProject.id = String(data.id);
         // Reemplazar tempId con el id real de la BD
@@ -364,9 +366,12 @@ export class ProjectsService {
 
       if (error) {
         console.error('Error actualizando proyecto en Supabase:', error.message);
+        this.toastService.show(`Error actualizando proyecto en base de datos: ${error.message}`, { type: 'error' });
+        return;
       }
     } catch (err) {
       console.error('Error de red al actualizar proyecto:', err);
+      this.toastService.show('Error de conexión al actualizar proyecto', { type: 'error' });
     }
 
     this.toastService.show('Proyecto actualizado', { type: 'success' });
@@ -405,9 +410,12 @@ export class ProjectsService {
       const { error } = await this.supabase.client.from('projects').delete().eq('id', id);
       if (error) {
         console.error('Error eliminando proyecto en Supabase:', error.message);
+        this.toastService.show(`Error eliminando proyecto en base de datos: ${error.message}`, { type: 'error' });
+        return;
       }
     } catch (err) {
       console.error('Error de red al eliminar proyecto:', err);
+      this.toastService.show('Error de conexión al eliminar proyecto', { type: 'error' });
     }
 
     this.toastService.show(`Proyecto "${project.name}" eliminado`, { type: 'success' });
@@ -489,6 +497,8 @@ export class ProjectsService {
 
       if (error) {
         console.error('Error insertando gasto de proyecto:', error.message);
+        this.toastService.show(`Error guardando gasto en base de datos: ${error.message}`, { type: 'error' });
+        return newExpense;
       } else if (data) {
         newExpense.id = String(data.id);
         this.projectExpensesSignal.update((list) => {
@@ -555,9 +565,12 @@ export class ProjectsService {
 
       if (error) {
         console.error('Error actualizando gasto de proyecto:', error.message);
+        this.toastService.show(`Error actualizando gasto en base de datos: ${error.message}`, { type: 'error' });
+        return;
       }
     } catch (err) {
       console.error('Error de red al actualizar gasto de proyecto:', err);
+      this.toastService.show('Error de conexión al actualizar gasto de proyecto', { type: 'error' });
     }
 
     this.toastService.show('Gasto actualizado', { type: 'success' });
@@ -583,9 +596,12 @@ export class ProjectsService {
       const { error } = await this.supabase.client.from('project_expenses').delete().eq('id', id);
       if (error) {
         console.error('Error eliminando gasto de proyecto:', error.message);
+        this.toastService.show(`Error eliminando gasto en base de datos: ${error.message}`, { type: 'error' });
+        return;
       }
     } catch (err) {
       console.error('Error de red al eliminar gasto de proyecto:', err);
+      this.toastService.show('Error de conexión al eliminar gasto de proyecto', { type: 'error' });
     }
 
     this.toastService.show('Gasto eliminado', { type: 'success' });

@@ -293,6 +293,7 @@ export class ExpensesService {
       if (error) {
         console.error('Error insertando gasto en Supabase:', error);
         this.error.set(error.message);
+        this.toastService.error(`Error guardando gasto en base de datos: ${error.message}`);
         // Revertir optimista si falló
         this.expenses.update((list) => list.filter((exp) => exp.id !== tempId));
         return;
@@ -339,11 +340,13 @@ export class ExpensesService {
       if (error) {
         console.error('Error actualizando gasto en Supabase:', error);
         this.error.set(error.message);
+        this.toastService.error(`Error actualizando gasto en base de datos: ${error.message}`);
         return;
       }
       this.toastService.success('Gasto actualizado exitosamente');
     } catch (err: any) {
       console.error('Error de red al actualizar gasto:', err);
+      this.toastService.error('Error de conexión al actualizar gasto');
     }
   }
 
@@ -382,9 +385,11 @@ export class ExpensesService {
       if (error) {
         console.error('Error eliminando gasto en Supabase:', error);
         this.error.set(error.message);
+        this.toastService.error(`Error eliminando gasto en base de datos: ${error.message}`);
       }
     } catch (err: any) {
       console.error('Error de red al eliminar gasto:', err);
+      this.toastService.error('Error de conexión al eliminar gasto');
     }
   }
 
