@@ -22,7 +22,7 @@
       </div>
     </div>
 
-    <!-- Quick action menu/buttons -->
+    <!-- Quick action buttons -->
     <div class="card-quick-actions" (click)="$event.stopPropagation()">
       <button
         type="button"
@@ -50,11 +50,15 @@
   <!-- Progress Bar / Thermometer -->
   <div class="progress-section">
     <div class="progress-labels">
-      <span class="progress-pct" [class.text-danger]="metrics().isOverBudget">
+      <span
+        class="progress-pct-badge"
+        [class.danger]="metrics().isOverBudget"
+        [class.warning]="!metrics().isOverBudget && metrics().progressPercentage >= 80"
+      >
         {{ metrics().progressPercentage }}% gastado
       </span>
       <span class="expenses-count">
-        {{ metrics().expenseCount }} {{ metrics().expenseCount === 1 ? 'gasto' : 'gastos' }}
+        {{ metrics().expenseCount }} {{ metrics().expenseCount === 1 ? 'gasto registrado' : 'gastos registrados' }}
       </span>
     </div>
 
@@ -66,25 +70,29 @@
     </div>
   </div>
 
-  <!-- Numbers Breakdown (Budget vs Spent vs Remaining) -->
+  <!-- Numbers Breakdown (3 visual data boxes) -->
   <div class="card-finances-grid">
-    <div class="finance-col">
+    <div class="finance-card">
       <span class="finance-label">Presupuesto</span>
       <span class="finance-value font-budget">
         ${{ project().budgetAmount.toLocaleString('es-CO') }}
       </span>
     </div>
 
-    <div class="finance-col">
+    <div class="finance-card">
       <span class="finance-label">Gastado</span>
       <span class="finance-value font-spent">
         ${{ metrics().totalExpenses.toLocaleString('es-CO') }}
       </span>
     </div>
 
-    <div class="finance-col">
+    <div
+      class="finance-card"
+      [class.highlight-overbudget]="metrics().isOverBudget"
+      [class.highlight-available]="!metrics().isOverBudget"
+    >
       <span class="finance-label">
-        {{ metrics().isOverBudget ? 'Excedido por' : 'Disponible' }}
+        {{ metrics().isOverBudget ? 'Excedido' : 'Disponible' }}
       </span>
       <span
         class="finance-value"
@@ -99,18 +107,25 @@
   <!-- Exceeded banner if over budget -->
   @if (metrics().isOverBudget) {
     <div class="alert-overbudget">
-      <app-icon name="alert-circle" [size]="15" />
+      <app-icon name="alert-circle" [size]="16" />
       <span>¡Presupuesto superado por ${{ metrics().overBudgetAmount.toLocaleString('es-CO') }}!</span>
     </div>
   }
 
-  <!-- Dates footer if present -->
-  @if (project().startDate || project().endDate) {
-    <div class="card-footer-dates">
-      <app-icon name="calendar" [size]="13" />
-      <span>
-        {{ project().startDate || 'Inicio' }} {{ project().endDate ? 'hasta ' + project().endDate : '' }}
-      </span>
-    </div>
-  }
+  <!-- Footer with dates & view hint -->
+  <div class="card-footer">
+    @if (project().startDate || project().endDate) {
+      <div class="card-footer-dates">
+        <app-icon name="calendar" [size]="13" />
+        <span>
+          {{ project().startDate || 'Inicio' }} {{ project().endDate ? 'hasta ' + project().endDate : '' }}
+        </span>
+      </div>
+    } @else {
+      <span></span>
+    }
+    <span class="card-view-hint">
+      Ver gastos →
+    </span>
+  </div>
 </div>
