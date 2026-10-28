@@ -2,7 +2,7 @@
   <div class="table-header">
     <div>
       <h2 class="table-title">Detalle por categoría</h2>
-      <p class="table-subtitle">Topes presupuestales centralizados vía Firebase Remote Config (Inmutables)</p>
+      <p class="table-subtitle">Topes presupuestales mensuales y seguimiento de consumo</p>
     </div>
   </div>
 
@@ -18,7 +18,7 @@
             <th class="col-currency col-charlie">CHARLIE</th>
             <th class="col-currency col-compartido">COMPARTIDO</th>
             <th class="col-currency col-total">TOTAL</th>
-            <th class="col-budget">TOPE (REMOTE CONFIG)</th>
+            <th class="col-budget">TOPE MENSUAL</th>
             <th class="col-budget-progress">CONSUMO DE TOPE</th>
             <th class="col-pct">% DEL TOTAL</th>
             <th class="col-tx">TRANSACCIONES</th>
@@ -62,8 +62,8 @@
 
               <td class="col-budget">
                 @if (row.budget !== null && row.budget !== undefined) {
-                  <span class="budget-badge" title="Tope fijado por Firebase Remote Config (Inmutable)">
-                    <span class="budget-lock-icon" aria-hidden="true">🔒</span>
+                  <span class="budget-badge" title="Tope mensual presupuestado">
+                    <span class="budget-lock-icon" aria-hidden="true">🎯</span>
                     {{ formatCOP(row.budget) }}
                   </span>
                 } @else {
@@ -95,7 +95,7 @@
                     </div>
                   </div>
                 } @else {
-                  <span class="no-budget-text">Sin tope central</span>
+                  <span class="no-budget-text">Sin tope</span>
                 }
               </td>
 

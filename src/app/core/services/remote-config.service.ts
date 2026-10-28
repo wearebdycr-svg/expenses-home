@@ -75,6 +75,7 @@ export class RemoteConfigService {
     Transporte: this.budgetTransporte(),
     'Entretenimiento/salidas': this.budgetEntretenimiento(),
     Restaurantes: this.budgetRestaurantes(),
+    'Restaurantes/domicilios': this.budgetRestaurantes(),
   }));
 
   constructor() {
