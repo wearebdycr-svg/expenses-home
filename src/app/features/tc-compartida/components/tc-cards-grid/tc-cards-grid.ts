@@ -28,6 +28,11 @@ export class TcCardsGrid {
     return this.tcService.getCardMetrics(cardId);
   }
 
+  protected getQuotaPercentage(quotaRemaining: number, quota: number): number {
+    if (quota <= 0) return 0;
+    return Math.min(100, Math.max(0, (quotaRemaining / quota) * 100));
+  }
+
   protected onSelect(card: TcCard): void {
     this.tcService.selectCard(card);
     this.selectCard.emit(card);

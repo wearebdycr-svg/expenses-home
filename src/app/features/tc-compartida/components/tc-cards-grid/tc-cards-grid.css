@@ -1,22 +1,10 @@
 .cards-dashboard { display: flex; flex-direction: column; gap: 1.5rem; width: 100%; }
 .dashboard-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 .dashboard-titles { display: flex; flex-direction: column; }
+.dashboard-title-row { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
 .dashboard-title { margin: 0; font-size: 1.75rem; font-weight: 700; color: #1e293b; }
+.badge-cards-count { font-size: 0.76rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: 9999px; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
 .dashboard-subtitle { margin: 0.35rem 0 0; font-size: 0.9rem; color: #64748b; max-width: 700px; }
-
-/* Resumen KPIs */
-.summary-kpis-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
-.summary-kpi-card { background: #fff; border-radius: 12px; padding: 1.15rem; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 1rem; }
-.summary-kpi-icon-wrap { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.icon-purple { background: #f5f3ff; color: #7c3aed; }
-.icon-blue { background: #eff6ff; color: #2563eb; }
-.icon-green { background: #ecfdf5; color: #059669; }
-.icon-amber { background: #fffbeb; color: #d97706; }
-.icon-slate { background: #f8fafc; color: #475569; }
-.summary-kpi-content { display: flex; flex-direction: column; }
-.summary-kpi-label { font-size: 0.78rem; color: #64748b; }
-.summary-kpi-value { font-size: 1.25rem; font-weight: 700; color: #1e293b; }
-.summary-kpi-detail { font-size: 0.72rem; color: #94a3b8; }
 
 /* Grid de Tarjetas */
 .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; }
@@ -38,13 +26,23 @@
 .card-holder-name { font-size: 0.9rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; }
 .card-person-pill { font-size: 0.7rem; font-weight: 600; background: rgba(0,0,0,0.3); padding: 0.15rem 0.55rem; border-radius: 6px; }
 
-/* Métricas de la tarjeta */
-.card-metrics-box { display: flex; flex-direction: column; gap: 0.35rem; padding-bottom: 0.5rem; border-bottom: 1px solid #f1f5f9; }
-.card-metric-row { display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; }
-.metric-label { color: #64748b; font-size: 0.82rem; }
-.metric-val { color: #1e293b; }
-.metric-sub { font-size: 0.75rem; color: #94a3b8; }
-.sub-row { margin-top: 0.25rem; padding-top: 0.4rem; border-top: 1px dashed #f1f5f9; }
+/* Métricas Independientes de la Tarjeta */
+.card-metrics-box { display: flex; flex-direction: column; gap: 0.75rem; padding: 0.25rem 0 0.5rem; border-bottom: 1px solid #f1f5f9; }
+.card-metric-highlight { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 10px; padding: 0.75rem 0.9rem; }
+.metric-highlight-col { display: flex; flex-direction: column; gap: 0.2rem; }
+.text-right { text-align: right; align-items: flex-end; }
+.metric-label { color: #64748b; font-size: 0.74rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+.metric-val-large { font-size: 1.08rem; font-weight: 700; color: #0f172a; }
+
+.card-quota-container { display: flex; flex-direction: column; gap: 0.35rem; }
+.card-quota-row { display: flex; align-items: center; justify-content: space-between; }
+.metric-quota-label { font-size: 0.76rem; font-weight: 600; color: #64748b; }
+.metric-quota-val { font-size: 0.82rem; font-weight: 600; color: #475569; }
+.quota-track { width: 100%; height: 6px; background: #e2e8f0; border-radius: 9999px; overflow: hidden; }
+.quota-fill { height: 100%; background: #10b981; border-radius: 9999px; transition: width 0.3s ease; }
+
+.card-metric-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 0.25rem; }
+.metric-sub { font-size: 0.76rem; color: #94a3b8; font-weight: 500; }
 .badge-default { font-size: 0.68rem; font-weight: 600; background: #ecfdf5; color: #059669; padding: 0.1rem 0.45rem; border-radius: 4px; }
 
 /* Acciones */

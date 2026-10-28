@@ -18,7 +18,7 @@
       </button>
 
       <div class="card-pills-bar">
-        @for (c of tcService.cards(); track c.id) {
+        @for (c of tcService.activeCards(); track c.id) {
           <button
             type="button"
             class="card-pill-btn"

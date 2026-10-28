@@ -2,9 +2,12 @@
   <!-- Encabezado de la Sección -->
   <header class="dashboard-header">
     <div class="dashboard-titles">
-      <h1 class="dashboard-title">Tarjetas de Crédito</h1>
+      <div class="dashboard-title-row">
+        <h1 class="dashboard-title">Tarjetas de Crédito</h1>
+        <span class="badge-cards-count">{{ tcService.activeCards().length }} activas</span>
+      </div>
       <p class="dashboard-subtitle">
-        Gestiona todas tus tarjetas de crédito (Compartida, Nu, personales), registra consumos y concilia los saldos amortizados
+        Gestiona y concilia de forma independiente los consumos y saldos de cada tarjeta
       </p>
     </div>
 
@@ -14,34 +17,9 @@
     </button>
   </header>
 
-  <!-- Resumen Global de Tarjetas -->
-  <div class="summary-kpis-grid">
-    <div class="summary-kpi-card">
-      <div class="summary-kpi-icon-wrap icon-purple">
-        <app-icon name="credit-card" [size]="20" />
-      </div>
-      <div class="summary-kpi-content">
-        <span class="summary-kpi-label">Tarjetas Activas</span>
-        <span class="summary-kpi-value">{{ tcService.allCardsSummary().totalCards }}</span>
-        <span class="summary-kpi-detail">En monitoreo y control</span>
-      </div>
-    </div>
-
-    <div class="summary-kpi-card">
-      <div class="summary-kpi-icon-wrap icon-blue">
-        <app-icon name="trending-up" [size]="20" />
-      </div>
-      <div class="summary-kpi-content">
-        <span class="summary-kpi-label">Consumos Este Mes (Total)</span>
-        <span class="summary-kpi-value">{{ formatCOP(tcService.allCardsSummary().totalConsumptionsMonth) }}</span>
-        <span class="summary-kpi-detail">En todas las tarjetas</span>
-      </div>
-    </div>
-  </div>
-
   <!-- Cuadrícula de Tarjetas -->
   <div class="cards-grid">
-    @for (card of tcService.cards(); track card.id) {
+    @for (card of tcService.activeCards(); track card.id) {
       @let metrics = getCardMetrics(card.id);
       <div class="card-item-container" (click)="onSelect(card)">
         <!-- Mockup Visual de la Tarjeta -->
@@ -76,34 +54,43 @@
           </div>
         </div>
 
-        <!-- Métricas Rápidas de la Tarjeta -->
+        <!-- Métricas Rápidas Independientes de la Tarjeta -->
         <div class="card-metrics-box">
-          <div class="card-metric-row">
-            <span class="metric-label">Consumos este mes:</span>
-            <span class="metric-val font-semibold">{{ formatCOP(metrics.consumptionsThisMonth) }}</span>
-          </div>
-
-          <div class="card-metric-row">
-            <span class="metric-label">Saldo pendiente:</span>
-            <span
-              class="metric-val font-bold"
-              [class.text-green]="metrics.pendingDebt <= 0"
-              [class.text-amber]="metrics.pendingDebt > 0"
-            >
-              {{ formatCOP(metrics.pendingDebt) }}
-            </span>
+          <div class="card-metric-highlight">
+            <div class="metric-highlight-col">
+              <span class="metric-label">Consumos este mes</span>
+              <span class="metric-val-large">{{ formatCOP(metrics.consumptionsThisMonth) }}</span>
+            </div>
+            <div class="metric-highlight-col text-right">
+              <span class="metric-label">Saldo pendiente</span>
+              <span
+                class="metric-val-large"
+                [class.text-green]="metrics.pendingDebt <= 0"
+                [class.text-amber]="metrics.pendingDebt > 0"
+              >
+                {{ formatCOP(metrics.pendingDebt) }}
+              </span>
+            </div>
           </div>
 
           @if (card.quota) {
-            <div class="card-metric-row">
-              <span class="metric-label">Cupo disponible:</span>
-              <span class="metric-val text-slate font-medium">
-                {{ formatCOP(metrics.quotaRemaining ?? 0) }}
-              </span>
+            <div class="card-quota-container">
+              <div class="card-quota-row">
+                <span class="metric-quota-label">Cupo disponible</span>
+                <span class="metric-quota-val">
+                  {{ formatCOP(metrics.quotaRemaining ?? 0) }} / {{ formatCOP(card.quota) }}
+                </span>
+              </div>
+              <div class="quota-track">
+                <div
+                  class="quota-fill"
+                  [style.width.%]="getQuotaPercentage(metrics.quotaRemaining ?? 0, card.quota)"
+                ></div>
+              </div>
             </div>
           }
 
-          <div class="card-metric-row sub-row">
+          <div class="card-metric-footer">
             <span class="metric-sub">{{ metrics.totalCount }} consumos registrados</span>
             @if (card.isDefault) {
               <span class="badge-default">Principal</span>
