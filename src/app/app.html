@@ -1,10 +1,4 @@
-@if (supabaseAuth.isLoading()) {
-  <div class="auth-loading-overlay">
-    <div class="auth-loading-spinner"></div>
-  </div>
-} @else if (!supabaseAuth.isAuthenticated()) {
-  <app-auth-login (authenticated)="onSupabaseAuthenticated()" />
-} @else if (!authPinService.isUnlocked()) {
+@if (!authPinService.isUnlocked()) {
   <app-pin-lock (unlocked)="onAppUnlocked()" />
 } @else {
   <div class="app-shell">
