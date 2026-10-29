@@ -228,8 +228,8 @@ export default async function handler(req, res) {
       });
     }
 
-    const title = '🌙 Recordatorio de Gastos (7:00 PM)';
-    const body = '¡Buenas noches! Recuerda registrar los gastos que tuviste hoy en FinanzasHogar para mantener las cuentas al día.';
+    const title = 'Recordatorio de Gastos';
+    const body = 'Recuerda registrar los gastos que tuviste hoy para mantener las cuentas al día.';
 
     // 8. Control de consumo de recursos y preparación de lote (CWE-400)
     const MAX_CRON_TOKENS = 50;

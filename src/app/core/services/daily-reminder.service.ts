@@ -37,7 +37,7 @@ export class DailyReminderService {
   });
 
   readonly reminderIcon = computed(() => {
-    return '🌙';
+    return '📝';
   });
 
   readonly showBanner = signal<boolean>(false);
@@ -126,7 +126,7 @@ export class DailyReminderService {
         if (alreadyNotified !== slotKey) {
           try {
             new Notification('FinanzasHogar', {
-              body: `🌙 Recordatorio (7:00 PM): ${this.reminderMessage()}`,
+              body: `Recordatorio: ${this.reminderMessage()}`,
               icon: '/favicon.svg',
             });
             localStorage.setItem('last_native_reminder_sent', slotKey);
