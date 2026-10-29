@@ -30,12 +30,12 @@ export interface RemoteConfigValues {
 }
 
 export const DEFAULT_REMOTE_CONFIG: RemoteConfigValues = {
-  daily_reminder_hour: 21,
-  daily_reminder_morning_hour: 9,
-  daily_reminder_evening_hour: 21,
-  daily_reminder_message: '¿Tuviste gastos hoy? No olvides reportar los gastos de hoy',
-  daily_reminder_morning_message: '☀️ ¡Buenos días! No olvides reportar los gastos que tengas hoy o pendientes de ayer',
-  daily_reminder_evening_message: '🌙 ¡Buenas noches! Recuerda registrar todos tus gastos de hoy para mantener las cuentas al día',
+  daily_reminder_hour: 19,
+  daily_reminder_morning_hour: 19,
+  daily_reminder_evening_hour: 19,
+  daily_reminder_message: '🌙 ¡Buenas noches! Recuerda registrar tus gastos de hoy para mantener las cuentas al día',
+  daily_reminder_morning_message: '🌙 ¡Buenas noches! Recuerda registrar tus gastos de hoy para mantener las cuentas al día',
+  daily_reminder_evening_message: '🌙 ¡Buenas noches! Recuerda registrar tus gastos de hoy para mantener las cuentas al día',
   tc_weekly_budget: 100_000,
   budget_hogar: 2_500_000,
   budget_alimentacion: 2_000_000,

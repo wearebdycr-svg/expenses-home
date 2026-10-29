@@ -3,6 +3,12 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist/expenses-home/browser",
   "cleanUrls": true,
+  "crons": [
+    {
+      "path": "/api/cron-reminder",
+      "schedule": "0 0 * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/((?!api/).*)",

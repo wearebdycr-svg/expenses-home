@@ -2,21 +2,18 @@ name: "⏰ Daily Reminders Cron"
 
 on:
   schedule:
-    # 9:00 AM Colombia (UTC-5) = 14:00 UTC
-    - cron: '0 14 * * *'
-    # 9:00 PM Colombia (UTC-5) = 02:00 UTC
-    - cron: '0 2 * * *'
+    # 7:00 PM Colombia (UTC-5) = 00:00 UTC (medianoche)
+    - cron: '0 0 * * *'
   workflow_dispatch:
     inputs:
-      slot:
-        description: 'Slot de recordatorio a enviar'
-        required: true
-        default: 'auto'
+      force:
+        description: 'Forzar envío ignorando ventana de hora y deduplicación'
+        required: false
+        default: 'false'
         type: choice
         options:
-          - 'auto'
-          - 'morning'
-          - 'evening'
+          - 'false'
+          - 'true'
 
 permissions:
   contents: read
@@ -27,24 +24,16 @@ concurrency:
 
 jobs:
   send-reminder:
-    name: "Dispatch Push Reminder"
+    name: "Dispatch Push Reminder 7:00 PM Colombia"
     runs-on: ubuntu-latest
     steps:
-      - name: Calculate Reminder Slot & Trigger
+      - name: Trigger 7:00 PM Reminder
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          SLOT="${{ github.event.inputs.slot || 'auto' }}"
-          if [ "$SLOT" = "auto" ]; then
-            UTC_HOUR=$(date -u +%H)
-            if [ "$UTC_HOUR" -ge 10 ] && [ "$UTC_HOUR" -le 18 ]; then
-              SLOT="morning"
-            else
-              SLOT="evening"
-            fi
-          fi
-          echo "Disparando recordatorio push automático para slot: $SLOT..."
-          URL="https://finanzas-hogar-control-familiar.vercel.app/api/cron-reminder?slot=$SLOT"
+          FORCE="${{ github.event.inputs.force || 'false' }}"
+          echo "Disparando recordatorio push de las 7:00 PM Colombia (force=$FORCE)..."
+          URL="https://finanzas-hogar-control-familiar.vercel.app/api/cron-reminder?force=$FORCE"
           TOKEN="${CRON_SECRET:-sb_publishable_mUn_o-UNyRQ2FhWdQcvsdQ_cnf8duXv}"
           RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -H "Authorization: Bearer $TOKEN" "$URL")
           echo "Respuesta del servidor:"

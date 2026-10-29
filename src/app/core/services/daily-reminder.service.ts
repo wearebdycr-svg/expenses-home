@@ -4,9 +4,9 @@ import { RemoteConfigService } from './remote-config.service';
 import { ToastService } from './toast.service';
 
 export const REMINDER_STORAGE_KEY = 'last_daily_reminder_dismissed';
-export const DEFAULT_MORNING_REMINDER_HOUR = 9; // 9:00 AM
-export const DEFAULT_EVENING_REMINDER_HOUR = 21; // 9:00 PM
-export const DEFAULT_REMINDER_HOUR = 20;
+export const DEFAULT_MORNING_REMINDER_HOUR = 19; // 7:00 PM
+export const DEFAULT_EVENING_REMINDER_HOUR = 19; // 7:00 PM
+export const DEFAULT_REMINDER_HOUR = 19; // 7:00 PM
 
 export type ReminderSlot = 'morning' | 'evening' | null;
 
@@ -33,15 +33,11 @@ export class DailyReminderService {
   readonly currentSlot = signal<ReminderSlot>(null);
 
   readonly reminderMessage = computed(() => {
-    const slot = this.currentSlot();
-    if (slot === 'morning') {
-      return this.remoteConfig.dailyReminderMorningMessage();
-    }
     return this.remoteConfig.dailyReminderEveningMessage();
   });
 
   readonly reminderIcon = computed(() => {
-    return this.currentSlot() === 'morning' ? '☀️' : '🌙';
+    return '🌙';
   });
 
   readonly showBanner = signal<boolean>(false);
@@ -79,11 +75,9 @@ export class DailyReminderService {
 
   getSlotForDate(now: Date = new Date()): ReminderSlot {
     const hour = now.getHours();
+    // Único recordatorio al día: a partir de las 7:00 PM (19:00)
     if (hour >= this.eveningHour()) {
       return 'evening';
-    }
-    if (hour >= this.morningHour()) {
-      return 'morning';
     }
     return null;
   }
@@ -91,7 +85,7 @@ export class DailyReminderService {
   shouldShowReminder(now: Date = new Date()): boolean {
     if (typeof window === 'undefined') return false;
 
-    // Determinar si corresponde al turno de mañana (>= 9:00 AM) o de noche (>= 9:00 PM)
+    // Solo se muestra en el turno de las 7:00 PM
     const slot = this.getSlotForDate(now);
     if (!slot) {
       return false;
@@ -99,7 +93,7 @@ export class DailyReminderService {
 
     const todayStr = getLocalDateIso(now);
 
-    // Verificar si ya fue descartado en este turno específico de hoy
+    // Verificar si ya fue descartado hoy
     try {
       const dismissed = localStorage.getItem(REMINDER_STORAGE_KEY);
       if (dismissed === `${todayStr}_${slot}` || dismissed === todayStr) {
@@ -128,15 +122,14 @@ export class DailyReminderService {
       if (Notification.permission === 'granted') {
         const todayStr = getLocalDateIso(now);
         const slotKey = `${todayStr}_${slot}`;
-        const alreadyNotified = sessionStorage.getItem('last_native_reminder_sent');
+        const alreadyNotified = localStorage.getItem('last_native_reminder_sent');
         if (alreadyNotified !== slotKey) {
           try {
-            const icon = slot === 'morning' ? '☀️' : '🌙';
             new Notification('FinanzasHogar', {
-              body: `${icon} Recordatorio (${slot === 'morning' ? '9:00 AM' : '9:00 PM'}): ${this.reminderMessage()}`,
+              body: `🌙 Recordatorio (7:00 PM): ${this.reminderMessage()}`,
               icon: '/favicon.svg',
             });
-            sessionStorage.setItem('last_native_reminder_sent', slotKey);
+            localStorage.setItem('last_native_reminder_sent', slotKey);
           } catch {
             // Ignorar error de notificación
           }
@@ -148,9 +141,10 @@ export class DailyReminderService {
   dismissForToday(): void {
     const now = new Date();
     const todayStr = getLocalDateIso(now);
-    const slot = this.getSlotForDate(now) || 'morning';
+    const slot = this.getSlotForDate(now) || 'evening';
     try {
       localStorage.setItem(REMINDER_STORAGE_KEY, `${todayStr}_${slot}`);
+      localStorage.setItem('last_native_reminder_sent', `${todayStr}_${slot}`);
     } catch {}
     this.showBanner.set(false);
     this.toastService.info('Entendido: Recordatorio pospuesto.');

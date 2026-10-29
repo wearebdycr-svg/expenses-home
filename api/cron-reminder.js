@@ -114,26 +114,105 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'Unauthorized: Se requiere token de autorización para invocar el recordatorio programado' });
     }
 
-    const nowUtc = new Date();
-    const utcHour = nowUtc.getUTCHours();
-    const querySlot = req.query?.slot || req.query?.time;
+    // 2. Obtener hora exacta en Colombia (America/Bogota, UTC-5 todo el año)
+    const bogotaFormatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Bogota',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+    const timeParts = bogotaFormatter.formatToParts(new Date());
+    const partMap = {};
+    for (const p of timeParts) partMap[p.type] = p.value;
 
-    // Determinar si es recordatorio matutino (14:00 UTC = 9:00 AM Colombia) o nocturno (02:00 UTC = 9:00 PM Colombia)
-    const isMorning = querySlot === 'morning' || (!querySlot && utcHour >= 10 && utcHour <= 18);
+    const bogotaYear = partMap.year;
+    const bogotaMonth = partMap.month;
+    const bogotaDay = partMap.day;
+    const bogotaHour = parseInt(partMap.hour, 10);
+    const bogotaMinute = parseInt(partMap.minute, 10);
+    const todayColombiaIso = `${bogotaYear}-${bogotaMonth}-${bogotaDay}`;
+    const todayColombiaNum = parseInt(`${bogotaYear}${bogotaMonth}${bogotaDay}`, 10);
+    const formattedColombiaTime = `${partMap.hour}:${partMap.minute}`;
 
-    const title = isMorning
-      ? '☀️ Recordatorio de Gastos (9:00 AM)'
-      : '🌙 Recordatorio de Gastos (9:00 PM)';
+    const isForce = req.query?.force === 'true' || req.query?.force === true;
 
-    const body = isMorning
-      ? '¡Buenos días! ¿Tuviste gastos hoy o pendientes de ayer? No olvides reportarlos en FinanzasHogar.'
-      : '¡Buenas noches! No olvides reportar los gastos del día en FinanzasHogar para mantener las cuentas al día.';
+    // 3. Ventana de Seguridad Estricta para Hora Colombia:
+    // El recordatorio está configurado para las 7:00 PM (19:00).
+    // Para evitar notificaciones en la madrugada (por retrasos en colas de runners como GitHub Actions),
+    // bloqueamos el envío fuera de la ventana permitida (18:45 a 20:15 hora Colombia).
+    const isWithinEveningWindow =
+      bogotaHour === 19 ||
+      (bogotaHour === 18 && bogotaMinute >= 45) ||
+      (bogotaHour === 20 && bogotaMinute <= 15);
 
-    // 1. Obtener todos los tokens registrados
+    if (!isForce && !isWithinEveningWindow) {
+      console.log(`[Cron Reminder] Omitido: La hora actual en Colombia es ${formattedColombiaTime}. Solo se permite el envío a las 7:00 PM (ventana 6:45 PM a 8:15 PM).`);
+      return res.status(200).json({
+        success: true,
+        skipped: true,
+        reason: `Hora actual en Colombia: ${formattedColombiaTime}. El recordatorio solo se despacha a las 7:00 PM hora Colombia (ventana 6:45 PM - 8:15 PM). Omitido para evitar notificaciones nocturnas o fuera de hora.`,
+        colombiaTime: formattedColombiaTime,
+        colombiaDate: todayColombiaIso,
+      });
+    }
+
+    // 4. Conexión a Supabase para verificaciones de deduplicación y tokens
     let tokens = [];
     let supabase = null;
     if (supabaseUrl && supabaseKey) {
       supabase = createClient(supabaseUrl, supabaseKey);
+    }
+
+    // 5. Deduplicación Diaria: Asegurar que SOLO se envíe 1 recordatorio por día
+    if (!isForce && supabase) {
+      try {
+        const { data: lastCronLog } = await supabase
+          .from('category_budgets')
+          .select('amount, updated_at')
+          .eq('category', '__cron_reminder_7pm__')
+          .maybeSingle();
+
+        if (lastCronLog && Number(lastCronLog.amount) === todayColombiaNum) {
+          console.log(`[Cron Reminder] Omitido: El recordatorio de hoy (${todayColombiaIso}) ya fue enviado previamente.`);
+          return res.status(200).json({
+            success: true,
+            skipped: true,
+            reason: `El recordatorio de las 7:00 PM ya fue enviado hoy (${todayColombiaIso}). Omitiendo duplicado.`,
+            lastSentAt: lastCronLog.updated_at,
+          });
+        }
+      } catch (dedupErr) {
+        console.warn('[Cron Reminder] Advertencia verificando duplicados:', dedupErr.message);
+      }
+    }
+
+    // 6. Si la familia ya registró gastos hoy en Colombia, omitir el recordatorio
+    if (!isForce && supabase) {
+      try {
+        const { data: todayExpenses } = await supabase
+          .from('expenses')
+          .select('id')
+          .eq('date', todayColombiaIso)
+          .limit(1);
+
+        if (todayExpenses && todayExpenses.length > 0) {
+          console.log(`[Cron Reminder] Omitido: Ya se registraron gastos para hoy (${todayColombiaIso}).`);
+          return res.status(200).json({
+            success: true,
+            skipped: true,
+            reason: `La familia ya registró gastos hoy (${todayColombiaIso}). No se requiere recordatorio.`,
+          });
+        }
+      } catch (expCheckErr) {
+        console.warn('[Cron Reminder] Advertencia consultando gastos de hoy:', expCheckErr.message);
+      }
+    }
+
+    // 7. Obtener los tokens FCM de los dispositivos registrados
+    if (supabase) {
       const { data: dbTokens, error } = await supabase.from('fcm_tokens').select('token');
       if (!error && dbTokens) {
         tokens = dbTokens.map((t) => t.token);
@@ -143,12 +222,16 @@ export default async function handler(req, res) {
     if (tokens.length === 0) {
       return res.status(200).json({
         success: true,
-        message: 'No hay tokens registrados para enviar recordatorios.',
-        slot: isMorning ? 'morning' : 'evening',
+        message: 'No hay tokens FCM registrados para enviar recordatorios.',
+        slot: 'evening_7pm',
+        colombiaDate: todayColombiaIso,
       });
     }
 
-    // 2. Control de consumo de recursos y preparación de lote (CWE-400)
+    const title = '🌙 Recordatorio de Gastos (7:00 PM)';
+    const body = '¡Buenas noches! Recuerda registrar los gastos que tuviste hoy en FinanzasHogar para mantener las cuentas al día.';
+
+    // 8. Control de consumo de recursos y preparación de lote (CWE-400)
     const MAX_CRON_TOKENS = 50;
     const targetTokens = tokens.slice(0, MAX_CRON_TOKENS);
 
@@ -202,7 +285,7 @@ export default async function handler(req, res) {
                     },
                     data: {
                       type: 'daily_reminder',
-                      slot: isMorning ? 'morning' : 'evening',
+                      slot: 'evening_7pm',
                       url: '/#gastos',
                     },
                   },
@@ -259,7 +342,7 @@ export default async function handler(req, res) {
                 android_channel_id: 'finanzas_hogar_alerts',
                 icon: '/favicon.svg',
               },
-              data: { type: 'daily_reminder', slot: isMorning ? 'morning' : 'evening', url: '/#gastos' },
+              data: { type: 'daily_reminder', slot: 'evening_7pm', url: '/#gastos' },
             }),
           });
           if (resp.ok) {
@@ -271,7 +354,24 @@ export default async function handler(req, res) {
       }
     }
 
-    // 4. Limpieza automática de tokens obsoletos/dados de baja en Supabase
+    // 9. Registrar envío exitoso de hoy para evitar cualquier duplicación
+    if (sentCount > 0 && supabase) {
+      try {
+        await supabase.from('category_budgets').upsert(
+          {
+            category: '__cron_reminder_7pm__',
+            amount: todayColombiaNum,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'category' }
+        );
+        console.log(`[Cron FCM] Recordatorio del día ${todayColombiaIso} registrado para deduplicación.`);
+      } catch (logErr) {
+        console.warn('[Cron FCM] Error registrando deduplicación:', logErr.message);
+      }
+    }
+
+    // 10. Limpieza automática de tokens obsoletos/dados de baja en Supabase
     if (invalidTokens.length > 0 && supabase) {
       try {
         await supabase.from('fcm_tokens').delete().in('token', invalidTokens);
@@ -283,7 +383,9 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
-      slot: isMorning ? 'morning' : 'evening',
+      slot: 'evening_7pm',
+      colombiaDate: todayColombiaIso,
+      colombiaTime: formattedColombiaTime,
       deliveredCount: sentCount,
       totalTokens: tokens.length,
       cleanedTokens: invalidTokens.length,
