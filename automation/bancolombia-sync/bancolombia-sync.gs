@@ -28,11 +28,13 @@
 // 1. CONFIGURACIÓN PERSONALIZADA
 // ==============================================================================
 const CONFIG = {
-  // URL de tu proyecto de Supabase (ej: 'https://zmechahctplsnnauxvju.supabase.co')
-  SUPABASE_URL: 'https://fbwljvmqzpmcfokogbpw.supabase.co',
+  // URL de tu proyecto de Supabase (ej: 'https://fbwljvmqzpmcfokogbpw.supabase.co')
+  SUPABASE_URL: (typeof PropertiesService !== 'undefined' && PropertiesService.getScriptProperties().getProperty('SUPABASE_URL')) || 'https://fbwljvmqzpmcfokogbpw.supabase.co',
 
   // Llave anónima pública de Supabase
-  SUPABASE_ANON_KEY: 'sb_publishable_mUn_o-UNyRQ2FhWdQcvsdQ_cnf8duXv',
+  // Puede configurarse en Google Apps Script -> Configuración del proyecto -> Propiedades de la secuencia de comandos (clave: SUPABASE_ANON_KEY),
+  // o pegarse directamente aquí en tu copia privada de Apps Script.
+  SUPABASE_ANON_KEY: (typeof PropertiesService !== 'undefined' && PropertiesService.getScriptProperties().getProperty('SUPABASE_ANON_KEY')) || '',
 
   // URL base de la aplicación en Vercel para despachar notificaciones push a los móviles
   APP_BASE_URL: 'https://finanzas-hogar-control-familiar.vercel.app',
@@ -768,43 +770,25 @@ function testPushNotification() {
 // ==============================================================================
 
 /**
- * Envía el recordatorio matutino de gastos (9:00 AM hora Colombia)
+ * Envía el recordatorio diario de gastos (7:00 PM hora Colombia)
  */
-function sendMorningReminder() {
+function sendDailyReminder7pm() {
   if (!CONFIG.APP_BASE_URL) return;
-  const url = `${CONFIG.APP_BASE_URL.replace(/\/$/, '')}/api/cron-reminder?slot=morning`;
+  const url = `${CONFIG.APP_BASE_URL.replace(/\/$/, '')}/api/cron-reminder`;
   try {
     const resp = UrlFetchApp.fetch(url, {
       method: 'get',
       headers: { Authorization: `Bearer ${CONFIG.SUPABASE_ANON_KEY}` },
       muteHttpExceptions: true,
     });
-    Logger.log(`☀️ Recordatorio 9:00 AM ejecutado (HTTP ${resp.getResponseCode()}): ${resp.getContentText()}`);
+    Logger.log(`⏰ Recordatorio 7:00 PM ejecutado (HTTP ${resp.getResponseCode()}): ${resp.getContentText()}`);
   } catch (e) {
-    Logger.log(`⚠️ Error despachando recordatorio 9:00 AM: ${e.message}`);
+    Logger.log(`⚠️ Error despachando recordatorio 7:00 PM: ${e.message}`);
   }
 }
 
 /**
- * Envía el recordatorio nocturno de gastos (9:00 PM hora Colombia)
- */
-function sendEveningReminder() {
-  if (!CONFIG.APP_BASE_URL) return;
-  const url = `${CONFIG.APP_BASE_URL.replace(/\/$/, '')}/api/cron-reminder?slot=evening`;
-  try {
-    const resp = UrlFetchApp.fetch(url, {
-      method: 'get',
-      headers: { Authorization: `Bearer ${CONFIG.SUPABASE_ANON_KEY}` },
-      muteHttpExceptions: true,
-    });
-    Logger.log(`🌙 Recordatorio 9:00 PM ejecutado (HTTP ${resp.getResponseCode()}): ${resp.getContentText()}`);
-  } catch (e) {
-    Logger.log(`⚠️ Error despachando recordatorio 9:00 PM: ${e.message}`);
-  }
-}
-
-/**
- * Instala o actualiza los disparadores diarios de las 9:00 AM y 9:00 PM en Google Apps Script
+ * Instala o actualiza el disparador diario de las 7:00 PM en Google Apps Script
  * Selecciónala en el desplegable de Apps Script y presiona "Ejecutar" una sola vez.
  */
 function installDailyReminders() {
@@ -812,28 +796,20 @@ function installDailyReminders() {
   const triggers = ScriptApp.getProjectTriggers();
   for (const t of triggers) {
     const fn = t.getHandlerFunction();
-    if (fn === 'sendMorningReminder' || fn === 'sendEveningReminder') {
+    if (fn === 'sendDailyReminder7pm' || fn === 'sendMorningReminder' || fn === 'sendEveningReminder') {
       ScriptApp.deleteTrigger(t);
     }
   }
 
-  // 1. Disparador 9:00 AM (hora Colombia)
-  ScriptApp.newTrigger('sendMorningReminder')
+  // Disparador 7:00 PM / 19:00 (hora Colombia)
+  ScriptApp.newTrigger('sendDailyReminder7pm')
     .timeBased()
-    .atHour(9)
+    .atHour(19)
     .everyDays(1)
     .inTimezone('America/Bogota')
     .create();
 
-  // 2. Disparador 9:00 PM / 21:00 (hora Colombia)
-  ScriptApp.newTrigger('sendEveningReminder')
-    .timeBased()
-    .atHour(21)
-    .everyDays(1)
-    .inTimezone('America/Bogota')
-    .create();
-
-  Logger.log('✅ Disparadores de recordatorios instalados con éxito para las 9:00 AM y 9:00 PM (hora Colombia).');
+  Logger.log('✅ Disparador de recordatorio instalado con éxito para las 7:00 PM (hora Colombia).');
 }
 
 

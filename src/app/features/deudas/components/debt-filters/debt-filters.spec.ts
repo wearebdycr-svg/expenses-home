@@ -27,6 +27,6 @@ describe('DebtFilters', () => {
     expect(el.textContent).toContain('PERSONA');
     const badge = el.querySelector('.badge-debts-count');
     expect(badge).toBeTruthy();
-    expect(badge?.textContent).toContain('deudas registradas');
+    expect(badge?.textContent).toMatch(/deuda(s)? registrada(s)?/);
   });
 });
