@@ -316,11 +316,25 @@ export class ProjectsService {
     if (draft.description) payload['description'] = draft.description;
 
     try {
-      const { data, error } = await this.supabase.client
+      let { data, error } = await this.supabase.client
         .from('projects')
         .insert([payload])
         .select()
         .single();
+
+      // Fallback defensivo: si la BD aún no tiene la columna 'currency', reintentar sin ella para no romper el guardado
+      if (error && error.message && error.message.includes('currency')) {
+        console.warn('Supabase projects no tiene columna currency aún. Reintentando sin currency...');
+        const fallbackPayload = { ...payload };
+        delete fallbackPayload['currency'];
+        const retry = await this.supabase.client
+          .from('projects')
+          .insert([fallbackPayload])
+          .select()
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
 
       if (error) {
         console.error('Error insertando proyecto en Supabase:', error.message);
@@ -378,10 +392,22 @@ export class ProjectsService {
     };
 
     try {
-      const { error } = await this.supabase.client
+      let { error } = await this.supabase.client
         .from('projects')
         .update(payload)
         .eq('id', id);
+
+      // Fallback defensivo: si la BD aún no tiene la columna 'currency', reintentar sin ella
+      if (error && error.message && error.message.includes('currency')) {
+        console.warn('Supabase projects no tiene columna currency aún. Reintentando update sin currency...');
+        const fallbackPayload = { ...payload };
+        delete fallbackPayload['currency'];
+        const retry = await this.supabase.client
+          .from('projects')
+          .update(fallbackPayload)
+          .eq('id', id);
+        error = retry.error;
+      }
 
       if (error) {
         console.error('Error actualizando proyecto en Supabase:', error.message);
@@ -654,23 +680,30 @@ export class ProjectsService {
   private async syncLocalProjectsToSupabase(): Promise<void> {
     const locals = this.projectsSignal();
     for (const p of locals) {
-      try {
-        const payload: Record<string, any> = {
-          name: p.name,
-          budget_amount: p.budgetAmount,
-          currency: p.currency || 'COP',
-          person: p.person,
-          icon: p.icon,
-          color: p.color,
-          status: p.status || 'activo',
-        };
-        if (p.startDate) payload['start_date'] = p.startDate;
-        if (p.endDate) payload['end_date'] = p.endDate;
-        if (p.description) payload['description'] = p.description;
+      const payload: Record<string, any> = {
+        name: p.name,
+        budget_amount: p.budgetAmount,
+        currency: p.currency || 'COP',
+        person: p.person,
+        icon: p.icon,
+        color: p.color,
+        status: p.status || 'activo',
+      };
+      if (p.startDate) payload['start_date'] = p.startDate;
+      if (p.endDate) payload['end_date'] = p.endDate;
+      if (p.description) payload['description'] = p.description;
 
+      try {
         await this.supabase.client.from('projects').insert([payload]);
       } catch {
-        // Silently retry next time
+        // Reintentar sin currency si la columna no existe en BD
+        try {
+          const fallbackPayload = { ...payload };
+          delete fallbackPayload['currency'];
+          await this.supabase.client.from('projects').insert([fallbackPayload]);
+        } catch {
+          // Silently retry next time
+        }
       }
     }
   }
