@@ -116,14 +116,27 @@
         </div>
       }
 
+      <!-- Selector de Categoría Principal Agrupada -->
       <app-select
         label="Categoría"
-        [options]="categoryOptions()"
-        [value]="category()"
+        [options]="mainCategoryOptions()"
+        [value]="mainCategory()"
         [hasError]="!!errors()['category']"
         [errorMessage]="errors()['category'] ?? ''"
-        (valueChange)="category.set($event)"
+        (valueChange)="onMainCategoryChange($event)"
       />
+
+      <!-- Selector de Subcategoría (cuando se selecciona Deudas, Gastos Fijos, Tarjetas o Proyectos) -->
+      @if (hasSubcategories()) {
+        <div class="subcategory-select-wrapper">
+          <app-select
+            [label]="subCategoryLabel()"
+            [options]="subCategoryOptions()"
+            [value]="subCategory()"
+            (valueChange)="onSubCategoryChange($event)"
+          />
+        </div>
+      }
 
       @if (category() === 'Deudas') {
         <div class="debt-amortization-info" style="background: #eff6ff; border-color: #bfdbfe;">

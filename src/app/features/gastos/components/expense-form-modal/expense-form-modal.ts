@@ -53,6 +53,8 @@ export class ExpenseFormModal {
   protected readonly trmService = inject(TrmService);
 
   expense = input<Expense | null>(null);
+  protected readonly mainCategory = signal<string>('Mercado');
+  protected readonly subCategory = signal<string>('');
   save = output<ExpenseDraft>();
   cancel = output<void>();
 
@@ -132,6 +134,144 @@ export class ExpenseFormModal {
       label: person,
     }),
   );
+
+  /**
+   * Opciones de Categorías Principales Agrupadas
+   */
+  protected readonly mainCategoryOptions = computed<readonly SelectOption<string>[]>(() => {
+    // 1. Categorías estándar del sistema (excluyendo 'Deudas' y 'TC-compartida' que son grupos principales)
+    const baseStandard = EXPENSE_CATEGORIES.filter(
+      (c) => c !== 'Deudas' && c !== 'TC-compartida',
+    ).map((c) => ({
+      value: c,
+      label: c,
+    }));
+
+    const groups: SelectOption<string>[] = [
+      ...baseStandard,
+      { value: 'Deudas', label: '💳 Deudas / Créditos (Ver lista...)' },
+      { value: 'Gastos Fijos', label: '📌 Gastos Fijos Mensuales (Ver lista...)' },
+      { value: 'Tarjetas', label: '💳 Tarjetas de Crédito (Ver lista...)' },
+    ];
+
+    if (this.projectsService.activeProjectCategories().length > 0) {
+      groups.push({ value: 'Proyectos', label: '🎯 Proyectos & Eventos (Ver lista...)' });
+    }
+
+    return groups;
+  });
+
+  /**
+   * Indica si la categoría principal seleccionada requiere elegir una subcategoría
+   */
+  protected readonly hasSubcategories = computed<boolean>(() => {
+    const main = this.mainCategory();
+    return main === 'Deudas' || main === 'Gastos Fijos' || main === 'Tarjetas' || main === 'Proyectos';
+  });
+
+  /**
+   * Etiqueta del selector de subcategorías
+   */
+  protected readonly subCategoryLabel = computed<string>(() => {
+    switch (this.mainCategory()) {
+      case 'Deudas':
+        return 'Seleccionar Crédito / Deuda a Pagar';
+      case 'Gastos Fijos':
+        return 'Seleccionar Gasto Fijo';
+      case 'Tarjetas':
+        return 'Seleccionar Tarjeta de Crédito';
+      case 'Proyectos':
+        return 'Seleccionar Proyecto o Evento';
+      default:
+        return 'Subcategoría';
+    }
+  });
+
+  /**
+   * Opciones dinámicas de subcategorías según el grupo principal seleccionado
+   */
+  protected readonly subCategoryOptions = computed<readonly SelectOption<string>[]>(() => {
+    const main = this.mainCategory();
+    if (main === 'Deudas') {
+      const activeDebts = this.debtsService.activeDebts();
+      if (activeDebts.length === 0) {
+        return [{ value: 'Deudas', label: 'Sin créditos activos registrados (General)' }];
+      }
+      return activeDebts.map((d: Debt) => ({
+        value: d.name,
+        label: `${d.name} (${d.person} - Saldo: ${this.formatCOP(d.currentBalance)})`,
+      }));
+    }
+
+    if (main === 'Gastos Fijos') {
+      const activeFixed = this.fixedExpensesService.activeFixedExpenses();
+      if (activeFixed.length === 0) {
+        return [{ value: '', label: 'Sin gastos fijos registrados' }];
+      }
+      return activeFixed.map((f: FixedExpense) => ({
+        value: f.name,
+        label: `${f.name} (${f.person} - Est: ${this.formatCOP(f.expectedAmount)})`,
+      }));
+    }
+
+    if (main === 'Tarjetas') {
+      const activeCards = this.tcService.activeCards();
+      return activeCards.map((c: TcCard) => ({
+        value: c.id === 'tc-compartida' ? 'TC-compartida' : `TC: ${c.name}`,
+        label: `${c.name} (•••• ${c.lastDigits} - ${c.person})`,
+      }));
+    }
+
+    if (main === 'Proyectos') {
+      const activeProjects = this.projectsService.activeProjectCategories();
+      return activeProjects.map((p) => ({
+        value: p.name,
+        label: `🎯 ${p.name} (${p.person})`,
+      }));
+    }
+
+    return [];
+  });
+
+  /**
+   * Handler al cambiar la categoría principal
+   */
+  protected onMainCategoryChange(selectedMain: string): void {
+    this.mainCategory.set(selectedMain);
+
+    if (selectedMain === 'Deudas') {
+      const firstDebt = this.debtsService.activeDebts()[0];
+      const sub = firstDebt ? firstDebt.name : 'Deudas';
+      this.subCategory.set(sub);
+      this.category.set(sub as ExpenseCategory);
+    } else if (selectedMain === 'Gastos Fijos') {
+      const firstFixed = this.fixedExpensesService.activeFixedExpenses()[0];
+      const sub = firstFixed ? firstFixed.name : '';
+      this.subCategory.set(sub);
+      this.category.set(sub as ExpenseCategory);
+    } else if (selectedMain === 'Tarjetas') {
+      const firstCard = this.tcService.activeCards()[0];
+      const sub = firstCard ? (firstCard.id === 'tc-compartida' ? 'TC-compartida' : `TC: ${firstCard.name}`) : 'TC-compartida';
+      this.subCategory.set(sub);
+      this.category.set(sub as ExpenseCategory);
+    } else if (selectedMain === 'Proyectos') {
+      const firstProj = this.projectsService.activeProjectCategories()[0];
+      const sub = firstProj ? firstProj.name : '';
+      this.subCategory.set(sub);
+      this.category.set(sub as ExpenseCategory);
+    } else {
+      this.subCategory.set('');
+      this.category.set(selectedMain as ExpenseCategory);
+    }
+  }
+
+  /**
+   * Handler al cambiar la subcategoría
+   */
+  protected onSubCategoryChange(selectedSub: string): void {
+    this.subCategory.set(selectedSub);
+    this.category.set(selectedSub as ExpenseCategory);
+  }
 
   protected readonly categoryOptions = computed<readonly SelectOption<ExpenseCategory>[]>(() => {
     // 1. Categorías oficiales estándar (excluyendo TC-compartida para agruparla junto con las tarjetas)
@@ -223,8 +363,34 @@ export class ExpenseFormModal {
       const existing = this.expense();
       this.date.set(existing?.date ?? todayIso());
       this.person.set(existing?.person ?? '');
-      this.category.set(existing?.category ?? 'Mercado');
       this.description.set(existing?.description ?? '');
+
+      const initialCat = existing?.category ?? 'Mercado';
+      this.category.set(initialCat);
+
+      // Determinar si la categoría pertenece a Deudas, Gastos Fijos, Tarjetas, Proyectos o Estándar
+      const isDebt = this.debtsService.allDebts().some((d) => d.name === initialCat) || initialCat === 'Deudas';
+      const isFixed = this.fixedExpensesService.activeFixedExpenses().some((f) => f.name === initialCat);
+      const isCard = this.tcService.activeCards().some((c) => (c.id === 'tc-compartida' ? 'TC-compartida' : `TC: ${c.name}`) === initialCat || c.name === initialCat);
+      const isProj = this.projectsService.projects().some((p) => p.name === initialCat);
+
+      if (isDebt) {
+        this.mainCategory.set('Deudas');
+        this.subCategory.set(initialCat);
+      } else if (isFixed) {
+        this.mainCategory.set('Gastos Fijos');
+        this.subCategory.set(initialCat);
+      } else if (isCard) {
+        this.mainCategory.set('Tarjetas');
+        this.subCategory.set(initialCat);
+      } else if (isProj) {
+        this.mainCategory.set('Proyectos');
+        this.subCategory.set(initialCat);
+      } else {
+        this.mainCategory.set(initialCat);
+        this.subCategory.set('');
+      }
+
       if (existing) {
         if (existing.currency === 'USD' || (existing.amountUsd && existing.amountUsd > 0)) {
           this.currency.set('USD');

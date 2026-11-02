@@ -47,6 +47,26 @@
   box-shadow: 0 0 0 3px rgba(27, 42, 74, 0.15);
 }
 
+.subcategory-select-wrapper {
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  padding: 0.75rem 0.85rem;
+  margin-top: -0.25rem;
+  animation: fadeInSubcategory 0.2s ease-out;
+}
+
+@keyframes fadeInSubcategory {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .form-actions {
   display: flex;
   justify-content: flex-end;
