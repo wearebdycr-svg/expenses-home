@@ -127,12 +127,25 @@ describe('App', () => {
     expect(fixture.nativeElement.querySelector('app-categoria-page')).toBeTruthy();
   });
 
+  it('navigates to gastos-fijos page and renders app-gastos-fijos-page', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const app = fixture.componentInstance;
+
+    const fixedButton = fixture.nativeElement.querySelectorAll('.nav-item')[4] as HTMLButtonElement;
+    fixedButton.click();
+    fixture.detectChanges();
+
+    expect(app['currentPage']()).toBe('gastos-fijos');
+    expect(fixture.nativeElement.querySelector('app-gastos-fijos-page')).toBeTruthy();
+  });
+
   it('navigates to deudas page and renders app-deudas-page', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     const app = fixture.componentInstance;
 
-    const deudasButton = fixture.nativeElement.querySelectorAll('.nav-item')[4] as HTMLButtonElement;
+    const deudasButton = fixture.nativeElement.querySelectorAll('.nav-item')[5] as HTMLButtonElement;
     deudasButton.click();
     fixture.detectChanges();
 
@@ -145,7 +158,7 @@ describe('App', () => {
     fixture.detectChanges();
     const app = fixture.componentInstance;
 
-    const tcButton = fixture.nativeElement.querySelectorAll('.nav-item')[5] as HTMLButtonElement;
+    const tcButton = fixture.nativeElement.querySelectorAll('.nav-item')[6] as HTMLButtonElement;
     tcButton.click();
     fixture.detectChanges();
 

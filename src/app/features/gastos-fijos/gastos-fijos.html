@@ -1,0 +1,275 @@
+<div class="fixed-expenses-page">
+
+  <!-- Header principal -->
+  <header class="page-header">
+    <div class="header-text">
+      <h1 class="page-title">Gastos Fijos Mensuales</h1>
+      <p class="page-subtitle">
+        Control y seguimiento de obligaciones fijas mensuales con chulo automático de pago.
+      </p>
+    </div>
+
+    <button type="button" class="btn btn-primary" (click)="openCreateModal()">
+      <app-icon name="plus" [size]="18" />
+      <span>+ Nuevo Gasto Fijo</span>
+    </button>
+  </header>
+
+  <!-- Filtros / Selector de Periodo -->
+  <div class="filters-toolbar">
+    <div class="filter-controls">
+      <div class="filter-item">
+        <app-select
+          label="Mes"
+          [options]="monthOptions"
+          [value]="service.selectedMonth()"
+          (valueChange)="service.setMonth($event)"
+        />
+      </div>
+
+      <div class="filter-item">
+        <app-select
+          label="Año"
+          [options]="yearOptions"
+          [value]="service.selectedYear()"
+          (valueChange)="service.setYear($event)"
+        />
+      </div>
+
+      <div class="filter-item">
+        <app-select
+          label="Responsable"
+          [options]="personOptions"
+          [value]="service.selectedPerson()"
+          (valueChange)="service.setPerson($event)"
+        />
+      </div>
+    </div>
+
+    <div class="period-display-badge">
+      <app-icon name="calendar" [size]="15" />
+      <span>{{ currentMonthName() }} {{ service.selectedYear() }}</span>
+    </div>
+  </div>
+
+  <!-- KPI Cards Resumen del Mes -->
+  @let summary = service.summary();
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <span class="kpi-label">Total Fijos Programados</span>
+      <span class="kpi-value val-total">{{ summary.totalFixed }}</span>
+      <span class="kpi-sub">{{ formatCOP(summary.totalExpectedAmount) }} presupuestado</span>
+    </div>
+
+    <div class="kpi-card kpi-paid">
+      <div class="kpi-header-row">
+        <span class="kpi-label">Pagados este mes</span>
+        <span class="kpi-chip chip-paid">✅ {{ summary.paidCount }}/{{ summary.totalFixed }}</span>
+      </div>
+      <span class="kpi-value val-paid">{{ formatCOP(summary.totalPaidAmount) }}</span>
+      <span class="kpi-sub">{{ summary.progressPercentage }}% de cobertura</span>
+    </div>
+
+    <div class="kpi-card kpi-pending">
+      <div class="kpi-header-row">
+        <span class="kpi-label">Pendientes de Pago</span>
+        <span class="kpi-chip chip-pending">⏳ {{ summary.pendingCount }}</span>
+      </div>
+      <span class="kpi-value val-pending">{{ formatCOP(summary.totalPendingAmount) }}</span>
+      <span class="kpi-sub">Por pagar en {{ currentMonthName() }}</span>
+    </div>
+  </div>
+
+  <!-- Barra de progreso general -->
+  @if (summary.totalFixed > 0) {
+    <div class="progress-container">
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" [style.width.%]="summary.progressPercentage"></div>
+      </div>
+    </div>
+  }
+
+  <!-- Tabla de Gastos Fijos del Mes -->
+  @if (service.monthlyStatuses().length === 0) {
+    <div class="empty-state">
+      <div class="empty-icon-circle">
+        <app-icon name="check-circle" [size]="36" />
+      </div>
+      <h3 class="empty-title">No hay gastos fijos registrados</h3>
+      <p class="empty-desc">
+        Crea gastos fijos como "Somos Internet", "Administración" o suscripciones para tener trazabilidad automática.
+      </p>
+      <button type="button" class="btn btn-primary" (click)="openCreateModal()">
+        <app-icon name="plus" [size]="18" />
+        <span>Crear Primer Gasto Fijo</span>
+      </button>
+    </div>
+  } @else {
+    <div class="table-card">
+      <div class="table-wrapper">
+        <table class="fixed-table">
+          <thead>
+            <tr>
+              <th class="th-status text-center">Estado {{ currentMonthName() }}</th>
+              <th class="th-name">Gasto Fijo</th>
+              <th class="th-person">Responsable</th>
+              <th class="th-day text-center">Día Límite</th>
+              <th class="th-expected text-right">Monto Estimado</th>
+              <th class="th-paid text-right">Monto Pagado</th>
+              <th class="th-date text-center">Fecha Pago</th>
+              <th class="th-actions text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of service.monthlyStatuses(); track item.fixedExpense.id) {
+              <tr [class.row-paid]="item.isPaid" [class.row-pending]="!item.isPaid">
+                <!-- Chulo Verde de Pagado o Pendiente -->
+                <td class="text-center col-status">
+                  @if (item.isPaid) {
+                    <div class="status-badge status-paid" title="Pagado automáticamente este mes">
+                      <app-icon name="check-circle" [size]="18" />
+                      <span>Pagado</span>
+                    </div>
+                  } @else {
+                    <div class="status-badge status-pending" title="Pendiente por pagar este mes">
+                      <app-icon name="clock" [size]="16" />
+                      <span>Pendiente</span>
+                    </div>
+                  }
+                </td>
+
+                <!-- Nombre y notas -->
+                <td class="col-name font-medium">
+                  <div class="name-container">
+                    <span class="fixed-title">{{ item.fixedExpense.name }}</span>
+                    @if (item.fixedExpense.notes) {
+                      <span class="fixed-notes">{{ item.fixedExpense.notes }}</span>
+                    }
+                  </div>
+                </td>
+
+                <!-- Responsable -->
+                <td class="col-person">
+                  <span class="person-tag tag-{{ item.fixedExpense.person.toLowerCase() }}">
+                    {{ item.fixedExpense.person }}
+                  </span>
+                </td>
+
+                <!-- Día Límite -->
+                <td class="text-center col-day">
+                  @if (item.fixedExpense.dueDay) {
+                    <span class="due-day-badge">Día {{ item.fixedExpense.dueDay }}</span>
+                  } @else {
+                    <span class="text-muted">—</span>
+                  }
+                </td>
+
+                <!-- Monto Estimado -->
+                <td class="text-right col-expected font-semibold text-muted">
+                  {{ formatCOP(item.fixedExpense.expectedAmount) }}
+                </td>
+
+                <!-- Monto Pagado -->
+                <td class="text-right col-paid font-semibold">
+                  @if (item.isPaid) {
+                    <span class="text-success">{{ formatCOP(item.paidAmount) }}</span>
+                  } @else {
+                    <span class="text-muted">—</span>
+                  }
+                </td>
+
+                <!-- Fecha Pago -->
+                <td class="text-center col-date">
+                  @if (item.isPaid && item.paidDate) {
+                    <span class="paid-date-badge">{{ item.paidDate }}</span>
+                  } @else {
+                    <span class="text-muted">—</span>
+                  }
+                </td>
+
+                <!-- Acciones -->
+                <td class="text-center col-actions">
+                  <div class="row-actions">
+                    <button
+                      type="button"
+                      class="row-action-btn history-btn"
+                      (click)="openYearlyHistory(item.fixedExpense)"
+                      title="Ver Histórico Anual Mes a Mes"
+                    >
+                      <app-icon name="calendar" [size]="15" />
+                    </button>
+                    <button
+                      type="button"
+                      class="row-action-btn edit-btn"
+                      (click)="openEditModal(item.fixedExpense)"
+                      title="Editar"
+                    >
+                      <app-icon name="pencil" [size]="15" />
+                    </button>
+                    <button
+                      type="button"
+                      class="row-action-btn delete-btn"
+                      (click)="onDelete(item.fixedExpense)"
+                      title="Eliminar"
+                    >
+                      <app-icon name="trash-2" [size]="15" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  <!-- Modal Crear/Editar Gasto Fijo -->
+  @if (isModalOpen()) {
+    <app-fixed-expense-modal
+      [fixedExpense]="editingFixedExpense()"
+      (save)="onSave($event)"
+      (cancel)="closeModal()"
+    />
+  }
+
+  <!-- Modal Histórico Anual Mes a Mes -->
+  @if (showYearHistoryModal() && historyExpense(); as fixed) {
+    <div class="history-modal-backdrop" (click)="closeYearlyHistory()">
+      <div class="history-modal-card" (click)="$event.stopPropagation()">
+        <div class="history-header">
+          <div>
+            <h3 class="history-title">Histórico de Pagos — {{ fixed.name }}</h3>
+            <span class="history-subtitle">Año {{ service.selectedYear() }} | Estimado: {{ formatCOP(fixed.expectedAmount) }}</span>
+          </div>
+          <button type="button" class="close-btn" (click)="closeYearlyHistory()">
+            <app-icon name="x" [size]="20" />
+          </button>
+        </div>
+
+        <div class="history-months-grid">
+          @for (h of getYearlyHistory(); track h.month) {
+            <div class="month-pill-card" [class.month-paid]="h.isPaid" [class.month-unpaid]="!h.isPaid">
+              <span class="month-name">{{ monthsList[h.month - 1] }}</span>
+              <div class="month-status-row">
+                @if (h.isPaid) {
+                  <span class="month-check">✅ Pagado</span>
+                  <span class="month-amount">{{ formatCOP(h.amount) }}</span>
+                } @else {
+                  <span class="month-pending">⏳ Pendiente</span>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="history-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeYearlyHistory()">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, input, output, signal } from '@angu
 import { environment } from '../../../../environments/environment';
 import { Icon, type IconName } from '../icon/icon';
 
-export type SidebarPageId = 'gastos' | 'ingresos' | 'resumen' | 'categoria' | 'deudas' | 'tc-compartida' | 'proyectos';
+export type SidebarPageId = 'gastos' | 'ingresos' | 'resumen' | 'categoria' | 'gastos-fijos' | 'deudas' | 'tc-compartida' | 'proyectos';
 
 interface SidebarNavItem {
   id: SidebarPageId;
@@ -38,6 +38,7 @@ export class Sidebar {
     { id: 'ingresos', label: 'Ingresos', description: 'Registro de entradas', icon: 'trending-up' },
     { id: 'resumen', label: 'Resumen Mensual', description: 'Balance por mes', icon: 'bar-chart-2' },
     { id: 'categoria', label: 'Por Categoría', description: 'Análisis de categorías', icon: 'pie-chart' },
+    { id: 'gastos-fijos', label: 'Gastos Fijos', description: 'Control y pago mensual', icon: 'check-circle' },
     { id: 'deudas', label: 'Proyección Deudas', description: 'Pagos y proyecciones', icon: 'wallet' },
     { id: 'tc-compartida', label: 'TCs', description: 'Tarjetas de crédito', icon: 'credit-card' },
     { id: 'proyectos', label: 'Proyectos & Eventos', description: 'Paseos, asados y metas', icon: 'target' },

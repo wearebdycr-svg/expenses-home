@@ -13,6 +13,7 @@ import { ResumenPage } from './features/resumen/resumen';
 import { TcPage } from './features/tc-compartida/tc';
 import { TcService } from './features/tc-compartida/data/tc.service';
 import { ProyectosPage } from './features/proyectos/proyectos';
+import { GastosFijosPage } from './features/gastos-fijos/gastos-fijos';
 import { Sidebar, type SidebarPageId } from './shared/ui/sidebar/sidebar';
 import { DailyReminderBanner } from './shared/ui/daily-reminder-banner/daily-reminder-banner';
 import { ToastContainer } from './shared/ui/toast-container/toast-container';
@@ -29,6 +30,7 @@ export const VALID_SIDEBAR_PAGES: readonly SidebarPageId[] = [
   'ingresos',
   'resumen',
   'categoria',
+  'gastos-fijos',
   'deudas',
   'tc-compartida',
   'proyectos',
@@ -62,6 +64,7 @@ function getInitialPage(): SidebarPageId {
     IngresosPage,
     ResumenPage,
     CategoriaPage,
+    GastosFijosPage,
     DeudasPage,
     TcPage,
     ProyectosPage,

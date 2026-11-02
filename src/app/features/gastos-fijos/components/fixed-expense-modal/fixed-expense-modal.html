@@ -1,0 +1,119 @@
+<app-modal [title]="modalTitle()" (close)="cancel.emit()">
+  <form class="fixed-form" (submit)="$event.preventDefault(); onSubmit()">
+
+    <!-- Nombre del Gasto Fijo -->
+    <div class="form-group">
+      <label class="form-label" for="fe-name">
+        Nombre del Gasto Fijo <span class="required">*</span>
+      </label>
+      <input
+        id="fe-name"
+        type="text"
+        class="form-input"
+        [class.has-error]="hasSubmitted() && errors()['name']"
+        placeholder="Ej: Somos Internet, Administración, Spotify, Seguro..."
+        [value]="name()"
+        (input)="name.set($any($event.target).value)"
+      />
+      @if (hasSubmitted() && errors()['name']) {
+        <span class="field-error">{{ errors()['name'] }}</span>
+      }
+      <span class="field-hint">
+        💡 Este nombre aparecerá automáticamente como categoría al registrar gastos diarios.
+      </span>
+    </div>
+
+    <!-- Valor Estimado y Responsable en fila -->
+    <div class="form-row">
+      <div class="form-group flex-1">
+        <label class="form-label" for="fe-amount">
+          Monto Estimado Mensual ($ COP) <span class="required">*</span>
+        </label>
+        <div class="input-prefix-wrapper">
+          <span class="input-prefix">$</span>
+          <input
+            id="fe-amount"
+            type="text"
+            inputmode="numeric"
+            class="form-input input-with-prefix"
+            [class.has-error]="hasSubmitted() && errors()['expectedAmount']"
+            placeholder="Ej: 85.000"
+            [value]="expectedAmount()"
+            (input)="onAmountInput($event)"
+          />
+        </div>
+        @if (hasSubmitted() && errors()['expectedAmount']) {
+          <span class="field-error">{{ errors()['expectedAmount'] }}</span>
+        }
+      </div>
+
+      <div class="form-group flex-1">
+        <app-select
+          label="Responsable"
+          [options]="personOptions"
+          [value]="person()"
+          (valueChange)="person.set($event)"
+        />
+      </div>
+    </div>
+
+    <!-- Día de Pago y Estado -->
+    <div class="form-row">
+      <div class="form-group flex-1">
+        <label class="form-label" for="fe-day">
+          Día Límite del Mes (Opcional)
+        </label>
+        <input
+          id="fe-day"
+          type="number"
+          min="1"
+          max="31"
+          class="form-input"
+          [class.has-error]="hasSubmitted() && errors()['dueDay']"
+          placeholder="Ej: 5 (día 5 de cada mes)"
+          [value]="dueDay()"
+          (input)="dueDay.set($any($event.target).value)"
+        />
+        @if (hasSubmitted() && errors()['dueDay']) {
+          <span class="field-error">{{ errors()['dueDay'] }}</span>
+        }
+      </div>
+
+      @if (isEditMode()) {
+        <div class="form-group flex-1">
+          <app-select
+            label="Estado"
+            [options]="statusOptions"
+            [value]="status()"
+            (valueChange)="status.set($event)"
+          />
+        </div>
+      }
+    </div>
+
+    <!-- Notas / Detalles -->
+    <div class="form-group">
+      <label class="form-label" for="fe-notes">Notas o Referencia de Pago (Opcional)</label>
+      <textarea
+        id="fe-notes"
+        class="form-textarea"
+        rows="2"
+        placeholder="Ej: Código de convenio 12345, débito automático en cuenta Bancolombia..."
+        [value]="notes()"
+        (input)="notes.set($any($event.target).value)"
+      ></textarea>
+    </div>
+
+    <!-- Botones de Acción -->
+    <div class="modal-actions">
+      <button type="button" class="btn btn-secondary" (click)="cancel.emit()">
+        Cancelar
+      </button>
+      <button type="submit" class="btn btn-primary">
+        <app-icon [name]="isEditMode() ? 'check-circle' : 'plus'" [size]="18" />
+        <span>{{ isEditMode() ? 'Guardar Cambios' : 'Crear Gasto Fijo' }}</span>
+      </button>
+    </div>
+
+  </form>
+</app-modal>

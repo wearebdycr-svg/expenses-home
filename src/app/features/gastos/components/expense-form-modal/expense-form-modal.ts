@@ -25,6 +25,8 @@ import { TcService } from '../../../tc-compartida/data/tc.service';
 import type { TcCard } from '../../../tc-compartida/data/tc-card.model';
 import { ExpensesService } from '../../data/expenses.service';
 import { ProjectsService } from '../../../proyectos/data/projects.service';
+import { FixedExpensesService } from '../../../gastos-fijos/data/fixed-expenses.service';
+import type { FixedExpense } from '../../../gastos-fijos/data/fixed-expense.model';
 import { TrmService } from '../../../../core/services/trm.service';
 import { formatThousands, parseThousands } from '../../../../shared/utils/format.utils';
 
@@ -47,6 +49,7 @@ export class ExpenseFormModal {
   protected readonly tcService = inject(TcService);
   private readonly expensesService = inject(ExpensesService);
   private readonly projectsService = inject(ProjectsService);
+  private readonly fixedExpensesService = inject(FixedExpensesService);
   protected readonly trmService = inject(TrmService);
 
   expense = input<Expense | null>(null);
@@ -159,9 +162,16 @@ export class ExpenseFormModal {
       label: `🎯 ${p.name} (Evento)`,
     }));
 
+    // 5. Categorías dinámicas provenientes de Gastos Fijos Mensuales activos
+    const activeFixed = this.fixedExpensesService.activeFixedExpenses();
+    const fixedOptions: SelectOption<ExpenseCategory>[] = activeFixed.map((f: FixedExpense) => ({
+      value: f.name as ExpenseCategory,
+      label: `📌 Fijo: ${f.name}`,
+    }));
+
     // Preservar la categoría actual SOLO si se está editando un gasto existente previamente guardado
     const currentCat = this.category();
-    const allOptions = [...standard, ...cardOptions, ...debtOptions, ...projectOptions];
+    const allOptions = [...standard, ...cardOptions, ...debtOptions, ...projectOptions, ...fixedOptions];
     if (this.isEditMode() && currentCat && !allOptions.some((o) => o.value === currentCat)) {
       debtOptions.push({
         value: currentCat,
@@ -169,7 +179,7 @@ export class ExpenseFormModal {
       });
     }
 
-    return [...standard, ...cardOptions, ...debtOptions, ...projectOptions];
+    return [...standard, ...cardOptions, ...debtOptions, ...projectOptions, ...fixedOptions];
   });
 
   protected readonly selectedTcCard = computed<TcCard | null>(() => {
@@ -187,6 +197,16 @@ export class ExpenseFormModal {
   protected readonly selectedDebt = computed(() => {
     const cat = this.category();
     return this.debtsService.allDebts().find((d: Debt) => d.name === cat) ?? null;
+  });
+
+  protected readonly selectedFixedExpense = computed(() => {
+    const cat = this.category();
+    if (!cat) return null;
+    return (
+      this.fixedExpensesService.activeFixedExpenses().find(
+        (f) => f.name === cat || cat === `📌 Fijo: ${f.name}` || cat === `Fijo: ${f.name}`,
+      ) ?? null
+    );
   });
 
 

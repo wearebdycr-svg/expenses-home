@@ -185,6 +185,34 @@
         </div>
       }
 
+      @if (selectedFixedExpense(); as fixed) {
+        <div class="debt-amortization-info" style="background: #f0fdf4; border-color: #bbf7d0;">
+          <div class="info-header">
+            <span class="info-title" style="color: #15803d;">📌 Gasto Fijo Mensual</span>
+            <span class="info-badge" style="background: #10b981; color: #ffffff;">{{ fixed.person }}</span>
+          </div>
+          <div class="info-body">
+            <div class="info-detail-row">
+              <span class="info-label">Gasto:</span>
+              <span class="info-val font-semibold">{{ fixed.name }}</span>
+            </div>
+            <div class="info-detail-row">
+              <span class="info-label">Monto mensual esperado:</span>
+              <span class="info-val font-semibold" style="color: #059669;">{{ formatCOP(fixed.expectedAmount) }}</span>
+            </div>
+            @if (fixed.dueDay) {
+              <div class="info-detail-row">
+                <span class="info-label">Día de corte / pago:</span>
+                <span class="info-val">Día {{ fixed.dueDay }} de cada mes</span>
+              </div>
+            }
+          </div>
+          <div class="info-detail-row" style="color: #15803d; font-size: 0.75rem; line-height: 1.35; padding: 0.25rem 0.65rem 0.5rem;">
+            <span>✅ <strong>Automático:</strong> Al guardar este gasto, se marcará automáticamente con chulo de <em>Pagado</em> en la sección de Gastos Fijos para el mes de la fecha seleccionada.</span>
+          </div>
+        </div>
+      }
+
       <label class="field" [class.has-error]="errors()['description']">
         <span class="field-label">Descripción</span>
         <input
