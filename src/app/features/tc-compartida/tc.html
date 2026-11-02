@@ -116,6 +116,7 @@
   @if (isExpenseModalOpen()) {
     <app-tc-form-modal
       [tcExpense]="editingExpense()"
+      [defaultCardId]="tcService.selectedCard()?.id ?? 'tc-compartida'"
       (save)="onSaveExpense($event)"
       (cancel)="closeExpenseModal()"
     />

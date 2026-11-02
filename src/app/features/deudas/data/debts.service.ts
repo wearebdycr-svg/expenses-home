@@ -3,6 +3,7 @@ import { SupabaseService } from '../../../core/services/supabase.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { PushNotificationService } from '../../../core/services/push-notification.service';
 import { ExpensesService } from '../../gastos/data/expenses.service';
+import { TcService } from '../../tc-compartida/data/tc.service';
 import type {
   Debt,
   DebtDraft,
@@ -76,6 +77,7 @@ export const DEFAULT_DEBTS: Debt[] = [
 export class DebtsService {
   private readonly supabase = inject(SupabaseService);
   private readonly expensesService = inject(ExpensesService);
+  private readonly tcService = inject(TcService);
   private readonly toastService = inject(ToastService);
   private readonly pushNotificationService = inject(PushNotificationService);
   private lastLocalMutationTime = 0;
@@ -90,10 +92,23 @@ export class DebtsService {
   readonly debtsWithLiveBalance = computed<Debt[]>(() => {
     const rawDebts = this.debts();
     const allExpenses = this.expensesService.allExpenses();
+    const allTc = this.tcService.allTcExpenses();
+    const mergedExpenses = [
+      ...allExpenses,
+      ...allTc.map((tc) => ({
+        id: `tc_${tc.id}`,
+        date: tc.date,
+        person: tc.person,
+        category: tc.category,
+        description: tc.description,
+        amount: tc.amount,
+        createdAt: tc.createdAt,
+      })),
+    ];
 
     return rawDebts.map((d) => {
       // 1. Filtrar y ordenar cronológicamente los gastos registrados para esta deuda
-      const matchingExpenses = allExpenses
+      const matchingExpenses = mergedExpenses
         .filter((e) => {
           if (!e.category) return false;
           const cat = e.category.trim().toLowerCase();
@@ -558,6 +573,20 @@ export class DebtsService {
   async applyPrepayment(draft: PrepaymentDraft): Promise<void> {
     const debt = this.debtsWithLiveBalance().find((d) => d.id === draft.debtId);
     if (!debt || draft.amount <= 0) return;
+
+    if (draft.paymentMethod === 'tc') {
+      const cardId = draft.cardId || 'tc-compartida';
+      await this.tcService.addTcExpense({
+        date: draft.date,
+        person: debt.person,
+        category: debt.name,
+        description: `[Deuda: ${debt.name}] Abono a capital`,
+        amount: draft.amount,
+        cardId,
+      });
+      this.toastService.success('Abono a capital aplicado con cargo a TC');
+      return;
+    }
 
     // Registrar egreso automático en Gastos Diarios con la categoría exacta de la deuda
     await this.expensesService.addExpense({

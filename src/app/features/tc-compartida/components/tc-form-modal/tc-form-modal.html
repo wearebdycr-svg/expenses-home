@@ -29,6 +29,7 @@
       </div>
     </div>
 
+    <!-- Fecha y Responsable -->
     <div class="form-row">
       <label class="field" [class.has-error]="errors()['date']">
         <span class="field-label">Fecha del consumo</span>
@@ -55,43 +56,114 @@
       />
     </div>
 
-    <!-- Categoría y Monto (en COP) -->
-    @if (currency() === 'COP') {
-      <div class="form-row">
-        <app-select
-          label="Categoría / Tipo"
-          [options]="categoryOptions()"
-          [value]="category()"
-          (valueChange)="category.set($event)"
-        />
+    <!-- Selector de Tarjeta de Crédito (¿De dónde es el gasto?) -->
+    <div class="card-selection-section">
+      <app-select
+        label="💳 Tarjeta de Crédito a Cargar"
+        [options]="cardOptions()"
+        [value]="selectedCardId()"
+        (valueChange)="selectedCardId.set($event)"
+      />
 
-        <label class="field" [class.has-error]="errors()['amount']">
-          <span class="field-label">Monto (COP)</span>
-          <input
-            class="field-control"
-            [class.control-error]="errors()['amount']"
-            type="text"
-            inputmode="numeric"
-            placeholder="Ej: 150.000"
-            [value]="amount()"
-            (input)="onAmountInput($event)"
-          />
-          @if (errors()['amount']) {
-            <span class="field-error-msg">{{ errors()['amount'] }}</span>
+      @if (targetCard(); as card) {
+        <div class="card-live-info">
+          <div class="card-info-header">
+            <span class="card-badge">💳 {{ card.name }} (•••• {{ card.lastDigits }})</span>
+            <span class="card-owner-badge">{{ card.person }}</span>
+          </div>
+
+          @if (cardMetrics(); as metrics) {
+            <div class="card-info-metrics">
+              @if (metrics.quotaRemaining !== undefined && metrics.quotaRemaining !== null) {
+                <div class="metric-mini">
+                  <span class="metric-mini-label">Cupo Disponible:</span>
+                  <span class="metric-mini-value" [class.text-amber]="metrics.quotaRemaining < 0">
+                    {{ formatCOP(metrics.quotaRemaining) }}
+                  </span>
+                </div>
+              }
+              <div class="metric-mini">
+                <span class="metric-mini-label">Deuda Pendiente:</span>
+                <span class="metric-mini-value text-red">
+                  {{ formatCOP(metrics.pendingDebt) }}
+                </span>
+              </div>
+              @if (metrics.quota !== undefined && metrics.quota !== null) {
+                <div class="metric-mini">
+                  <span class="metric-mini-label">Cupo Total:</span>
+                  <span class="metric-mini-value">
+                    {{ formatCOP(metrics.quota) }}
+                  </span>
+                </div>
+              }
+            </div>
           }
-        </label>
+          <span class="card-info-note">
+            💡 Este consumo se registrará y descontará directamente del cupo disponible de esta tarjeta.
+          </span>
+        </div>
+      }
+    </div>
+
+    <!-- Categorías Agrupadas -->
+    <div class="form-row">
+      <app-select
+        label="Categoría Principal"
+        [options]="mainCategoryOptions()"
+        [value]="mainCategory()"
+        (valueChange)="onMainCategoryChange($event)"
+      />
+
+      <app-select
+        label="Subcategoría"
+        [options]="subCategoryOptions()"
+        [value]="subCategory()"
+        (valueChange)="onSubCategoryChange($event)"
+      />
+    </div>
+
+    <!-- Info Banner si pertenece a Proyecto o Gasto Fijo -->
+    @if (mainCategory() === 'Proyectos' && targetProject(); as proj) {
+      <div class="project-linked-info">
+        <div class="project-info-header">
+          <span>🎯 {{ proj.icon }} {{ proj.name }}</span>
+          <span class="project-budget-tag">Presupuesto: {{ formatCOP(proj.budgetAmount) }}</span>
+        </div>
+        @if (projectMetrics(); as pMetrics) {
+          <div class="project-metrics-row">
+            <span>Gastado: <strong>{{ formatCOP(pMetrics.totalExpenses) }}</strong></span>
+            <span>Disponible: <strong>{{ formatCOP(pMetrics.remainingBudget) }}</strong></span>
+          </div>
+        }
       </div>
+    }
+
+    @if (mainCategory() === 'Gastos Fijos' && targetFixedExpense(); as fixedExp) {
+      <div class="fixed-linked-info">
+        <span>📌 Gasto Fijo: <strong>{{ fixedExp.name }}</strong></span>
+        <span>Estimado mensual: <strong>{{ formatCOP(fixedExp.expectedAmount) }}</strong> ({{ fixedExp.person }})</span>
+      </div>
+    }
+
+    <!-- Monto (en COP o USD) -->
+    @if (currency() === 'COP') {
+      <label class="field" [class.has-error]="errors()['amount']">
+        <span class="field-label">Monto (COP)</span>
+        <input
+          class="field-control"
+          [class.control-error]="errors()['amount']"
+          type="text"
+          inputmode="numeric"
+          placeholder="Ej: 150.000"
+          [value]="amount()"
+          (input)="onAmountInput($event)"
+        />
+        @if (errors()['amount']) {
+          <span class="field-error-msg">{{ errors()['amount'] }}</span>
+        }
+      </label>
     } @else {
       <!-- Modo Dólares (USD con TRM) -->
-      <div class="form-group">
-        <app-select
-          label="Categoría / Tipo"
-          [options]="categoryOptions()"
-          [value]="category()"
-          (valueChange)="category.set($event)"
-        />
-      </div>
-
       <div class="usd-box">
         <div class="form-row">
           <label class="field" [class.has-error]="errors()['amountUsd']">
@@ -140,7 +212,7 @@
           </label>
         </div>
 
-        <!-- Tarjeta de Conversión en Vivo -->
+        <!-- Conversión en Vivo -->
         <div class="conversion-preview-card">
           <div class="conversion-icon">🔄</div>
           <div class="conversion-text">
@@ -156,6 +228,7 @@
       </div>
     }
 
+    <!-- Descripción del consumo -->
     <label class="field" [class.has-error]="errors()['description']">
       <span class="field-label">Descripción del consumo</span>
       <input

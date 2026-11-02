@@ -74,4 +74,37 @@ describe('ProjectExpenseModal', () => {
       exchangeRate: 4100,
     });
   });
+
+  it('updates subcategories when changing mainCategory', () => {
+    (component as any).onMainCategoryChange('Gastos Habituales');
+    expect((component as any).mainCategory()).toBe('Gastos Habituales');
+    expect((component as any).subCategory()).toBe('Mercado');
+
+    (component as any).onMainCategoryChange('Gastos del Evento');
+    expect((component as any).mainCategory()).toBe('Gastos del Evento');
+    expect((component as any).subCategory()).toBe('General');
+  });
+
+  it('routes to tcService.addTcExpense when payment destination is TC', async () => {
+    const tcService = TestBed.inject((await import('../../../tc-compartida/data/tc.service')).TcService);
+    const tcSpy = vi.spyOn(tcService, 'addTcExpense').mockResolvedValue({} as any);
+
+    (component as any).paymentDestination.set('tc');
+    (component as any).selectedTcCardId.set('tc-compartida');
+    (component as any).description.set('Cena de bienvenida');
+    (component as any).amount.set('180000');
+    (component as any).person.set('Compartido');
+    (component as any).date.set('2026-10-28');
+
+    await (component as any).onSubmit();
+
+    expect(tcSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cardId: 'tc-compartida',
+        amount: 180_000,
+        category: 'Paseo San Juan PR',
+        description: '[Evento: Paseo San Juan PR] Cena de bienvenida',
+      }),
+    );
+  });
 });

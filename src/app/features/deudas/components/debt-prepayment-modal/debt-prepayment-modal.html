@@ -7,9 +7,10 @@
     }
 
     <p class="prepayment-intro">
-      El monto ingresado se descontará directamente del saldo de capital. La proyección se actualizará automáticamente.
+      El monto ingresado se descontará directamente del saldo de capital de la deuda. La proyección y las cuotas se actualizarán en tiempo real.
     </p>
 
+    <!-- Selección de la Deuda -->
     <div class="debt-select-container">
       <app-select
         label="Deuda a abonar"
@@ -21,9 +22,75 @@
       />
 
       @if (selectedDebt()) {
-        <div class="balance-preview">
-          <span class="balance-label">Saldo actual:</span>
-          <span class="balance-value">{{ currentBalanceFormatted() }}</span>
+        <div class="balance-preview-card">
+          <div class="balance-row">
+            <span class="balance-label">Saldo actual:</span>
+            <span class="balance-value">{{ currentBalanceFormatted() }}</span>
+          </div>
+          <div class="balance-row projected-row">
+            <span class="balance-label">Saldo proyectado tras abono:</span>
+            <span class="balance-value text-green font-bold">{{ projectedBalanceFormatted() }}</span>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Forma de Pago / Origen de los Fondos (¿De dónde es?) -->
+    <div class="payment-source-section">
+      <app-select
+        label="💳 Forma de Pago / Origen de Fondos"
+        [options]="paymentDestinationOptions"
+        [value]="paymentDestination()"
+        (valueChange)="paymentDestination.set($event)"
+      />
+
+      @if (paymentDestination() === 'tc') {
+        <div class="tc-selection-box">
+          <app-select
+            label="Tarjeta de Crédito para el Cargo"
+            [options]="tcCardOptions()"
+            [value]="selectedTcCardId()"
+            (valueChange)="selectedTcCardId.set($event)"
+          />
+
+          @if (targetTcCard(); as card) {
+            <div class="card-live-info">
+              <div class="card-info-header">
+                <span class="card-badge">💳 {{ card.name }} (•••• {{ card.lastDigits }})</span>
+                <span class="card-owner-badge">{{ card.person }}</span>
+              </div>
+
+              @if (tcCardMetrics(); as metrics) {
+                <div class="card-info-metrics">
+                  @if (metrics.quotaRemaining !== undefined && metrics.quotaRemaining !== null) {
+                    <div class="metric-mini">
+                      <span class="metric-mini-label">Cupo Disponible:</span>
+                      <span class="metric-mini-value" [class.text-amber]="metrics.quotaRemaining < 0">
+                        {{ formatCOP(metrics.quotaRemaining) }}
+                      </span>
+                    </div>
+                  }
+                  <div class="metric-mini">
+                    <span class="metric-mini-label">Deuda TC Pendiente:</span>
+                    <span class="metric-mini-value text-red">
+                      {{ formatCOP(metrics.pendingDebt) }}
+                    </span>
+                  </div>
+                  @if (metrics.quota !== undefined && metrics.quota !== null) {
+                    <div class="metric-mini">
+                      <span class="metric-mini-label">Cupo Total:</span>
+                      <span class="metric-mini-value">
+                        {{ formatCOP(metrics.quota) }}
+                      </span>
+                    </div>
+                  }
+                </div>
+              }
+              <span class="card-info-note">
+                💡 Este abono se registrará como un consumo en la tarjeta de crédito seleccionada, descontando de su cupo disponible y amortizando el crédito.
+              </span>
+            </div>
+          }
         </div>
       }
     </div>

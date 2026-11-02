@@ -1,6 +1,12 @@
 <app-modal [title]="modalTitle()" (close)="cancel.emit()">
   <form class="expense-form" (submit)="$event.preventDefault(); onSubmit()">
 
+    @if (hasSubmitted() && hasErrors()) {
+      <div class="form-validation-summary">
+        <span>⚠️ Faltan campos obligatorios por completar. Revisa los campos resaltados.</span>
+      </div>
+    }
+
     <!-- Selector de Moneda (COP vs USD) -->
     <div class="currency-selector-group">
       <span class="currency-group-label">Moneda del Gasto:</span>
@@ -24,7 +30,7 @@
       </div>
     </div>
 
-    <!-- Fila Fecha y Categoría -->
+    <!-- Fila Fecha y Responsable -->
     <div class="form-row">
       <div class="form-group flex-1">
         <label class="form-label" for="pe-date">Fecha <span class="required">*</span></label>
@@ -42,10 +48,91 @@
 
       <div class="form-group flex-1">
         <app-select
-          label="Categoría del Rubro"
-          [options]="categoryOptions"
-          [value]="category()"
-          (valueChange)="category.set($event)"
+          label="¿Quién lo pagó?"
+          [options]="personOptions"
+          [value]="person()"
+          (valueChange)="person.set($event)"
+        />
+      </div>
+    </div>
+
+    <!-- Forma de Pago / Descuento (¿De dónde es?) -->
+    <div class="payment-source-section">
+      <app-select
+        label="💳 Forma de Pago / Descuento"
+        [options]="paymentDestinationOptions"
+        [value]="paymentDestination()"
+        (valueChange)="paymentDestination.set($event)"
+      />
+
+      @if (paymentDestination() === 'tc') {
+        <div class="tc-selection-box">
+          <app-select
+            label="Seleccionar Tarjeta de Crédito"
+            [options]="tcCardOptions()"
+            [value]="selectedTcCardId()"
+            (valueChange)="selectedTcCardId.set($event)"
+          />
+
+          @if (targetTcCard(); as card) {
+            <div class="card-live-info">
+              <div class="card-info-header">
+                <span class="card-badge">💳 {{ card.name }} (•••• {{ card.lastDigits }})</span>
+                <span class="card-owner-badge">{{ card.person }}</span>
+              </div>
+
+              @if (tcCardMetrics(); as metrics) {
+                <div class="card-info-metrics">
+                  @if (metrics.quotaRemaining !== undefined && metrics.quotaRemaining !== null) {
+                    <div class="metric-mini">
+                      <span class="metric-mini-label">Cupo Disponible:</span>
+                      <span class="metric-mini-value" [class.text-amber]="metrics.quotaRemaining < 0">
+                        {{ formatCOP(metrics.quotaRemaining) }}
+                      </span>
+                    </div>
+                  }
+                  <div class="metric-mini">
+                    <span class="metric-mini-label">Deuda Pendiente:</span>
+                    <span class="metric-mini-value text-red">
+                      {{ formatCOP(metrics.pendingDebt) }}
+                    </span>
+                  </div>
+                  @if (metrics.quota !== undefined && metrics.quota !== null) {
+                    <div class="metric-mini">
+                      <span class="metric-mini-label">Cupo Total:</span>
+                      <span class="metric-mini-value">
+                        {{ formatCOP(metrics.quota) }}
+                      </span>
+                    </div>
+                  }
+                </div>
+              }
+              <span class="card-info-note">
+                💡 Este gasto se registrará en el evento y se descontará automáticamente del cupo disponible de esta tarjeta.
+              </span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Categorías Agrupadas -->
+    <div class="form-row">
+      <div class="form-group flex-1">
+        <app-select
+          label="Categoría Principal"
+          [options]="mainCategoryOptions()"
+          [value]="mainCategory()"
+          (valueChange)="onMainCategoryChange($event)"
+        />
+      </div>
+
+      <div class="form-group flex-1">
+        <app-select
+          label="Subcategoría"
+          [options]="subCategoryOptions()"
+          [value]="subCategory()"
+          (valueChange)="onSubCategoryChange($event)"
         />
       </div>
     </div>
@@ -125,7 +212,7 @@
           </div>
         </div>
 
-        <!-- Tarjeta de Conversión en Vivo -->
+        <!-- Conversión en Vivo -->
         <div class="conversion-preview-card">
           <div class="conversion-icon">🔄</div>
           <div class="conversion-text">
@@ -141,49 +228,26 @@
       </div>
     } @else {
       <!-- Modo Pesos (COP) Estándar -->
-      <div class="form-row">
-        <div class="form-group flex-1">
-          <label class="form-label" for="pe-amount">
-            Valor Gastado ($ COP) <span class="required">*</span>
-          </label>
-          <div class="input-prefix-wrapper">
-            <span class="input-prefix">$</span>
-            <input
-              id="pe-amount"
-              type="text"
-              inputmode="numeric"
-              class="form-input input-with-prefix"
-              [class.has-error]="hasSubmitted() && errors()['amount']"
-              placeholder="Ej: 120.000"
-              [value]="amount()"
-              (input)="onAmountInput($event)"
-            />
-          </div>
-          @if (hasSubmitted() && errors()['amount']) {
-            <span class="field-error">{{ errors()['amount'] }}</span>
-          }
-        </div>
-
-        <div class="form-group flex-1">
-          <app-select
-            label="¿Quién lo pagó?"
-            [options]="personOptions"
-            [value]="person()"
-            (valueChange)="person.set($event)"
+      <div class="form-group">
+        <label class="form-label" for="pe-amount">
+          Valor Gastado ($ COP) <span class="required">*</span>
+        </label>
+        <div class="input-prefix-wrapper">
+          <span class="input-prefix">$</span>
+          <input
+            id="pe-amount"
+            type="text"
+            inputmode="numeric"
+            class="form-input input-with-prefix"
+            [class.has-error]="hasSubmitted() && errors()['amount']"
+            placeholder="Ej: 120.000"
+            [value]="amount()"
+            (input)="onAmountInput($event)"
           />
         </div>
-      </div>
-    }
-
-    <!-- Si estamos en modo USD, ponemos el selector de quién lo pagó aquí -->
-    @if (currency() === 'USD') {
-      <div class="form-group">
-        <app-select
-          label="¿Quién lo pagó?"
-          [options]="personOptions"
-          [value]="person()"
-          (valueChange)="person.set($event)"
-        />
+        @if (hasSubmitted() && errors()['amount']) {
+          <span class="field-error">{{ errors()['amount'] }}</span>
+        }
       </div>
     }
 

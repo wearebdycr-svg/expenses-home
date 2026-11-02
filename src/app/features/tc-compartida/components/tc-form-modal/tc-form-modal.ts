@@ -12,10 +12,13 @@ import { CommonModule } from '@angular/common';
 import { Modal } from '../../../../shared/ui/modal/modal';
 import { Select, type SelectOption } from '../../../../shared/ui/select/select';
 import type { ExpensePerson } from '../../data/tc.model';
-import { EXPENSE_PERSONS, TC_DEFAULT_CATEGORIES, type TcExpense, type TcExpenseDraft } from '../../data/tc.model';
+import { EXPENSE_PERSONS, TC_DEFAULT_CATEGORIES, formatCOP, type TcExpense, type TcExpenseDraft } from '../../data/tc.model';
 import { formatThousands, parseThousands } from '../../../../shared/utils/format.utils';
 import { ProjectsService } from '../../../proyectos/data/projects.service';
+import { FixedExpensesService } from '../../../gastos-fijos/data/fixed-expenses.service';
+import { TcService } from '../../data/tc.service';
 import { TrmService } from '../../../../core/services/trm.service';
+import type { TcCard } from '../../data/tc-card.model';
 
 function todayIso(): string {
   const now = new Date();
@@ -34,9 +37,12 @@ function todayIso(): string {
 })
 export class TcFormModal {
   private readonly projectsService = inject(ProjectsService);
+  private readonly fixedExpensesService = inject(FixedExpensesService);
+  protected readonly tcService = inject(TcService);
   protected readonly trmService = inject(TrmService);
 
   tcExpense = input<TcExpense | null>(null);
+  defaultCardId = input<string | null>(null);
   save = output<TcExpenseDraft>();
   cancel = output<void>();
 
@@ -50,7 +56,13 @@ export class TcFormModal {
 
   protected readonly date = signal(todayIso());
   protected readonly person = signal<ExpensePerson | ''>('');
+  protected readonly selectedCardId = signal<string>('tc-compartida');
+
+  // Categorías agrupadas
+  protected readonly mainCategory = signal<string>('Gastos Habituales');
+  protected readonly subCategory = signal<string>('General');
   protected readonly category = signal<string>('General');
+
   protected readonly description = signal('');
   protected readonly currency = signal<'COP' | 'USD'>('COP');
   protected readonly amount = signal('');
@@ -116,23 +128,97 @@ export class TcFormModal {
     }),
   );
 
+  /**
+   * Opciones de Tarjeta de Crédito de cargo
+   */
+  protected readonly cardOptions = computed<readonly SelectOption<string>[]>(() => {
+    return this.tcService.activeCards().map((c) => ({
+      value: c.id,
+      label: `${c.name} (•••• ${c.lastDigits} - ${c.person})`,
+    }));
+  });
+
+  protected readonly targetCard = computed<TcCard | null>(() => {
+    const id = this.selectedCardId();
+    const active = this.tcService.activeCards();
+    return active.find((c) => c.id === id) ?? this.tcService.cards().find((c) => c.id === id) ?? active[0] ?? null;
+  });
+
+  protected readonly cardMetrics = computed(() => {
+    const card = this.targetCard();
+    return card ? this.tcService.getCardMetrics(card.id) : null;
+  });
+
+  /**
+   * Opciones de Categorías Principales Agrupadas
+   */
+  protected readonly mainCategoryOptions = computed<readonly SelectOption<string>[]>(() => {
+    const groups: SelectOption<string>[] = [
+      { value: 'Gastos Habituales', label: '🛒 Gastos Habituales (Mercado, Restaurantes, etc.)' },
+      { value: 'Gastos Fijos', label: '📌 Gastos Fijos Mensuales (Ver lista...)' },
+    ];
+
+    if (this.projectsService.activeProjectCategories().length > 0) {
+      groups.push({ value: 'Proyectos', label: '🎯 Proyectos & Eventos (Ver lista...)' });
+    }
+
+    return groups;
+  });
+
+  /**
+   * Opciones dinámicas de subcategorías
+   */
+  protected readonly subCategoryOptions = computed<readonly SelectOption<string>[]>(() => {
+    const main = this.mainCategory();
+
+    if (main === 'Gastos Habituales') {
+      const options: SelectOption<string>[] = TC_DEFAULT_CATEGORIES.map((cat) => ({
+        value: cat,
+        label: cat,
+      }));
+      const cur = this.category();
+      if (this.isEditMode() && cur && !TC_DEFAULT_CATEGORIES.includes(cur)) {
+        options.push({ value: cur, label: cur });
+      }
+      return options;
+    }
+
+    if (main === 'Gastos Fijos') {
+      const activeFixed = this.fixedExpensesService.activeFixedExpenses();
+      if (activeFixed.length === 0) {
+        return [{ value: 'Gastos Fijos', label: 'Sin gastos fijos registrados' }];
+      }
+      return activeFixed.map((f) => ({
+        value: f.name,
+        label: `${f.name} (${f.person} - Est: ${formatCOP(f.expectedAmount)})`,
+      }));
+    }
+
+    if (main === 'Proyectos') {
+      const activeProjects = this.projectsService.activeProjectCategories();
+      return activeProjects.map((p) => ({
+        value: p.name,
+        label: `🎯 ${p.name} (${p.person})`,
+      }));
+    }
+
+    return [];
+  });
+
+  /**
+   * Para retrocompatibilidad y tests
+   */
   protected readonly categoryOptions = computed<readonly SelectOption<string>[]>(() => {
-    // 1. Categorías por defecto de TC
     const standard: SelectOption<string>[] = TC_DEFAULT_CATEGORIES.map((cat) => ({
       value: cat,
       label: cat,
     }));
-
-    // 2. Proyectos & Eventos activos y vigentes (se descartan si endDate < hoy)
     const activeProjects = this.projectsService.activeProjectCategories();
     const projectOptions: SelectOption<string>[] = activeProjects.map((p) => ({
       value: p.name,
       label: `🎯 ${p.name} (Evento)`,
     }));
-
     const all = [...standard, ...projectOptions];
-
-    // 3. Preservar categoría si el gasto ya la tenía guardada (ej. evento ya finalizado)
     const currentCat = this.category();
     if (currentCat && !all.some((o) => o.value === currentCat)) {
       all.push({
@@ -140,18 +226,55 @@ export class TcFormModal {
         label: `${currentCat} (Finalizado)`,
       });
     }
-
     return all;
   });
+
+  protected readonly targetProject = computed(() => {
+    const cat = this.category();
+    return this.projectsService.projects().find((p) => p.name === cat) ?? null;
+  });
+
+  protected readonly projectMetrics = computed(() => {
+    const proj = this.targetProject();
+    return proj ? this.projectsService.getProjectMetrics(proj.id) : null;
+  });
+
+  protected readonly targetFixedExpense = computed(() => {
+    const cat = this.category();
+    return this.fixedExpensesService.fixedExpenses().find((f) => f.name === cat) ?? null;
+  });
+
+  protected readonly formatCOP = formatCOP;
 
   constructor() {
     effect(() => {
       const exp = this.tcExpense();
+      const defCard = this.defaultCardId();
       if (exp) {
         this.date.set(exp.date);
         this.person.set(exp.person);
-        this.category.set(exp.category ?? 'General');
         this.description.set(exp.description);
+
+        const cardToSet = exp.cardId || defCard || 'tc-compartida';
+        this.selectedCardId.set(cardToSet);
+
+        const cat = exp.category ?? 'General';
+        this.category.set(cat);
+
+        // Detectar categoría principal correspondiente
+        const isProject = this.projectsService.projects().some((p) => p.name === cat);
+        const isFixed = this.fixedExpensesService.fixedExpenses().some((f) => f.name === cat);
+
+        if (isProject) {
+          this.mainCategory.set('Proyectos');
+          this.subCategory.set(cat);
+        } else if (isFixed) {
+          this.mainCategory.set('Gastos Fijos');
+          this.subCategory.set(cat);
+        } else {
+          this.mainCategory.set('Gastos Habituales');
+          this.subCategory.set(cat);
+        }
 
         if (exp.currency === 'USD' || (exp.amountUsd && exp.amountUsd > 0)) {
           this.currency.set('USD');
@@ -167,6 +290,9 @@ export class TcFormModal {
       } else {
         this.date.set(todayIso());
         this.person.set('');
+        this.selectedCardId.set(defCard || this.tcService.selectedCard()?.id || 'tc-compartida');
+        this.mainCategory.set('Gastos Habituales');
+        this.subCategory.set('General');
         this.category.set('General');
         this.description.set('');
         this.currency.set('COP');
@@ -180,6 +306,30 @@ export class TcFormModal {
 
   protected setCurrency(c: 'COP' | 'USD'): void {
     this.currency.set(c);
+  }
+
+  protected onMainCategoryChange(val: string): void {
+    this.mainCategory.set(val);
+    if (val === 'Gastos Habituales') {
+      const def = 'General';
+      this.subCategory.set(def);
+      this.category.set(def);
+    } else if (val === 'Gastos Fijos') {
+      const first = this.fixedExpensesService.activeFixedExpenses()[0];
+      const def = first ? first.name : 'Gastos Fijos';
+      this.subCategory.set(def);
+      this.category.set(def);
+    } else if (val === 'Proyectos') {
+      const first = this.projectsService.activeProjectCategories()[0];
+      const def = first ? first.name : 'Proyectos';
+      this.subCategory.set(def);
+      this.category.set(def);
+    }
+  }
+
+  protected onSubCategoryChange(val: string): void {
+    this.subCategory.set(val);
+    this.category.set(val);
   }
 
   protected onTrmInput(event: Event): void {
@@ -207,12 +357,15 @@ export class TcFormModal {
       ? this.calculatedCopAmount()
       : parseThousands(this.amount());
 
+    const finalCardId = this.selectedCardId() || 'tc-compartida';
+
     this.save.emit({
       date: this.date(),
       person: person as ExpensePerson,
       category: this.category() || 'General',
       description: desc,
       amount: finalCopAmount,
+      cardId: finalCardId,
       currency: isUsd ? 'USD' : 'COP',
       amountUsd: isUsd ? this.amountUsdNumber() : undefined,
       exchangeRate: isUsd ? this.effectiveTrm() : undefined,

@@ -149,3 +149,135 @@
   gap: 0.5rem;
   font-weight: 500;
 }
+
+.balance-preview-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.55rem 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.balance-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.projected-row {
+  border-top: 1px dashed #cbd5e1;
+  padding-top: 0.35rem;
+}
+
+.text-green {
+  color: #16a34a !important;
+}
+
+.font-bold {
+  font-weight: 700;
+}
+
+/* Payment Source & TC Live Info */
+.payment-source-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.75rem 0.85rem;
+}
+
+.tc-selection-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: #ffffff;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+}
+
+.card-live-info {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.65rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.card-info-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-badge {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.card-owner-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: #e2e8f0;
+  color: #334155;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+
+.card-info-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  background: #ffffff;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+@media (max-width: 500px) {
+  .card-info-metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
+.metric-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.metric-mini-label {
+  font-size: 0.675rem;
+  color: #64748b;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.metric-mini-value {
+  font-family: 'SF Mono', 'Menlo', monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.text-amber {
+  color: #d97706;
+}
+
+.text-red {
+  color: #dc2626;
+}
+
+.card-info-note {
+  font-size: 0.725rem;
+  color: #475569;
+  line-height: 1.3;
+}

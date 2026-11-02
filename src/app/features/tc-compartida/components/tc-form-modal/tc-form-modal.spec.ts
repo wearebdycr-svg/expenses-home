@@ -45,6 +45,7 @@ describe('TcFormModal', () => {
       category: 'Supermercado',
       description: 'Supermercado',
       amount: 150_000,
+      cardId: 'tc-compartida',
       currency: 'COP',
       amountUsd: undefined,
       exchangeRate: undefined,
@@ -101,9 +102,37 @@ describe('TcFormModal', () => {
       category: 'General',
       description: 'Cena Puerto Rico',
       amount: 410_000,
+      cardId: 'tc-compartida',
       currency: 'USD',
       amountUsd: 100,
       exchangeRate: 4100,
     });
+  });
+
+  it('updates subcategories when changing mainCategory', async () => {
+    (component as any).onMainCategoryChange('Gastos Fijos');
+    expect((component as any).mainCategory()).toBe('Gastos Fijos');
+    expect((component as any).subCategoryOptions().length).toBeGreaterThan(0);
+
+    (component as any).onMainCategoryChange('Gastos Habituales');
+    expect((component as any).mainCategory()).toBe('Gastos Habituales');
+    expect((component as any).subCategoryOptions().some((o: any) => o.value === 'Mercado')).toBe(true);
+  });
+
+  it('allows changing credit card and includes selected cardId in submit', () => {
+    const saveSpy = vi.spyOn(component.save, 'emit');
+
+    (component as any).selectedCardId.set('tc-nu-charlie');
+    (component as any).description.set('Gasto Nu');
+    (component as any).amount.set('50000');
+    (component as any).person.set('Charlie');
+    (component as any).onSubmit();
+
+    expect(saveSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cardId: 'tc-nu-charlie',
+        amount: 50_000,
+      }),
+    );
   });
 });

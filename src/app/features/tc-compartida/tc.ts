@@ -99,7 +99,7 @@ export class TcPage {
 
   protected onSaveExpense(draft: TcExpenseDraft): void {
     const currentCard = this.tcService.selectedCard();
-    const cardId = currentCard?.id ?? 'tc-compartida';
+    const cardId = draft.cardId || currentCard?.id || 'tc-compartida';
     const fullDraft: TcExpenseDraft = { ...draft, cardId };
 
     const editing = this.editingExpense();

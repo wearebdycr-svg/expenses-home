@@ -3,6 +3,7 @@ import {
   Component,
   computed,
   effect,
+  inject,
   input,
   output,
   signal,
@@ -16,6 +17,8 @@ import {
   type PrepaymentDraft,
 } from '../../data/debt.model';
 import { formatThousands, parseThousands } from '../../../../shared/utils/format.utils';
+import { TcService } from '../../../tc-compartida/data/tc.service';
+import type { TcCard } from '../../../tc-compartida/data/tc-card.model';
 
 function todayIso(): string {
   const now = new Date();
@@ -33,6 +36,8 @@ function todayIso(): string {
   styleUrl: './debt-prepayment-modal.css',
 })
 export class DebtPrepaymentModal {
+  protected readonly tcService = inject(TcService);
+
   debts = input<readonly Debt[]>([]);
   initialDebtId = input<string | null>(null);
 
@@ -43,6 +48,33 @@ export class DebtPrepaymentModal {
   protected readonly amount = signal<string>('500.000');
   protected readonly date = signal<string>(todayIso());
   protected readonly hasSubmitted = signal(false);
+
+  // Forma de Pago / Origen del dinero
+  protected readonly paymentDestination = signal<'cuenta' | 'tc'>('cuenta');
+  protected readonly selectedTcCardId = signal<string>('tc-compartida');
+
+  protected readonly paymentDestinationOptions: readonly SelectOption<'cuenta' | 'tc'>[] = [
+    { value: 'cuenta', label: '💵 Cuenta / Débito / Efectivo (Normal)' },
+    { value: 'tc', label: '💳 Tarjeta de Crédito (Avance / Cargo a TC)' },
+  ];
+
+  protected readonly tcCardOptions = computed<readonly SelectOption<string>[]>(() => {
+    return this.tcService.activeCards().map((c) => ({
+      value: c.id,
+      label: `${c.name} (•••• ${c.lastDigits} - ${c.person})`,
+    }));
+  });
+
+  protected readonly targetTcCard = computed<TcCard | null>(() => {
+    const id = this.selectedTcCardId();
+    const active = this.tcService.activeCards();
+    return active.find((c) => c.id === id) ?? this.tcService.cards().find((c) => c.id === id) ?? active[0] ?? null;
+  });
+
+  protected readonly tcCardMetrics = computed(() => {
+    const card = this.targetTcCard();
+    return card ? this.tcService.getCardMetrics(card.id) : null;
+  });
 
   protected readonly errors = computed(() => {
     if (!this.hasSubmitted()) return {};
@@ -66,12 +98,22 @@ export class DebtPrepaymentModal {
     return debt ? formatCOP(debt.currentBalance) : '$ 0';
   });
 
+  protected readonly projectedBalanceFormatted = computed(() => {
+    const debt = this.selectedDebt();
+    if (!debt) return '$ 0';
+    const amountVal = parseThousands(this.amount());
+    const remaining = Math.max(0, debt.currentBalance - amountVal);
+    return formatCOP(remaining);
+  });
+
   protected readonly debtOptions = computed<SelectOption<string>[]>(() =>
     this.debts().map((d) => ({
       value: d.id,
       label: `${d.name} — ${d.person} · Saldo: ${formatCOP(d.currentBalance)}`,
     })),
   );
+
+  protected readonly formatCOP = formatCOP;
 
   constructor() {
     effect(() => {
@@ -82,6 +124,7 @@ export class DebtPrepaymentModal {
       } else if (all.length > 0 && (!this.selectedDebtId() || !all.some((d) => d.id === this.selectedDebtId()))) {
         this.selectedDebtId.set(all[0].id);
       }
+      this.selectedTcCardId.set(this.tcService.selectedCard()?.id || 'tc-compartida');
       this.hasSubmitted.set(false);
     });
   }
@@ -106,6 +149,8 @@ export class DebtPrepaymentModal {
       debtId,
       amount: amountVal,
       date: this.date(),
+      paymentMethod: this.paymentDestination(),
+      cardId: this.paymentDestination() === 'tc' ? this.selectedTcCardId() : undefined,
     });
   }
 }

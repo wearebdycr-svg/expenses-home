@@ -28,6 +28,8 @@ export interface PrepaymentDraft {
   debtId: string;
   amount: number;
   date: string;
+  paymentMethod?: 'cuenta' | 'tc';
+  cardId?: string;
 }
 
 export interface AmortizationResult {

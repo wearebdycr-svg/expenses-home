@@ -75,11 +75,33 @@ describe('DebtPrepaymentModal', () => {
     component['amount'].set('1000000');
     fixture.nativeElement.querySelector('form').dispatchEvent(new Event('submit'));
 
-    expect(spy).toHaveBeenCalledWith({
-      debtId: 'debt-1',
-      amount: 1_000_000,
-      date: component['date'](),
-    });
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        debtId: 'debt-1',
+        amount: 1_000_000,
+        date: component['date'](),
+        paymentMethod: 'cuenta',
+      }),
+    );
+  });
+
+  it('emits save with TC when Tarjeta de Crédito is selected as payment source', () => {
+    const spy = vi.fn();
+    component.save.subscribe(spy);
+
+    component['paymentDestination'].set('tc');
+    component['selectedTcCardId'].set('tc-nu-charlie');
+    component['amount'].set('200000');
+    fixture.nativeElement.querySelector('form').dispatchEvent(new Event('submit'));
+
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        debtId: 'debt-1',
+        amount: 200_000,
+        paymentMethod: 'tc',
+        cardId: 'tc-nu-charlie',
+      }),
+    );
   });
 
   it('emits cancel when Cancelar button is clicked', () => {

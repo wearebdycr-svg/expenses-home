@@ -13,6 +13,7 @@ describe('DebtsService', () => {
   let expensesService: ExpensesService;
 
   beforeEach(() => {
+    localStorage.clear();
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-09-30T12:00:00Z'));
     TestBed.configureTestingModule({});
@@ -212,6 +213,40 @@ describe('DebtsService', () => {
         category: 'Tarjeta Visa',
         person: 'Charlie',
         date: '2026-09-29',
+      }),
+    );
+  });
+
+  it('applies prepayment with TC and delegates to tcService', async () => {
+    await service.addDebt({
+      name: 'Crédito Moto Nueva',
+      person: 'Benny',
+      startDate: '2026-07-01',
+      originalAmount: 4_000_000,
+      currentBalance: 4_000_000,
+      monthlyPayment: 300_000,
+      annualInterestRate: 12.0,
+    });
+    const debts = service.allDebts();
+    const debt = debts[debts.length - 1];
+
+    const tcService = TestBed.inject((await import('../../tc-compartida/data/tc.service')).TcService);
+    const tcSpy = vi.spyOn(tcService, 'addTcExpense').mockResolvedValue({} as any);
+
+    await service.applyPrepayment({
+      debtId: debt.id,
+      amount: 400_000,
+      date: '2026-10-15',
+      paymentMethod: 'tc',
+      cardId: 'tc-compartida',
+    });
+
+    expect(tcSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cardId: 'tc-compartida',
+        amount: 400_000,
+        category: 'Crédito Moto Nueva',
+        description: '[Deuda: Crédito Moto Nueva] Abono a capital',
       }),
     );
   });
