@@ -104,7 +104,13 @@ export class ProjectsService {
       .allTcExpenses()
       .filter((tc) => {
         const cat = (tc.category || '').trim().toLowerCase();
-        return cat === projName || cat === project.id.toLowerCase();
+        const desc = (tc.description || '').trim().toLowerCase();
+        return (
+          cat === projName ||
+          cat === project.id.toLowerCase() ||
+          desc.includes(`[evento: ${projName}]`) ||
+          desc.includes(`[proyecto: ${projName}]`)
+        );
       })
       .map((tc): ProjectExpense => ({
         id: `tc_${tc.id}`,
@@ -126,7 +132,13 @@ export class ProjectsService {
       .allExpenses()
       .filter((exp) => {
         const cat = (exp.category || '').trim().toLowerCase();
-        return cat === projName || cat === project.id.toLowerCase();
+        const desc = (exp.description || '').trim().toLowerCase();
+        return (
+          cat === projName ||
+          cat === project.id.toLowerCase() ||
+          desc.includes(`[evento: ${projName}]`) ||
+          desc.includes(`[proyecto: ${projName}]`)
+        );
       })
       .map((exp): ProjectExpense => ({
         id: `daily_${exp.id}`,

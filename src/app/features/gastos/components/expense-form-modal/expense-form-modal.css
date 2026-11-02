@@ -56,6 +56,21 @@
   animation: fadeInSubcategory 0.2s ease-out;
 }
 
+.payment-destination-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+}
+
+.destination-subselect-wrapper {
+  background: #f8fafc;
+  border: 1px dashed #94a3b8;
+  border-radius: 10px;
+  padding: 0.75rem 0.85rem;
+  animation: fadeInSubcategory 0.2s ease-out;
+}
+
 @keyframes fadeInSubcategory {
   from {
     opacity: 0;

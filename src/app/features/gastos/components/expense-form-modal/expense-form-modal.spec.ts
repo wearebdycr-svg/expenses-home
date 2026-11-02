@@ -332,5 +332,75 @@ describe('ExpenseFormModal', () => {
     expect(component['subCategory']()).toBe('Transporte');
     expect(component['category']()).toBe('Transporte');
   });
+
+  it('allows registering a habitual expense paid with a TC to discount its credit and record in TC', () => {
+    const tcService = TestBed.inject(TcService);
+    const tcSpy = vi.spyOn(tcService, 'addTcExpense');
+    const cancelSpy = vi.fn();
+    component.cancel.subscribe(cancelSpy);
+
+    component['person'].set('Benny');
+    component['category'].set('Mercado');
+    component['description'].set('Mercado en Carulla');
+    component['amount'].set('200000');
+
+    // Seleccionar destino TC
+    component['onPaymentDestinationChange']('tc');
+    component['selectedTcCardId'].set('tc-compartida');
+
+    component['onSubmit']();
+
+    expect(tcSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cardId: 'tc-compartida',
+        person: 'Benny',
+        category: 'Mercado',
+        amount: 200_000,
+        description: 'Mercado en Carulla',
+      }),
+    );
+    expect(cancelSpy).toHaveBeenCalled();
+  });
+
+  it('allows registering a habitual expense linked to a Debt to amortize it', () => {
+    const debtsService = TestBed.inject(DebtsService);
+    debtsService.debts.set([
+      {
+        id: 'debt-hipoteca',
+        name: 'Hipoteca',
+        person: 'Compartido',
+        startDate: '2026-01-01',
+        originalAmount: 50_000_000,
+        currentBalance: 30_000_000,
+        monthlyPayment: 500_000,
+        annualInterestRate: 8,
+        color: '#10b981',
+        status: 'activa',
+      },
+    ]);
+
+    const saveSpy = vi.fn();
+    component.save.subscribe(saveSpy);
+
+    component['person'].set('Charlie');
+    component['category'].set('Servicios públicos');
+    component['description'].set('Abono extraordinario');
+    component['amount'].set('500000');
+
+    // Seleccionar destino Deuda
+    component['onPaymentDestinationChange']('deuda');
+    component['selectedDebtId'].set('debt-hipoteca');
+
+    component['onSubmit']();
+
+    expect(saveSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        person: 'Charlie',
+        category: 'Servicios públicos',
+        amount: 500_000,
+        description: 'Abono extraordinario [Deuda: Hipoteca]',
+      }),
+    );
+  });
 });
 

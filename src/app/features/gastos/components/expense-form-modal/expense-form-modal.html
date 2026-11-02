@@ -138,65 +138,125 @@
         </div>
       }
 
-      @if (category() === 'Deudas') {
-        <div class="debt-amortization-info" style="background: #eff6ff; border-color: #bfdbfe;">
-          <div class="info-detail-row" style="color: #1e40af; font-size: 0.75rem; line-height: 1.35;">
-            <span>💡 <strong>Consejo:</strong> Para que este pago descuente automáticamente el saldo y los meses restantes de un crédito específico, selecciona en el selector de categoría la opción <em>"Deuda: [Nombre de tu crédito]"</em>.</span>
-          </div>
-        </div>
-      }
+      <!-- Selector de Forma de Pago / Descuento / Vinculación -->
+      <div class="payment-destination-section">
+        <app-select
+          label="Forma de Pago / Descuento"
+          [options]="paymentDestinationOptions()"
+          [value]="paymentDestination()"
+          (valueChange)="onPaymentDestinationChange($any($event))"
+        />
 
-      @if (selectedDebt(); as debt) {
-        <div class="debt-amortization-info" [class.overdraft]="isOverdraft()">
-          <div class="info-header">
-            <span class="info-title">💳 Pago / Amortización de Crédito</span>
-            <span class="info-badge">{{ debt.person }}</span>
-          </div>
-          <div class="info-body">
-            <div class="info-detail-row">
-              <span class="info-label">Crédito:</span>
-              <span class="info-val font-semibold">{{ debt.name }}</span>
-            </div>
-            <div class="info-detail-row">
-              <span class="info-label">Saldo pendiente:</span>
-              <span class="info-val info-balance">{{ formatCOP(debt.currentBalance) }}</span>
-            </div>
-            @if (debt.monthlyPayment > 0) {
-              <div class="info-detail-row">
-                <span class="info-label">Cuota mensual:</span>
-                <span class="info-val">{{ formatCOP(debt.monthlyPayment) }}</span>
+        @if (paymentDestination() === 'tc') {
+          <div class="destination-subselect-wrapper">
+            <app-select
+              label="Seleccionar Tarjeta de Crédito (TC)"
+              [options]="tcDestinationOptions()"
+              [value]="selectedTcCardId()"
+              (valueChange)="selectedTcCardId.set($event)"
+            />
+            @if (targetTcCard(); as tc) {
+              @let metrics = tcService.getCardMetrics(tc.id);
+              <div class="debt-amortization-info" style="background: #f0fdf4; border-color: #86efac; margin-top: 0.5rem;">
+                <div class="info-header">
+                  <span class="info-title" style="color: #166534;">💳 Consumo con Tarjeta de Crédito</span>
+                  <span class="info-badge" [style.background]="tc.color" style="color: #ffffff;">{{ tc.person }}</span>
+                </div>
+                <div class="info-body">
+                  <div class="info-detail-row">
+                    <span class="info-label">Tarjeta:</span>
+                    <span class="info-val font-semibold">{{ tc.name }} (•••• {{ tc.lastDigits }})</span>
+                  </div>
+                  @if (metrics.quotaRemaining !== undefined && metrics.quotaRemaining !== null) {
+                    <div class="info-detail-row">
+                      <span class="info-label">Cupo disponible:</span>
+                      <span class="info-val font-semibold" style="color: #15803d;">{{ formatCOP(metrics.quotaRemaining) }}</span>
+                    </div>
+                  }
+                  <div class="info-detail-row">
+                    <span class="info-label">Saldo pendiente:</span>
+                    <span class="info-val font-semibold" style="color: #b45309;">{{ formatCOP(metrics.pendingDebt) }}</span>
+                  </div>
+                </div>
               </div>
             }
           </div>
-          @if (isOverdraft()) {
-            <div class="overdraft-warning">
-              ⚠️ El monto ingresado ({{ formatCOP(parseThousands(amount())) }}) supera el saldo pendiente de esta deuda. Quedará totalmente liquidada.
-            </div>
-          }
-        </div>
-      }
+        }
 
-      @if (selectedTcCard(); as tc) {
-        @let metrics = tcService.getCardMetrics(tc.id);
-        <div class="debt-amortization-info" style="background: #f8fafc; border-color: #cbd5e1;">
-          <div class="info-header">
-            <span class="info-title">💳 Tarjeta de Crédito</span>
-            <span class="info-badge" [style.background]="tc.color" style="color: #ffffff;">{{ tc.person }}</span>
+        @if (paymentDestination() === 'deuda') {
+          <div class="destination-subselect-wrapper">
+            <app-select
+              label="Seleccionar Crédito / Deuda a Descontar"
+              [options]="debtDestinationOptions()"
+              [value]="selectedDebtId()"
+              (valueChange)="selectedDebtId.set($event)"
+            />
+            @if (targetDebt(); as debt) {
+              <div class="debt-amortization-info" [class.overdraft]="isOverdraft()" style="margin-top: 0.5rem;">
+                <div class="info-header">
+                  <span class="info-title">🏦 Abono / Amortización de Deuda</span>
+                  <span class="info-badge">{{ debt.person }}</span>
+                </div>
+                <div class="info-body">
+                  <div class="info-detail-row">
+                    <span class="info-label">Crédito:</span>
+                    <span class="info-val font-semibold">{{ debt.name }}</span>
+                  </div>
+                  <div class="info-detail-row">
+                    <span class="info-label">Saldo pendiente actual:</span>
+                    <span class="info-val info-balance">{{ formatCOP(debt.currentBalance) }}</span>
+                  </div>
+                  @if (debt.monthlyPayment > 0) {
+                    <div class="info-detail-row">
+                      <span class="info-label">Cuota mensual:</span>
+                      <span class="info-val">{{ formatCOP(debt.monthlyPayment) }}</span>
+                    </div>
+                  }
+                </div>
+                @if (isOverdraft()) {
+                  <div class="overdraft-warning">
+                    ⚠️ El monto ingresado ({{ formatCOP(parseThousands(amount())) }}) supera el saldo pendiente de esta deuda. Quedará totalmente liquidada.
+                  </div>
+                }
+              </div>
+            }
           </div>
-          <div class="info-body">
-            <div class="info-detail-row">
-              <span class="info-label">Tarjeta:</span>
-              <span class="info-val font-semibold">{{ tc.name }} (•••• {{ tc.lastDigits }})</span>
-            </div>
-            <div class="info-detail-row">
-              <span class="info-label">Saldo pendiente actual:</span>
-              <span class="info-val info-balance" [style.color]="metrics.pendingDebt > 0 ? '#d97706' : '#059669'">
-                {{ formatCOP(metrics.pendingDebt) }}
-              </span>
-            </div>
+        }
+
+        @if (paymentDestination() === 'proyecto') {
+          <div class="destination-subselect-wrapper">
+            <app-select
+              label="Seleccionar Proyecto o Evento"
+              [options]="projectDestinationOptions()"
+              [value]="selectedProjectId()"
+              (valueChange)="selectedProjectId.set($event)"
+            />
+            @if (targetProject(); as proj) {
+              @let pMetrics = projectsService.getProjectMetrics(proj.id);
+              <div class="debt-amortization-info" style="background: #faf5ff; border-color: #d8b4fe; margin-top: 0.5rem;">
+                <div class="info-header">
+                  <span class="info-title" style="color: #6b21a8;">🎯 Vinculado a Evento</span>
+                  <span class="info-badge" [style.background]="proj.color" style="color: #ffffff;">{{ proj.person }}</span>
+                </div>
+                <div class="info-body">
+                  <div class="info-detail-row">
+                    <span class="info-label">Evento:</span>
+                    <span class="info-val font-semibold">{{ proj.icon }} {{ proj.name }}</span>
+                  </div>
+                  <div class="info-detail-row">
+                    <span class="info-label">Presupuesto total:</span>
+                    <span class="info-val font-semibold">{{ formatCOP(proj.budgetAmount) }}</span>
+                  </div>
+                  <div class="info-detail-row">
+                    <span class="info-label">Gastado hasta ahora:</span>
+                    <span class="info-val font-semibold" style="color: #9333ea;">{{ formatCOP(pMetrics.totalExpenses) }}</span>
+                  </div>
+                </div>
+              </div>
+            }
           </div>
-        </div>
-      }
+        }
+      </div>
 
       @if (selectedFixedExpense(); as fixed) {
         <div class="debt-amortization-info" style="background: #f0fdf4; border-color: #bbf7d0;">

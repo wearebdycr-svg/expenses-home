@@ -98,11 +98,14 @@ export class DebtsService {
           if (!e.category) return false;
           const cat = e.category.trim().toLowerCase();
           const debtName = d.name.trim().toLowerCase();
+          const desc = (e.description || '').toLowerCase();
           return (
             cat === debtName ||
             cat === `deuda: ${debtName}` ||
             cat === `deuda: ${debtName} (inactiva)` ||
-            (cat === 'deudas' && e.description.toLowerCase().includes(debtName))
+            (cat === 'deudas' && desc.includes(debtName)) ||
+            desc.includes(`[deuda: ${debtName}]`) ||
+            desc.includes(`deuda: ${debtName}`)
           );
         })
         .sort((a, b) => a.date.localeCompare(b.date));

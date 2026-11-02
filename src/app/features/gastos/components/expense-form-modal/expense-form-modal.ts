@@ -25,6 +25,7 @@ import { TcService } from '../../../tc-compartida/data/tc.service';
 import type { TcCard } from '../../../tc-compartida/data/tc-card.model';
 import { ExpensesService } from '../../data/expenses.service';
 import { ProjectsService } from '../../../proyectos/data/projects.service';
+import type { Project } from '../../../proyectos/data/project.model';
 import { FixedExpensesService } from '../../../gastos-fijos/data/fixed-expenses.service';
 import type { FixedExpense } from '../../../gastos-fijos/data/fixed-expense.model';
 import { TrmService } from '../../../../core/services/trm.service';
@@ -55,6 +56,10 @@ export class ExpenseFormModal {
   expense = input<Expense | null>(null);
   protected readonly mainCategory = signal<string>('Gastos Habituales');
   protected readonly subCategory = signal<string>('Mercado');
+  protected readonly paymentDestination = signal<'cuenta' | 'tc' | 'deuda' | 'proyecto'>('cuenta');
+  protected readonly selectedTcCardId = signal<string>('');
+  protected readonly selectedDebtId = signal<string>('');
+  protected readonly selectedProjectId = signal<string>('');
   save = output<ExpenseDraft>();
   cancel = output<void>();
 
@@ -251,6 +256,111 @@ export class ExpenseFormModal {
   });
 
   /**
+   * Opciones para selector de Forma de Pago / Destino
+   */
+  protected readonly paymentDestinationOptions = computed<readonly SelectOption<'cuenta' | 'tc' | 'deuda' | 'proyecto'>[]>(() => {
+    const list: SelectOption<'cuenta' | 'tc' | 'deuda' | 'proyecto'>[] = [
+      { value: 'cuenta', label: '💵 Cuenta / Débito / Efectivo (Normal)' },
+      { value: 'tc', label: '💳 Tarjeta de Crédito (Descontar cupo TC)' },
+      { value: 'deuda', label: '🏦 Abono a Crédito / Deuda (Amortizar)' },
+    ];
+    if (this.projectsService.activeProjectCategories().length > 0) {
+      list.push({ value: 'proyecto', label: '🎯 Proyecto / Evento (Vincular)' });
+    }
+    return list;
+  });
+
+  protected readonly tcDestinationOptions = computed<readonly SelectOption<string>[]>(() => {
+    return this.tcService.activeCards().map((c) => ({
+      value: c.id,
+      label: `${c.name} (•••• ${c.lastDigits} - ${c.person})`,
+    }));
+  });
+
+  protected readonly debtDestinationOptions = computed<readonly SelectOption<string>[]>(() => {
+    return this.debtsService.activeDebts().map((d) => ({
+      value: d.id,
+      label: `${d.name} (${d.person} - Saldo: ${this.formatCOP(d.currentBalance)})`,
+    }));
+  });
+
+  protected readonly projectDestinationOptions = computed<readonly SelectOption<string>[]>(() => {
+    return this.projectsService.activeProjectCategories().map((p) => ({
+      value: p.id,
+      label: `${p.icon} ${p.name} (${p.person})`,
+    }));
+  });
+
+  protected readonly targetTcCard = computed<TcCard | null>(() => {
+    const isTcDestination = this.paymentDestination() === 'tc';
+    const directTc = this.selectedTcCard();
+    if (!isTcDestination && !directTc) {
+      return null;
+    }
+    if (directTc && !isTcDestination) {
+      return directTc;
+    }
+    const id = this.selectedTcCardId();
+    const active = this.tcService.activeCards();
+    if (id) {
+      const found = active.find((c) => c.id === id);
+      if (found) return found;
+    }
+    return directTc;
+  });
+
+  protected readonly targetDebt = computed<Debt | null>(() => {
+    const isDebtDest = this.paymentDestination() === 'deuda';
+    const isDirectDebtCat = Boolean(this.selectedDebt());
+    if (!isDebtDest && !isDirectDebtCat) {
+      return null;
+    }
+    const id = this.selectedDebtId();
+    const all = this.debtsService.allDebts();
+    if (id) {
+      const found = all.find((d) => d.id === id);
+      if (found) return found;
+    }
+    return this.selectedDebt();
+  });
+
+  protected readonly targetProject = computed<Project | null>(() => {
+    const isProjDest = this.paymentDestination() === 'proyecto';
+    const cat = this.category();
+    const isDirectProjCat = this.projectsService.projects().some((p) => p.name === cat);
+    if (!isProjDest && !isDirectProjCat) {
+      return null;
+    }
+    const id = this.selectedProjectId();
+    const active = this.projectsService.projects();
+    if (id) {
+      const found = active.find((p) => p.id === id);
+      if (found) return found;
+    }
+    return active.find((p) => p.name === cat) ?? null;
+  });
+
+  protected onPaymentDestinationChange(dest: 'cuenta' | 'tc' | 'deuda' | 'proyecto'): void {
+    this.paymentDestination.set(dest);
+    if (dest === 'tc') {
+      const active = this.tcService.activeCards();
+      if (!this.selectedTcCardId() && active.length > 0) {
+        this.selectedTcCardId.set(active[0].id);
+      }
+    } else if (dest === 'deuda') {
+      const active = this.debtsService.activeDebts();
+      if (!this.selectedDebtId() && active.length > 0) {
+        this.selectedDebtId.set(active[0].id);
+      }
+    } else if (dest === 'proyecto') {
+      const active = this.projectsService.activeProjectCategories();
+      if (!this.selectedProjectId() && active.length > 0) {
+        this.selectedProjectId.set(active[0].id);
+      }
+    }
+  }
+
+  /**
    * Handler al cambiar la categoría principal
    */
   protected onMainCategoryChange(selectedMain: string): void {
@@ -265,6 +375,8 @@ export class ExpenseFormModal {
       const sub = firstDebt ? firstDebt.name : 'Deudas';
       this.subCategory.set(sub);
       this.category.set(sub as ExpenseCategory);
+      this.paymentDestination.set('deuda');
+      if (firstDebt) this.selectedDebtId.set(firstDebt.id);
     } else if (selectedMain === 'Gastos Fijos') {
       const firstFixed = this.fixedExpensesService.activeFixedExpenses()[0];
       const sub = firstFixed ? firstFixed.name : '';
@@ -275,11 +387,15 @@ export class ExpenseFormModal {
       const sub = firstCard ? (firstCard.id === 'tc-compartida' ? 'TC-compartida' : `TC: ${firstCard.name}`) : 'TC-compartida';
       this.subCategory.set(sub);
       this.category.set(sub as ExpenseCategory);
+      this.paymentDestination.set('tc');
+      if (firstCard) this.selectedTcCardId.set(firstCard.id);
     } else if (selectedMain === 'Proyectos') {
       const firstProj = this.projectsService.activeProjectCategories()[0];
       const sub = firstProj ? firstProj.name : '';
       this.subCategory.set(sub);
       this.category.set(sub as ExpenseCategory);
+      this.paymentDestination.set('proyecto');
+      if (firstProj) this.selectedProjectId.set(firstProj.id);
     } else {
       this.subCategory.set('');
       this.category.set(selectedMain as ExpenseCategory);
@@ -292,6 +408,20 @@ export class ExpenseFormModal {
   protected onSubCategoryChange(selectedSub: string): void {
     this.subCategory.set(selectedSub);
     this.category.set(selectedSub as ExpenseCategory);
+
+    const main = this.mainCategory();
+    if (main === 'Deudas') {
+      const debt = this.debtsService.activeDebts().find((d) => d.name === selectedSub);
+      if (debt) this.selectedDebtId.set(debt.id);
+    } else if (main === 'Tarjetas') {
+      const card = this.tcService.activeCards().find((c) =>
+        (c.id === 'tc-compartida' ? 'TC-compartida' : `TC: ${c.name}`) === selectedSub || c.name === selectedSub,
+      );
+      if (card) this.selectedTcCardId.set(card.id);
+    } else if (main === 'Proyectos') {
+      const proj = this.projectsService.activeProjectCategories().find((p) => p.name === selectedSub);
+      if (proj) this.selectedProjectId.set(proj.id);
+    }
   }
 
   protected readonly categoryOptions = computed<readonly SelectOption<ExpenseCategory>[]>(() => {
@@ -372,7 +502,7 @@ export class ExpenseFormModal {
 
 
   protected readonly isOverdraft = computed(() => {
-    const debt = this.selectedDebt();
+    const debt = this.targetDebt();
     if (!debt) return false;
     const isUsd = this.currency() === 'USD';
     const entered = isUsd ? this.calculatedCopAmount() : parseThousands(this.amount());
@@ -410,6 +540,31 @@ export class ExpenseFormModal {
       } else {
         this.mainCategory.set('Gastos Habituales');
         this.subCategory.set(initialCat);
+      }
+
+      // Determinar vinculación / forma de pago
+      const existingDesc = existing?.description ?? '';
+      if (isCard) {
+        this.paymentDestination.set('tc');
+        const c = this.tcService.activeCards().find((card) => (card.id === 'tc-compartida' ? 'TC-compartida' : `TC: ${card.name}`) === initialCat || card.name === initialCat);
+        if (c) this.selectedTcCardId.set(c.id);
+      } else if (isDebt || existingDesc.includes('[Deuda:')) {
+        this.paymentDestination.set('deuda');
+        const d = this.debtsService.allDebts().find((debt) => debt.name === initialCat || existingDesc.includes(`[Deuda: ${debt.name}]`));
+        if (d) this.selectedDebtId.set(d.id);
+      } else if (isProj || existingDesc.includes('[Evento:')) {
+        this.paymentDestination.set('proyecto');
+        const p = this.projectsService.projects().find((proj) => proj.name === initialCat || existingDesc.includes(`[Evento: ${proj.name}]`));
+        if (p) this.selectedProjectId.set(p.id);
+      } else if (existing?.person === 'Compartido') {
+        this.paymentDestination.set('tc');
+        this.selectedTcCardId.set('tc-compartida');
+      } else {
+        this.paymentDestination.set('cuenta');
+        this.selectedDebtId.set('');
+        this.selectedProjectId.set('');
+        const firstCard = this.tcService.activeCards()[0];
+        if (firstCard) this.selectedTcCardId.set(firstCard.id);
       }
 
       if (existing) {
@@ -469,19 +624,35 @@ export class ExpenseFormModal {
 
     if (finalCopAmount <= 0) return;
 
-    const tc = this.selectedTcCard();
+    const dest = this.paymentDestination();
+    const isDirectTc = Boolean(this.selectedTcCard());
+    const isTc = dest === 'tc' || isDirectTc;
 
-    // Caso 1: Persona Compartido
-    // Todo gasto asignado a 'Compartido' es un consumo de la TC Compartida sin importar la categoría
-    // (Mercado, Hogar, Servicios públicos, etc.). Se registra directamente en tc_expenses y NO en Gastos Diarios.
-    if (person === 'Compartido') {
+    // 1. Tarjeta de Crédito (TC) o Persona Compartido
+    if (isTc || person === 'Compartido') {
+      const tc = this.targetTcCard() || this.selectedTcCard() || this.tcService.activeCards().find((c) => c.id === 'tc-compartida');
       const tcCardId = tc?.id || 'tc-compartida';
       const cat = this.category();
       const expenseCategory = (cat === 'TC-compartida' || cat.startsWith('TC:')) ? 'General' : cat;
 
+      // Si la tarjeta es TC Compartida pero la persona es Benny o Charlie (y no se seleccionó explícitamente TC como forma de pago):
+      // es un ABONO (pago) a la tarjeta desde cuenta bancaria. Realiza registro normal en Gastos Diarios.
+      if (dest !== 'tc' && tc && tc.person === 'Compartido' && person !== 'Compartido') {
+        this.emitSave();
+        return;
+      }
+
+      // Si es TC personal con Benny o Charlie, y no estamos editando:
+      // preguntar si es consumo o pago
+      if (person !== 'Compartido' && tc && tc.person !== 'Compartido' && !this.isEditMode()) {
+        this.confirmationType.set('personal-tc-prompt');
+        return;
+      }
+
+      // Registro de consumo directo en TC (descuenta cupo y aumenta deuda)
       this.tcService.addTcExpense({
         date: this.date(),
-        person: 'Compartido',
+        person: (person as ExpensePerson) || tc?.person || 'Compartido',
         category: expenseCategory || 'General',
         description,
         amount: finalCopAmount,
@@ -502,28 +673,68 @@ export class ExpenseFormModal {
       return;
     }
 
-    if (!tc || this.isEditMode()) {
-      this.emitSave();
+    // 2. Abono a Crédito / Deuda
+    if (dest === 'deuda') {
+      const debt = this.targetDebt();
+      let finalDescription = description;
+      let finalCategory = this.category();
+
+      if (debt) {
+        if (!finalDescription.toLowerCase().includes(debt.name.toLowerCase())) {
+          finalDescription = `${finalDescription} [Deuda: ${debt.name}]`;
+        }
+        if (finalCategory === 'Deudas') {
+          finalCategory = debt.name as ExpenseCategory;
+        }
+      }
+
+      this.save.emit({
+        date: this.date(),
+        person: person as ExpensePerson,
+        category: finalCategory,
+        description: finalDescription,
+        amount: finalCopAmount,
+        currency: isUsd ? 'USD' : 'COP',
+        amountUsd: isUsd ? this.amountUsdNumber() : undefined,
+        exchangeRate: isUsd ? this.effectiveTrm() : undefined,
+      });
       return;
     }
 
-    // Caso 2: Tarjeta Compartida con persona Benny o Charlie (Abono/Pago a la TC)
-    if (tc.person === 'Compartido') {
-      // Seleccionó Benny o Charlie: es un abono/pago a la TC Compartida desde cuenta bancaria.
-      // Realiza el registro normal en Gastos Diarios y amortiza/resta la deuda de la TC.
-      this.emitSave();
+    // 3. Proyecto / Evento
+    if (dest === 'proyecto') {
+      const project = this.targetProject();
+      let finalDescription = description;
+
+      if (project) {
+        if (!finalDescription.toLowerCase().includes(project.name.toLowerCase())) {
+          finalDescription = `${finalDescription} [Evento: ${project.name}]`;
+        }
+      }
+
+      this.save.emit({
+        date: this.date(),
+        person: person as ExpensePerson,
+        category: this.category(),
+        description: finalDescription,
+        amount: finalCopAmount,
+        currency: isUsd ? 'USD' : 'COP',
+        amountUsd: isUsd ? this.amountUsdNumber() : undefined,
+        exchangeRate: isUsd ? this.effectiveTrm() : undefined,
+      });
       return;
     }
 
-    // Caso 3: Tarjeta Personal (no compartida, ej. Charlie o Benny)
-    this.confirmationType.set('personal-tc-prompt');
+    // 4. Cuenta / Normal
+    this.emitSave();
   }
 
   protected emitSave(): void {
     const description = this.description().trim().slice(0, 100);
     const person = this.person();
-    const tc = this.selectedTcCard();
-    const category = tc
+    const isTc = this.paymentDestination() === 'tc' || Boolean(this.selectedTcCard());
+    const tc = isTc ? this.targetTcCard() : null;
+    const category = isTc && tc
       ? (tc.id === 'tc-compartida' ? 'TC-compartida' : `TC: ${tc.name}`)
       : this.category();
 
@@ -545,7 +756,7 @@ export class ExpenseFormModal {
   }
 
   protected confirmPersonalTcMovement(type: 'expense' | 'payment'): void {
-    const tc = this.selectedTcCard();
+    const tc = this.targetTcCard() || this.selectedTcCard();
     if (!tc) return;
 
     const isUsd = this.currency() === 'USD';
