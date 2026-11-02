@@ -14,6 +14,7 @@ import { TcPage } from './features/tc-compartida/tc';
 import { TcService } from './features/tc-compartida/data/tc.service';
 import { ProyectosPage } from './features/proyectos/proyectos';
 import { GastosFijosPage } from './features/gastos-fijos/gastos-fijos';
+import { FixedExpensesQuickModal } from './features/gastos-fijos/components/fixed-expenses-quick-modal/fixed-expenses-quick-modal';
 import { Sidebar, type SidebarPageId } from './shared/ui/sidebar/sidebar';
 import { DailyReminderBanner } from './shared/ui/daily-reminder-banner/daily-reminder-banner';
 import { ToastContainer } from './shared/ui/toast-container/toast-container';
@@ -65,6 +66,7 @@ function getInitialPage(): SidebarPageId {
     ResumenPage,
     CategoriaPage,
     GastosFijosPage,
+    FixedExpensesQuickModal,
     DeudasPage,
     TcPage,
     ProyectosPage,
@@ -83,6 +85,20 @@ export class App {
   protected readonly authPinService = inject(AuthPinService);
   protected readonly supabaseAuth = inject(SupabaseAuthService);
   protected readonly currentPage = signal<SidebarPageId>(getInitialPage());
+  protected readonly showFixedExpensesQuickModal = signal(false);
+
+  protected openFixedExpensesQuickModal(): void {
+    this.showFixedExpensesQuickModal.set(true);
+  }
+
+  protected closeFixedExpensesQuickModal(): void {
+    this.showFixedExpensesQuickModal.set(false);
+  }
+
+  protected onGoToFixedExpensesSection(): void {
+    this.showFixedExpensesQuickModal.set(false);
+    this.onNavigate('gastos-fijos');
+  }
 
   protected onLockApp(): void {
     this.authPinService.lock();
@@ -149,6 +165,11 @@ export class App {
         }
 
         // 2. Si hay algún modal abierto en la aplicación, cerrarlo
+        if (this.showFixedExpensesQuickModal()) {
+          this.closeFixedExpensesQuickModal();
+          return;
+        }
+
         const modalCloseBtn = document.querySelector(
           '.modal-backdrop .modal-close, .modal-backdrop .btn-cancel',
         ) as HTMLButtonElement | null;

@@ -28,6 +28,7 @@ export class Sidebar {
   navigate = output<SidebarPageId>();
   lockApp = output<void>();
   signOutSupabase = output<void>();
+  viewFixedExpenses = output<void>();
 
   protected readonly isProduction = environment.production;
   protected readonly mobileOpen = signal(false);
@@ -65,6 +66,11 @@ export class Sidebar {
 
   protected onNavItemClick(id: SidebarPageId): void {
     this.navigate.emit(id);
+    this.closeMobileMenu();
+  }
+
+  protected onViewFixedExpenses(): void {
+    this.viewFixedExpenses.emit();
     this.closeMobileMenu();
   }
 

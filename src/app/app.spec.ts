@@ -195,4 +195,25 @@ describe('App', () => {
     const app = fixture.componentInstance;
     expect(typeof (app as any).setupBackButtonHandler).toBe('function');
   });
+
+  it('opens and closes the fixed expenses quick modal', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const app = fixture.componentInstance;
+
+    expect(fixture.nativeElement.querySelector('app-fixed-expenses-quick-modal')).toBeFalsy();
+
+    const quickBtn = fixture.nativeElement.querySelector('.btn-visualize-fixed') as HTMLButtonElement;
+    quickBtn.click();
+    fixture.detectChanges();
+
+    expect(app['showFixedExpensesQuickModal']()).toBe(true);
+    expect(fixture.nativeElement.querySelector('app-fixed-expenses-quick-modal')).toBeTruthy();
+
+    app['closeFixedExpensesQuickModal']();
+    fixture.detectChanges();
+
+    expect(app['showFixedExpensesQuickModal']()).toBe(false);
+    expect(fixture.nativeElement.querySelector('app-fixed-expenses-quick-modal')).toBeFalsy();
+  });
 });

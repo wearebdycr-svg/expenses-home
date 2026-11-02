@@ -108,4 +108,24 @@ describe('Sidebar', () => {
 
     expect(spy).toHaveBeenCalled();
   });
+
+  it('emits viewFixedExpenses when the sidebar quick action button is clicked', () => {
+    const spy = vi.fn();
+    component.viewFixedExpenses.subscribe(spy);
+
+    const btn = fixture.nativeElement.querySelector('.btn-visualize-fixed') as HTMLButtonElement;
+    btn.click();
+
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('emits viewFixedExpenses when mobile quick button is clicked', () => {
+    const spy = vi.fn();
+    component.viewFixedExpenses.subscribe(spy);
+
+    const btn = fixture.nativeElement.querySelector('.mobile-quick-btn') as HTMLButtonElement;
+    btn.click();
+
+    expect(spy).toHaveBeenCalled();
+  });
 });

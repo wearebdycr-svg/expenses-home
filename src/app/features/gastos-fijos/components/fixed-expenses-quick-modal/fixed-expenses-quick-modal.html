@@ -1,0 +1,126 @@
+<div class="quick-modal-backdrop" (click)="close.emit()">
+  <div class="quick-modal-card" (click)="$event.stopPropagation()">
+    
+    <!-- Header -->
+    <div class="quick-modal-header">
+      <div class="header-title-area">
+        <div class="icon-circle">
+          <app-icon name="check-circle" [size]="20" />
+        </div>
+        <div>
+          <h2 class="modal-title">Gastos Fijos — {{ currentMonthName() }} {{ service.selectedYear() }}</h2>
+          <span class="modal-subtitle">
+            Se renuevan automáticamente cada mes. Solo agregas o eliminas cuando cambie tu presupuesto.
+          </span>
+        </div>
+      </div>
+      <button type="button" class="close-btn" (click)="close.emit()" aria-label="Cerrar modal">
+        <app-icon name="x" [size]="20" />
+      </button>
+    </div>
+
+    <!-- Mini KPIs Summary Bar -->
+    @let s = summary();
+    <div class="quick-kpis-bar">
+      <div class="quick-kpi-item">
+        <span class="kpi-micro-label">Total Fijos</span>
+        <span class="kpi-micro-val">{{ s.totalFixed }}</span>
+      </div>
+      <div class="quick-kpi-divider"></div>
+      <div class="quick-kpi-item">
+        <span class="kpi-micro-label">Pagados</span>
+        <span class="kpi-micro-val text-success">✅ {{ s.paidCount }}</span>
+      </div>
+      <div class="quick-kpi-divider"></div>
+      <div class="quick-kpi-item">
+        <span class="kpi-micro-label">Pendientes</span>
+        <span class="kpi-micro-val text-pending">⏳ {{ s.pendingCount }}</span>
+      </div>
+      <div class="quick-kpi-divider"></div>
+      <div class="quick-kpi-item">
+        <span class="kpi-micro-label">Total Estimado</span>
+        <span class="kpi-micro-val">{{ formatCOP(s.totalExpectedAmount) }}</span>
+      </div>
+    </div>
+
+    <!-- Lista de Gastos Fijos con Estado Pagado / Pendiente -->
+    <div class="quick-list-container">
+      @if (service.monthlyStatuses().length === 0) {
+        <div class="empty-quick-state">
+          <app-icon name="alert-circle" [size]="32" />
+          <p>No tienes gastos fijos configurados aún.</p>
+          <button type="button" class="btn btn-primary btn-sm" (click)="goToFullSection.emit()">
+            Ir a configurar gastos fijos
+          </button>
+        </div>
+      } @else {
+        <div class="quick-expenses-list">
+          @for (item of service.monthlyStatuses(); track item.fixedExpense.id) {
+            <div class="quick-item-card" [class.is-paid]="item.isPaid" [class.is-pending]="!item.isPaid">
+              
+              <!-- Icono / Chulo Estado -->
+              <div class="status-indicator">
+                @if (item.isPaid) {
+                  <span class="check-bubble" title="Pagado este mes">
+                    <app-icon name="check-circle" [size]="22" />
+                  </span>
+                } @else {
+                  <span class="pending-bubble" title="Pendiente de pago este mes">
+                    <app-icon name="clock" [size]="20" />
+                  </span>
+                }
+              </div>
+
+              <!-- Info principal -->
+              <div class="item-main-info">
+                <div class="name-row">
+                  <h4 class="item-name">{{ item.fixedExpense.name }}</h4>
+                  <span class="person-tag tag-{{ item.fixedExpense.person.toLowerCase() }}">
+                    {{ item.fixedExpense.person }}
+                  </span>
+                </div>
+                <div class="meta-row">
+                  @if (item.fixedExpense.dueDay) {
+                    <span class="due-tag">Límite día {{ item.fixedExpense.dueDay }}</span>
+                  }
+                  @if (item.isPaid && item.paidDate) {
+                    <span class="paid-date-tag">Pagado el {{ item.paidDate }}</span>
+                  } @else {
+                    <span class="pending-tag">Pendiente en {{ currentMonthName() }}</span>
+                  }
+                </div>
+              </div>
+
+              <!-- Montos y Estado lateral -->
+              <div class="item-amount-side">
+                <span class="amount-val" [class.amount-paid]="item.isPaid">
+                  {{ item.isPaid ? formatCOP(item.paidAmount) : formatCOP(item.fixedExpense.expectedAmount) }}
+                </span>
+                <span class="status-pill" [class.pill-paid]="item.isPaid" [class.pill-pending]="!item.isPaid">
+                  {{ item.isPaid ? 'Pagado' : 'Por pagar' }}
+                </span>
+              </div>
+
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Footer con acciones -->
+    <div class="quick-modal-footer">
+      <div class="footer-hint">
+        💡 <em>Los gastos fijos se mantienen mes a mes de forma automática.</em>
+      </div>
+      <div class="footer-buttons">
+        <button type="button" class="btn btn-secondary" (click)="close.emit()">
+          Cerrar
+        </button>
+        <button type="button" class="btn btn-primary" (click)="goToFullSection.emit()">
+          <span>Administrar Gastos Fijos →</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>

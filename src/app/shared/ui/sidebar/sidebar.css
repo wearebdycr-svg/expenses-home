@@ -68,6 +68,31 @@
   letter-spacing: -0.01em;
 }
 
+.mobile-navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mobile-quick-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 10px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mobile-quick-btn:active {
+  background: rgba(16, 185, 129, 0.25);
+  transform: scale(0.95);
+}
+
 .mobile-lock-btn {
   display: flex;
   align-items: center;
@@ -195,6 +220,59 @@
   border: 1px solid rgba(245, 158, 11, 0.45);
   border-radius: 9999px;
 }
+.sidebar-action-container {
+  padding: 0 12px 6px;
+}
+
+.btn-visualize-fixed {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.16), rgba(16, 185, 129, 0.16));
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #f0f9ff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.btn-visualize-fixed:hover {
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.28), rgba(16, 185, 129, 0.28));
+  border-color: rgba(56, 189, 248, 0.65);
+  transform: translateY(-1px);
+}
+
+.btn-visualize-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.btn-visualize-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.btn-visualize-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.btn-visualize-badge {
+  font-size: 0.68rem;
+  color: #94a3b8;
+}
+
 .sidebar-nav {
   display: flex;
   flex: 1;
