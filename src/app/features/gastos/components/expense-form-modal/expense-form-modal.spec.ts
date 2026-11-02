@@ -294,5 +294,43 @@ describe('ExpenseFormModal', () => {
       exchangeRate: 3155,
     });
   });
+
+  it('groups habitual categories under "Gastos Habituales" with subcategories', () => {
+    // 1. Verify main categories contains "Gastos Habituales"
+    const mainOptions = component['mainCategoryOptions']();
+    expect(mainOptions.some((o) => o.value === 'Gastos Habituales')).toBe(true);
+    expect(component['mainCategory']()).toBe('Gastos Habituales');
+    expect(component['subCategory']()).toBe('Mercado');
+    expect(component['hasSubcategories']()).toBe(true);
+
+    // 2. Verify subcategories for Gastos Habituales contain Transporte, Mercado, etc.
+    const subOptions = component['subCategoryOptions']();
+    expect(subOptions.some((o) => o.value === 'Transporte')).toBe(true);
+    expect(subOptions.some((o) => o.value === 'Mercado')).toBe(true);
+    expect(subOptions.some((o) => o.value === 'Restaurantes/domicilios')).toBe(true);
+
+    // 3. Changing subcategory updates category
+    component['onSubCategoryChange']('Transporte');
+    expect(component['subCategory']()).toBe('Transporte');
+    expect(component['category']()).toBe('Transporte');
+  });
+
+  it('correctly maps existing habitual expense category to "Gastos Habituales" group upon edit', async () => {
+    const existing: Expense = {
+      id: 'exp-200',
+      date: '2026-08-15',
+      person: 'Benny',
+      category: 'Transporte',
+      description: 'Gasolina',
+      amount: 50_000,
+    };
+    fixture.componentRef.setInput('expense', existing);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(component['mainCategory']()).toBe('Gastos Habituales');
+    expect(component['subCategory']()).toBe('Transporte');
+    expect(component['category']()).toBe('Transporte');
+  });
 });
 

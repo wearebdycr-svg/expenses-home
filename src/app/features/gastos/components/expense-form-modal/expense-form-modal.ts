@@ -53,8 +53,8 @@ export class ExpenseFormModal {
   protected readonly trmService = inject(TrmService);
 
   expense = input<Expense | null>(null);
-  protected readonly mainCategory = signal<string>('Mercado');
-  protected readonly subCategory = signal<string>('');
+  protected readonly mainCategory = signal<string>('Gastos Habituales');
+  protected readonly subCategory = signal<string>('Mercado');
   save = output<ExpenseDraft>();
   cancel = output<void>();
 
@@ -135,22 +135,18 @@ export class ExpenseFormModal {
     }),
   );
 
+  protected readonly HABITUAL_CATEGORIES: readonly ExpenseCategory[] = EXPENSE_CATEGORIES.filter(
+    (c) => c !== 'Deudas' && c !== 'TC-compartida',
+  );
+
   /**
    * Opciones de Categorías Principales Agrupadas
    */
   protected readonly mainCategoryOptions = computed<readonly SelectOption<string>[]>(() => {
-    // 1. Categorías estándar del sistema (excluyendo 'Deudas' y 'TC-compartida' que son grupos principales)
-    const baseStandard = EXPENSE_CATEGORIES.filter(
-      (c) => c !== 'Deudas' && c !== 'TC-compartida',
-    ).map((c) => ({
-      value: c,
-      label: c,
-    }));
-
     const groups: SelectOption<string>[] = [
-      ...baseStandard,
-      { value: 'Deudas', label: '💳 Deudas / Créditos (Ver lista...)' },
+      { value: 'Gastos Habituales', label: '🛒 Gastos Habituales (Mercado, Transporte, etc.)' },
       { value: 'Gastos Fijos', label: '📌 Gastos Fijos Mensuales (Ver lista...)' },
+      { value: 'Deudas', label: '💳 Deudas / Créditos (Ver lista...)' },
       { value: 'Tarjetas', label: '💳 Tarjetas de Crédito (Ver lista...)' },
     ];
 
@@ -166,7 +162,13 @@ export class ExpenseFormModal {
    */
   protected readonly hasSubcategories = computed<boolean>(() => {
     const main = this.mainCategory();
-    return main === 'Deudas' || main === 'Gastos Fijos' || main === 'Tarjetas' || main === 'Proyectos';
+    return (
+      main === 'Gastos Habituales' ||
+      main === 'Deudas' ||
+      main === 'Gastos Fijos' ||
+      main === 'Tarjetas' ||
+      main === 'Proyectos'
+    );
   });
 
   /**
@@ -174,6 +176,8 @@ export class ExpenseFormModal {
    */
   protected readonly subCategoryLabel = computed<string>(() => {
     switch (this.mainCategory()) {
+      case 'Gastos Habituales':
+        return 'Seleccionar Categoría Habitual';
       case 'Deudas':
         return 'Seleccionar Crédito / Deuda a Pagar';
       case 'Gastos Fijos':
@@ -192,6 +196,19 @@ export class ExpenseFormModal {
    */
   protected readonly subCategoryOptions = computed<readonly SelectOption<string>[]>(() => {
     const main = this.mainCategory();
+
+    if (main === 'Gastos Habituales') {
+      const options: SelectOption<string>[] = this.HABITUAL_CATEGORIES.map((cat) => ({
+        value: cat,
+        label: cat,
+      }));
+      const currentCat = this.category();
+      if (this.isEditMode() && currentCat && !this.HABITUAL_CATEGORIES.includes(currentCat)) {
+        options.push({ value: currentCat, label: currentCat });
+      }
+      return options;
+    }
+
     if (main === 'Deudas') {
       const activeDebts = this.debtsService.activeDebts();
       if (activeDebts.length === 0) {
@@ -239,7 +256,11 @@ export class ExpenseFormModal {
   protected onMainCategoryChange(selectedMain: string): void {
     this.mainCategory.set(selectedMain);
 
-    if (selectedMain === 'Deudas') {
+    if (selectedMain === 'Gastos Habituales') {
+      const sub = 'Mercado';
+      this.subCategory.set(sub);
+      this.category.set(sub as ExpenseCategory);
+    } else if (selectedMain === 'Deudas') {
       const firstDebt = this.debtsService.activeDebts()[0];
       const sub = firstDebt ? firstDebt.name : 'Deudas';
       this.subCategory.set(sub);
@@ -387,8 +408,8 @@ export class ExpenseFormModal {
         this.mainCategory.set('Proyectos');
         this.subCategory.set(initialCat);
       } else {
-        this.mainCategory.set(initialCat);
-        this.subCategory.set('');
+        this.mainCategory.set('Gastos Habituales');
+        this.subCategory.set(initialCat);
       }
 
       if (existing) {
