@@ -37,21 +37,44 @@
       }
     </div>
 
+    <!-- Selector de Moneda (COP vs USD) -->
+    <div class="currency-selector-group">
+      <span class="currency-group-label">Moneda del Presupuesto:</span>
+      <div class="currency-toggle-pills">
+        <button
+          type="button"
+          class="currency-pill"
+          [class.active]="currency() === 'COP'"
+          (click)="setCurrency('COP')"
+        >
+          🇨🇴 Pesos Colombianos (COP)
+        </button>
+        <button
+          type="button"
+          class="currency-pill"
+          [class.active]="currency() === 'USD'"
+          (click)="setCurrency('USD')"
+        >
+          🇺🇸 Dólares (USD)
+        </button>
+      </div>
+    </div>
+
     <!-- Presupuesto Estimado y Responsable en fila -->
     <div class="form-row">
       <div class="form-group flex-1">
         <label class="form-label" for="proj-budget">
-          Presupuesto Meta ($ COP) <span class="required">*</span>
+          Presupuesto Meta ({{ currency() === 'USD' ? 'US$' : '$ COP' }}) <span class="required">*</span>
         </label>
         <div class="input-prefix-wrapper">
-          <span class="input-prefix">$</span>
+          <span class="input-prefix">{{ currency() === 'USD' ? 'US$' : '$' }}</span>
           <input
             id="proj-budget"
             type="text"
             inputmode="numeric"
             class="form-input input-with-prefix"
             [class.has-error]="hasSubmitted() && errors()['budgetAmount']"
-            placeholder="Ej: 5.000.000"
+            [placeholder]="currency() === 'USD' ? 'Ej: 2.500' : 'Ej: 5.000.000'"
             [value]="budgetAmount()"
             (input)="onAmountInput($event)"
           />

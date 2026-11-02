@@ -37,6 +37,7 @@ export interface Project {
   id: string;
   name: string;
   budgetAmount: number;
+  currency?: 'COP' | 'USD';
   person: ExpensePerson;
   icon: string;
   color: string;

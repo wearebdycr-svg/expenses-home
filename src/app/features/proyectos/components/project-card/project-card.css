@@ -96,6 +96,19 @@
   white-space: nowrap;
 }
 
+.badge-currency {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+.badge-currency.badge-usd {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+  font-weight: 800;
+}
+
 .badge-person.badge-charlie {
   background: #fef3c7;
   color: #b45309;

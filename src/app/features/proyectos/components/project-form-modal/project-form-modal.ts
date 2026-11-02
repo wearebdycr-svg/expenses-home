@@ -40,6 +40,7 @@ export class ProjectFormModal {
 
   // Form signals
   protected readonly name = signal('');
+  protected readonly currency = signal<'COP' | 'USD'>('COP');
   protected readonly budgetAmount = signal('');
   protected readonly person = signal<ExpensePerson>('Compartido');
   protected readonly icon = signal('✈️');
@@ -79,6 +80,7 @@ export class ProjectFormModal {
       const current = this.project();
       if (current) {
         this.name.set(current.name);
+        this.currency.set(current.currency || 'COP');
         this.budgetAmount.set(formatThousands(current.budgetAmount));
         this.person.set(current.person);
         this.icon.set(current.icon || '✈️');
@@ -89,6 +91,7 @@ export class ProjectFormModal {
         this.description.set(current.description || '');
       } else {
         this.name.set('');
+        this.currency.set('COP');
         this.budgetAmount.set('');
         this.person.set('Compartido');
         this.icon.set('✈️');
@@ -100,6 +103,10 @@ export class ProjectFormModal {
       }
       this.hasSubmitted.set(false);
     });
+  }
+
+  protected setCurrency(c: 'COP' | 'USD'): void {
+    this.currency.set(c);
   }
 
   protected onAmountInput(event: Event): void {
@@ -126,6 +133,7 @@ export class ProjectFormModal {
     this.save.emit({
       name: this.name().trim(),
       budgetAmount: amount,
+      currency: this.currency(),
       person: this.person(),
       icon: this.icon(),
       color: this.color(),

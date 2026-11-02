@@ -1,6 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseService } from '../../../core/services/supabase.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { TrmService } from '../../../core/services/trm.service';
 import { TcService } from '../../tc-compartida/data/tc.service';
 import { ExpensesService } from '../../gastos/data/expenses.service';
 import type { ExpensePerson, ExpensePersonFilter } from '../../gastos/data/expense.model';
@@ -22,6 +23,7 @@ const STORAGE_PROJECT_EXPENSES_KEY = 'expenses_home_project_expenses_v1';
 export class ProjectsService {
   private readonly supabase = inject(SupabaseService);
   private readonly toastService = inject(ToastService);
+  private readonly trmService = inject(TrmService);
   private readonly tcService = inject(TcService);
   private readonly expensesService = inject(ExpensesService);
 
@@ -151,8 +153,22 @@ export class ProjectsService {
     const project = this.projectsSignal().find((p) => p.id === projectId);
     const expenses = this.getAllExpensesForProject(projectId);
     const budget = project?.budgetAmount ?? 0;
+    const isProjectUsd = project?.currency === 'USD';
 
-    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    // Si el proyecto es en USD, sumamos el gasto en USD (amountUsd si existe, o e.amount si el gasto se registró en USD)
+    const getExpenseAmountForProject = (e: ProjectExpense): number => {
+      if (isProjectUsd) {
+        if (e.amountUsd != null && e.amountUsd > 0) return e.amountUsd;
+        if (e.currency === 'USD') return e.amount;
+        // Si fue un gasto en COP dentro de un proyecto USD, convertir a USD usando exchangeRate o TRM
+        if (e.exchangeRate && e.exchangeRate > 0) return e.amount / e.exchangeRate;
+        const currentTrm = this.trmService.trm();
+        return currentTrm > 0 ? e.amount / currentTrm : e.amount;
+      }
+      return e.amount;
+    };
+
+    const totalExpenses = expenses.reduce((sum, e) => sum + getExpenseAmountForProject(e), 0);
     const diff = budget - totalExpenses;
     const isOverBudget = diff < 0;
     const overBudgetAmount = isOverBudget ? Math.abs(diff) : 0;
@@ -160,9 +176,9 @@ export class ProjectsService {
     const progressPercentage = budget > 0 ? Math.round((totalExpenses / budget) * 100) : 0;
 
     const byPerson = {
-      Charlie: expenses.filter((e) => e.person === 'Charlie').reduce((sum, e) => sum + e.amount, 0),
-      Benny: expenses.filter((e) => e.person === 'Benny').reduce((sum, e) => sum + e.amount, 0),
-      Compartido: expenses.filter((e) => e.person === 'Compartido').reduce((sum, e) => sum + e.amount, 0),
+      Charlie: expenses.filter((e) => e.person === 'Charlie').reduce((sum, e) => sum + getExpenseAmountForProject(e), 0),
+      Benny: expenses.filter((e) => e.person === 'Benny').reduce((sum, e) => sum + getExpenseAmountForProject(e), 0),
+      Compartido: expenses.filter((e) => e.person === 'Compartido').reduce((sum, e) => sum + getExpenseAmountForProject(e), 0),
     };
 
     return {
@@ -237,6 +253,7 @@ export class ProjectsService {
           id: String(row.id),
           name: String(row.name),
           budgetAmount: Number(row.budget_amount ?? row.budgetAmount ?? 0),
+          currency: (row.currency as 'COP' | 'USD') || 'COP',
           person: row.person as ExpensePerson,
           icon: String(row.icon || '🎯'),
           color: String(row.color || '#3B82F6'),
@@ -288,6 +305,7 @@ export class ProjectsService {
     const payload: Record<string, any> = {
       name: draft.name,
       budget_amount: draft.budgetAmount,
+      currency: draft.currency || 'COP',
       person: draft.person,
       icon: draft.icon,
       color: draft.color,
@@ -349,6 +367,7 @@ export class ProjectsService {
     const payload: Record<string, any> = {
       name: draft.name,
       budget_amount: draft.budgetAmount,
+      currency: draft.currency || 'COP',
       person: draft.person,
       icon: draft.icon,
       color: draft.color,
@@ -639,6 +658,7 @@ export class ProjectsService {
         const payload: Record<string, any> = {
           name: p.name,
           budget_amount: p.budgetAmount,
+          currency: p.currency || 'COP',
           person: p.person,
           icon: p.icon,
           color: p.color,

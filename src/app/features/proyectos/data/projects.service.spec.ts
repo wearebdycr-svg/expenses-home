@@ -43,6 +43,38 @@ describe('ProjectsService - Módulo Proyectos & Eventos', () => {
     expect(metrics.progressPercentage).toBe(0);
   });
 
+  it('supports creating a project in USD and calculates USD expenses correctly', async () => {
+    const project = await service.addProject({
+      name: 'Viaje Disney Orlando',
+      budgetAmount: 3_000,
+      currency: 'USD',
+      person: 'Compartido',
+      icon: '✈️',
+      color: '#10B981',
+      status: 'activo',
+    });
+
+    expect(project.currency).toBe('USD');
+    expect(project.budgetAmount).toBe(3_000);
+
+    await service.addProjectExpense({
+      projectId: project.id,
+      date: '2026-11-01',
+      description: 'Entradas parques Disney',
+      amount: 1_200,
+      amountUsd: 1_200,
+      currency: 'USD',
+      person: 'Charlie',
+      category: 'Entretenimiento',
+    });
+
+    const metrics = service.getProjectMetrics(project.id);
+    expect(metrics.totalExpenses).toBe(1_200);
+    expect(metrics.remainingBudget).toBe(1_800);
+    expect(metrics.isOverBudget).toBe(false);
+    expect(metrics.progressPercentage).toBe(40);
+  });
+
   it('discounts expenses from budget accurately', async () => {
     const project = await service.addProject({
       name: 'Asado Fin de Semana',

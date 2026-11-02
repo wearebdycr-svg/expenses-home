@@ -36,6 +36,9 @@
         <div>
           <h1 class="hero-project-name">{{ project().name }}</h1>
           <div class="hero-badges">
+            <span class="badge badge-currency" [class.badge-usd]="project().currency === 'USD'">
+              {{ project().currency === 'USD' ? '🇺🇸 USD' : '🇨🇴 COP' }}
+            </span>
             <span class="badge badge-person badge-{{ project().person.toLowerCase() }}">
               {{ project().person }}
             </span>
@@ -75,7 +78,7 @@
         @if (metrics().isOverBudget) {
           <div class="hero-overbudget-alert">
             <app-icon name="alert-circle" [size]="18" />
-            <span>⚠️ Presupuesto excedido en ${{ metrics().overBudgetAmount.toLocaleString('es-CO') }}</span>
+            <span>⚠️ Presupuesto excedido en {{ project().currency === 'USD' ? 'US$ ' : '$' }}{{ metrics().overBudgetAmount.toLocaleString(project().currency === 'USD' ? 'en-US' : 'es-CO') }}</span>
           </div>
         }
       </div>
@@ -93,14 +96,14 @@
       <div class="number-card">
         <span class="number-label">Presupuesto Meta</span>
         <span class="number-value val-budget">
-          ${{ project().budgetAmount.toLocaleString('es-CO') }}
+          {{ project().currency === 'USD' ? 'US$ ' : '$' }}{{ project().budgetAmount.toLocaleString(project().currency === 'USD' ? 'en-US' : 'es-CO') }}
         </span>
       </div>
 
       <div class="number-card">
         <span class="number-label">Total Gastado</span>
         <span class="number-value val-spent">
-          ${{ metrics().totalExpenses.toLocaleString('es-CO') }}
+          {{ project().currency === 'USD' ? 'US$ ' : '$' }}{{ metrics().totalExpenses.toLocaleString(project().currency === 'USD' ? 'en-US' : 'es-CO') }}
         </span>
       </div>
 
@@ -113,7 +116,7 @@
           [class.val-danger]="metrics().isOverBudget"
           [class.val-success]="!metrics().isOverBudget"
         >
-          {{ metrics().isOverBudget ? '-' : '' }}${{ (metrics().isOverBudget ? metrics().overBudgetAmount : metrics().remainingBudget).toLocaleString('es-CO') }}
+          {{ metrics().isOverBudget ? '-' : '' }}{{ project().currency === 'USD' ? 'US$ ' : '$' }}{{ (metrics().isOverBudget ? metrics().overBudgetAmount : metrics().remainingBudget).toLocaleString(project().currency === 'USD' ? 'en-US' : 'es-CO') }}
         </span>
       </div>
     </div>
@@ -125,16 +128,16 @@
         <div class="contributions-row">
           <div class="contrib-item">
             <span class="contrib-person charlie">Charlie</span>
-            <span class="contrib-val">${{ metrics().byPerson.Charlie.toLocaleString('es-CO') }}</span>
+            <span class="contrib-val">{{ project().currency === 'USD' ? 'US$ ' : '$' }}{{ metrics().byPerson.Charlie.toLocaleString(project().currency === 'USD' ? 'en-US' : 'es-CO') }}</span>
           </div>
           <div class="contrib-item">
             <span class="contrib-person benny">Benny</span>
-            <span class="contrib-val">${{ metrics().byPerson.Benny.toLocaleString('es-CO') }}</span>
+            <span class="contrib-val">{{ project().currency === 'USD' ? 'US$ ' : '$' }}{{ metrics().byPerson.Benny.toLocaleString(project().currency === 'USD' ? 'en-US' : 'es-CO') }}</span>
           </div>
           @if (metrics().byPerson.Compartido > 0) {
             <div class="contrib-item">
               <span class="contrib-person compartido">Fondo Común</span>
-              <span class="contrib-val">${{ metrics().byPerson.Compartido.toLocaleString('es-CO') }}</span>
+              <span class="contrib-val">{{ project().currency === 'USD' ? 'US$ ' : '$' }}{{ metrics().byPerson.Compartido.toLocaleString(project().currency === 'USD' ? 'en-US' : 'es-CO') }}</span>
             </div>
           }
         </div>
@@ -146,7 +149,7 @@
       <div class="categories-pills-row">
         @for (cat of categoryBreakdown(); track cat.name) {
           <span class="category-pill">
-            <strong>{{ cat.name }}:</strong> ${{ cat.amount.toLocaleString('es-CO') }}
+            <strong>{{ cat.name }}:</strong> {{ project().currency === 'USD' ? 'US$ ' : '$' }}{{ cat.amount.toLocaleString(project().currency === 'USD' ? 'en-US' : 'es-CO') }}
           </span>
         }
       </div>

@@ -150,7 +150,8 @@ export class ProjectExpenseModal {
         this.description.set('');
         this.person.set(this.project()?.person || 'Compartido');
         this.category.set('General');
-        this.currency.set('COP');
+        const defaultCurrency = this.project()?.currency || 'COP';
+        this.currency.set(defaultCurrency);
         this.amount.set('');
         this.amountUsd.set('');
         this.customTrm.set(null);

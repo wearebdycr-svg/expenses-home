@@ -12,6 +12,9 @@
       <div class="project-title-text">
         <h3 class="project-name">{{ project().name }}</h3>
         <div class="project-badges">
+          <span class="badge badge-currency" [class.badge-usd]="project().currency === 'USD'">
+            {{ project().currency === 'USD' ? '🇺🇸 USD' : '🇨🇴 COP' }}
+          </span>
           <span class="badge badge-person badge-{{ project().person.toLowerCase() }}">
             {{ project().person }}
           </span>
@@ -89,7 +92,7 @@
       [class.font-overbudget]="metrics().isOverBudget"
       [class.font-remaining]="!metrics().isOverBudget"
     >
-      {{ metrics().isOverBudget ? '-' : '' }}${{ (metrics().isOverBudget ? metrics().overBudgetAmount : metrics().remainingBudget).toLocaleString('es-CO') }}
+      {{ metrics().isOverBudget ? '-' : '' }}{{ project().currency === 'USD' ? 'US$ ' : '$' }}{{ (metrics().isOverBudget ? metrics().overBudgetAmount : metrics().remainingBudget).toLocaleString(project().currency === 'USD' ? 'en-US' : 'es-CO') }}
     </div>
   </div>
 
@@ -98,14 +101,14 @@
     <div class="finance-card">
       <span class="finance-label">Presupuesto</span>
       <span class="finance-value font-budget">
-        ${{ project().budgetAmount.toLocaleString('es-CO') }}
+        {{ project().currency === 'USD' ? 'US$ ' : '$' }}{{ project().budgetAmount.toLocaleString(project().currency === 'USD' ? 'en-US' : 'es-CO') }}
       </span>
     </div>
 
     <div class="finance-card">
       <span class="finance-label">Gastado</span>
       <span class="finance-value font-spent">
-        ${{ metrics().totalExpenses.toLocaleString('es-CO') }}
+        {{ project().currency === 'USD' ? 'US$ ' : '$' }}{{ metrics().totalExpenses.toLocaleString(project().currency === 'USD' ? 'en-US' : 'es-CO') }}
       </span>
     </div>
   </div>

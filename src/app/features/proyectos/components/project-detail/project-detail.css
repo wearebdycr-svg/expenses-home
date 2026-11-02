@@ -105,6 +105,20 @@
   align-items: center;
 }
 
+.hero-badges .badge-currency {
+  background: rgba(255, 255, 255, 0.15);
+  color: #f1f5f9;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  font-weight: 700;
+}
+
+.hero-badges .badge-currency.badge-usd {
+  background: rgba(16, 185, 129, 0.3);
+  color: #a7f3d0;
+  border: 1px solid rgba(16, 185, 129, 0.6);
+  font-weight: 800;
+}
+
 .hero-badges .badge-person.badge-charlie {
   background: rgba(245, 158, 11, 0.25);
   color: #fde68a;
