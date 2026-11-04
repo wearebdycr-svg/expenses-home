@@ -21,3 +21,17 @@
 - **Entregables:**
   - Actualización de stack y zonas protegidas en `CONTEXT.md`.
   - Reporte exhaustivo en Artifact `diagnostico-tipos-linter.md`.
+
+### Tarea 0.2: Pruebas de Humo Críticas
+- **Fecha:** 2026-11-03
+- **Estado:** Completada
+- **Tests Añadidos (`src/app/smoke.spec.ts`):**
+  1. *Smoke Test 1 (Application Entry Point & Shell Bootstrap):* Valida inicialización de `App` (`src/main.ts`), autenticación desbloqueada, página inicial por defecto (`gastos`) y renderizado del shell (`.app-shell`, `app-sidebar`, `main.app-content`, `app-gastos-page`).
+  2. *Smoke Test 2 (Core Business Pipeline - Ingestion & Aggregation):* Valida el flujo central de `ExpensesService` ingresando un gasto (`addExpense`) y verificando su reflejo en `allExpenses()`, `totalPeriod()` y `transactionCount()`.
+- **Comandos de Ejecución:**
+  - Aislado (solo pruebas de humo): `HOME=/tmp npx ng test --include=src/app/smoke.spec.ts --watch=false`
+  - Suite completa: `HOME=/tmp npm run test:ci`
+- **Resultado:** 2/2 pruebas de humo pasando (285/285 tests globales pasando en verde).
+- **Entregables:**
+  - Archivo de pruebas [src/app/smoke.spec.ts](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/smoke.spec.ts).
+  - Especificación en Artifact `smoke-tests-proposal.md`.
