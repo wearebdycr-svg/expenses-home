@@ -137,6 +137,28 @@
   - Archivo de contrato [src/app/core/notifications/notification-provider.interface.ts](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/core/notifications/notification-provider.interface.ts).
   - Tarea 2.2 marcada como completada en [PLAN.md](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/PLAN.md).
 
+### Tarea 2.3: Crear Suite de Pruebas Unitarias para calcularVencimientoGastoFijo
+- **Fecha:** 2026-11-06
+- **Estado:** Completada
+- **Descripción:**
+  - Se implementó la suite exhaustiva de pruebas unitarias en [`src/app/features/gastos-fijos/utils/due-date-calculator.spec.ts`](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/utils/due-date-calculator.spec.ts) validando la función pura `calcularVencimientoGastoFijo`.
+  - Cobertura de casos canónicos de `CONTEXT.md` (Secciones 7.2 y 7.4):
+    - Regla de clamping de fin de mes (días 31/30 ajustados a 28 en febrero no bisiesto, 29 en febrero bisiesto y 30 en meses de 30 días).
+    - Invariancia horaria/temporal agnóstica a zonas horarias y DST (evaluaciones a las 00:00:01, 12:00:00 y 23:59:59 arrojan idéntico `diasRestantes`).
+    - Cambio de ciclo y año calendario (transiciones diciembre/enero).
+    - Mapeo de la unión `EstadoVencimiento` (`'al_dia'`, `'proximo'`, `'vence_hoy'`, `'vencido'`) y flag `requiereNotificacion`.
+    - Inmutabilidad estricta garantizada mediante `Object.freeze`.
+  - Se creó un stub tipado en [`src/app/features/gastos-fijos/utils/due-date-calculator.ts`](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/utils/due-date-calculator.ts) para la fase RED de TDD.
+- **Validación de Regresión:**
+  - Compilación TypeScript (`tsc --noEmit`): 0 errores.
+  - Linter ESLint (`eslint due-date-calculator.spec.ts due-date-calculator.ts`): 0 errores, 0 advertencias.
+  - Ejecución en Vitest (`ng test --include=...`): 14 escenarios cargados y ejecutados correctamente en ciclo TDD.
+- **Entregables:**
+  - Suite de pruebas [src/app/features/gastos-fijos/utils/due-date-calculator.spec.ts](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/utils/due-date-calculator.spec.ts).
+  - Archivo stub [src/app/features/gastos-fijos/utils/due-date-calculator.ts](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/utils/due-date-calculator.ts).
+  - Tarea 2.3 marcada como completada en [PLAN.md](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/PLAN.md).
+
+
 
 
 

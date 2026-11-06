@@ -16,7 +16,7 @@
 - [X] 2.2 Definir la interfaz de abstracción del puerto `NotificationProvider` junto con `NotificationPayload` y `NotificationResult` en `src/app/core/notifications/notification-provider.interface.ts` desacoplada de SDKs de terceros.
 
 ### Fase 2.B: Lógica Pura y Pruebas Unitarias (TDD / Core Aislado)
-- [ ] 2.3 Crear suite de pruebas unitarias en `src/app/features/gastos-fijos/utils/due-date-calculator.spec.ts` validando exhaustivamente: regla de clamping para fin de mes (días 28, 29, 30, 31 y bisiestos), cambio de año calendario, invariancia ante diferentes horas del día e inmutabilidad de parámetros.
+- [X] 2.3 Crear suite de pruebas unitarias en `src/app/features/gastos-fijos/utils/due-date-calculator.spec.ts` validando exhaustivamente: regla de clamping para fin de mes (días 28, 29, 30, 31 y bisiestos), cambio de año calendario, invariancia ante diferentes horas del día e inmutabilidad de parámetros.
 - [ ] 2.4 Implementar la función pura `calcularVencimientoGastoFijo()` en `src/app/features/gastos-fijos/utils/due-date-calculator.ts` con normalización temporal UTC/civil agnóstica de zonas horarias, asegurando el 100% de cobertura en la suite de pruebas unitarias.
 
 ### Fase 2.C: Despachador de Alertas y Adaptadores (Inversión de Dependencias)
