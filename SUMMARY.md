@@ -158,8 +158,25 @@
   - Archivo stub [src/app/features/gastos-fijos/utils/due-date-calculator.ts](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/utils/due-date-calculator.ts).
   - Tarea 2.3 marcada como completada en [PLAN.md](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/PLAN.md).
 
-
-
-
-
-
+### Tarea 2.4: Implementar la Función Pura calcularVencimientoGastoFijo
+- **Fecha:** 2026-11-06
+- **Estado:** Completada
+- **Descripción:**
+  - Se implementó la función matemática pura `calcularVencimientoGastoFijo` en [`src/app/features/gastos-fijos/utils/due-date-calculator.ts`](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/utils/due-date-calculator.ts).
+  - Cumplimiento exhaustivo de reglas de negocio (`CONTEXT.md` § 7.2):
+    - **Pureza Funcional Total:** 0 llamadas a `new Date()` sin parámetros y 0 a `Date.now()`. Determinismo 100%.
+    - **Normalización Temporal Canónica UTC/Civil:** Cálculo en tiempo civil canónico a mediodía (`12:00:00Z`), eliminando desvíos por husos horarios, medianoche y DST.
+    - **Regla de Clamping de Fin de Mes:** `diaEfectivo = Math.min(dia_limite_mes, diasDelMes(año, mes))`. Manejo exacto de febrero común (28), bisiesto (29), años seculares (múltiplos de 400 y 100) y meses de 30 días.
+    - **Mapeo Determinista de Estados:** Asignación canónica de `EstadoVencimiento` (`'al_dia'`, `'proximo'`, `'vence_hoy'`, `'vencido'`) y flag `requiereNotificacion`.
+    - **Formato ISO Canónico:** Generación de `fechaLimiteCalculada` en formato estricto `YYYY-MM-DD`.
+    - **Inmutabilidad Estricta:** Parámetros de entrada de solo lectura y congelación de salida mediante `Object.freeze()`.
+    - **Cero Dependencias Externas:** Sin uso de `any` ni librerías externas de fechas.
+- **Validación de Calidad y Regresión:**
+  - Pruebas Unitarias del Módulo: 19/19 tests pasando en verde (`ng test --include=src/app/features/gastos-fijos/utils/due-date-calculator.spec.ts`).
+  - Verificación Estática TypeScript: `tsc --noEmit` finalizó con 0 errores.
+  - Linter ESLint: 0 errores y 0 advertencias en la implementación y su suite de pruebas.
+  - Suite Completa del Proyecto: 319/319 tests unitarios pasando en verde (58 suites en `npm run test:ci`).
+- **Entregables:**
+  - Función pura en [src/app/features/gastos-fijos/utils/due-date-calculator.ts](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/utils/due-date-calculator.ts).
+  - Suite de pruebas enriquecida en [src/app/features/gastos-fijos/utils/due-date-calculator.spec.ts](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/utils/due-date-calculator.spec.ts).
+  - Tarea 2.4 marcada como completada en [PLAN.md](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/PLAN.md).

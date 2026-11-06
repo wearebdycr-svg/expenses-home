@@ -245,5 +245,68 @@ describe('calcularVencimientoGastoFijo - Motor Puro de Vencimientos', () => {
       expect(result.estado).toBe('al_dia');
       expect(result.requiereNotificacion).toBe(false);
     });
+
+    it('retorna un resultado inmutable (Object.isFrozen)', () => {
+      const gasto: GastoFijoAlerta = {
+        ...mockGastoBase,
+        dia_limite_mes: 20,
+      };
+      const result = calcularVencimientoGastoFijo(gasto, '2026-11-10');
+
+      expect(Object.isFrozen(result)).toBe(true);
+    });
+  });
+
+  describe('6. Casos de Borde: Siglos Bisiestos y Formatos Alternativos de Fecha', () => {
+    it('reconoce año bisiesto secular múltiplo de 400 (ej. año 2000)', () => {
+      const gasto: GastoFijoAlerta = {
+        ...mockGastoBase,
+        dia_limite_mes: 31,
+      };
+      const result = calcularVencimientoGastoFijo(gasto, '2000-02-10');
+
+      expect(result.fechaLimiteCalculada).toBe('2000-02-29');
+      expect(result.diasRestantes).toBe(19);
+    });
+
+    it('reconoce año no bisiesto secular múltiplo de 100 pero no de 400 (ej. año 1900)', () => {
+      const gasto: GastoFijoAlerta = {
+        ...mockGastoBase,
+        dia_limite_mes: 31,
+      };
+      const result = calcularVencimientoGastoFijo(gasto, '1900-02-10');
+
+      expect(result.fechaLimiteCalculada).toBe('1900-02-28');
+      expect(result.diasRestantes).toBe(18);
+    });
+
+    it('soporta entrada tipo string en formato alternativo no ISO directo', () => {
+      const gasto: GastoFijoAlerta = {
+        ...mockGastoBase,
+        dia_limite_mes: 15,
+      };
+      const result = calcularVencimientoGastoFijo(gasto, '2026/11/10');
+
+      expect(result.fechaLimiteCalculada).toBe('2026-11-15');
+      expect(result.diasRestantes).toBe(5);
+    });
+
+    it('gestiona correctamente dias_anticipacion_alerta = 0', () => {
+      const gasto: GastoFijoAlerta = {
+        ...mockGastoBase,
+        dia_limite_mes: 15,
+        dias_anticipacion_alerta: 0,
+      };
+
+      const resAlDia = calcularVencimientoGastoFijo(gasto, '2026-11-14'); // diasRestantes = 1 > 0
+      expect(resAlDia.diasRestantes).toBe(1);
+      expect(resAlDia.estado).toBe('al_dia');
+      expect(resAlDia.requiereNotificacion).toBe(false);
+
+      const resVenceHoy = calcularVencimientoGastoFijo(gasto, '2026-11-15'); // diasRestantes = 0
+      expect(resVenceHoy.diasRestantes).toBe(0);
+      expect(resVenceHoy.estado).toBe('vence_hoy');
+      expect(resVenceHoy.requiereNotificacion).toBe(true);
+    });
   });
 });

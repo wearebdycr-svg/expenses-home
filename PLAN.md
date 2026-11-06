@@ -17,7 +17,7 @@
 
 ### Fase 2.B: Lógica Pura y Pruebas Unitarias (TDD / Core Aislado)
 - [X] 2.3 Crear suite de pruebas unitarias en `src/app/features/gastos-fijos/utils/due-date-calculator.spec.ts` validando exhaustivamente: regla de clamping para fin de mes (días 28, 29, 30, 31 y bisiestos), cambio de año calendario, invariancia ante diferentes horas del día e inmutabilidad de parámetros.
-- [ ] 2.4 Implementar la función pura `calcularVencimientoGastoFijo()` en `src/app/features/gastos-fijos/utils/due-date-calculator.ts` con normalización temporal UTC/civil agnóstica de zonas horarias, asegurando el 100% de cobertura en la suite de pruebas unitarias.
+- [X] 2.4 Implementar la función pura `calcularVencimientoGastoFijo()` en `src/app/features/gastos-fijos/utils/due-date-calculator.ts` con normalización temporal UTC/civil agnóstica de zonas horarias, asegurando el 100% de cobertura en la suite de pruebas unitarias.
 
 ### Fase 2.C: Despachador de Alertas y Adaptadores (Inversión de Dependencias)
 - [ ] 2.5 Implementar adaptador concreto para notificaciones (`FcmNotificationAdapter` / `WebPushNotificationAdapter`) bajo el contrato `NotificationProvider` en `src/app/core/notifications/adapters/`.
