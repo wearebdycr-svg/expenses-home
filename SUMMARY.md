@@ -239,3 +239,24 @@
   - Registro de proveedor en [src/app/app.config.ts](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/app.config.ts).
   - Pruebas de configuración en [src/app/app.config.spec.ts](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/app.config.spec.ts).
   - Tarea 2.6 marcada como completada en [PLAN.md](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/PLAN.md).
+
+### Tarea 2.7: Extensión de la Función Serverless Cron (api/cron-reminder.js)
+- **Fecha:** 2026-11-06
+- **Estado:** Completada
+- **Descripción:**
+  - Se extendió la función serverless de Vercel [`api/cron-reminder.js`](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/api/cron-reminder.js) para orquestar la verificación periódica de vencimientos de gastos fijos y el despacho de alertas push en segundo plano.
+  - **Decisiones de Diseño y Arquitectura:**
+    - **Motor Matemático Canónico (`calcularVencimientoCron`):** Se integró una implementación pura e idéntica a `due-date-calculator.ts` para ejecución en runtime Node.js ESM, contemplando la regla de clamping para meses cortos (días 28, 29, 30, 31 y bisiestos) y normalización canónica UTC a mediodía (`12:00:00Z`).
+    - **Conciliación de Pagos con Gastos del Mes:** Consulta en `public.expenses` para el mes actual en Colombia (`America/Bogota`) y exclusión determinista de los gastos fijos cuyo pago ya fue registrado (`category` o `description` normalizado).
+    - **Deduplicación Diaria Idempotente:** Se implementó control en `public.category_budgets` bajo la clave `__cron_fixed_expenses__` con `amount: todayColombiaNum`, evitando spam de notificaciones duplicadas en ejecuciones repetidas dentro del mismo día (ignorable con `force=true`).
+    - **Despacho Multicanal y Deep Linking:** Generación de payloads diferenciados (`vence_hoy`, `vencido`, `proximo`) con canal Android `finanzas_hogar_alerts`, tags únicos (`fixed-expense-${id}`) y redirección a `/#gastos-fijos`.
+    - **Modos de Invocación:** Soporte para ejecución conjunta (cron programado `0 0 * * *`) o selectiva vía query params (`?type=fixed_expenses` o `?type=daily_reminder`).
+    - **Limpieza Automática:** Detección y depuración de tokens FCM inválidos o desinstalados (`UNREGISTERED`, `NOT_FOUND`, etc.).
+- **Validación de Calidad y 0 Regresiones:**
+  - Validación sintáctica Node.js ESM: `node --check api/cron-reminder.js` finalizó con 0 errores.
+  - Compilación TypeScript: `tsc --noEmit` con 0 errores.
+  - Análisis estático ESLint: `HOME=/tmp npm run lint` completado con 0 errores.
+  - Suite de pruebas unitarias: `HOME=/tmp npm run test:ci` pasando con 61/61 suites y 339/339 tests unitarios.
+- **Entregables:**
+  - Función serverless actualizada en [api/cron-reminder.js](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/api/cron-reminder.js).
+  - Tarea 2.7 marcada como completada en [PLAN.md](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/PLAN.md).

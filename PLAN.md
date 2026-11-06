@@ -24,6 +24,6 @@
 - [X] 2.6 Desarrollar el servicio orquestador de alertas de gastos fijos (`fixed-expense-alerts.service.ts`) que evalúe la colección de gastos activos mediante la función pura y despache alertas a través de `NotificationProvider`, acompañado de pruebas unitarias con `MockNotificationProvider`.
 
 ### Fase 2.D: Integración con Crons/Endpoints y Capa de Presentación (Mayor Acoplamiento)
-- [ ] 2.7 Actualizar / extender la función serverless de recordatorios en `api/cron-reminder.js` (o endpoint dedicado) para orquestar la verificación periódica de vencimientos y envío push en segundo plano.
+- [X] 2.7 Actualizar / extender la función serverless de recordatorios en `api/cron-reminder.js` (o endpoint dedicado) para orquestar la verificación periódica de vencimientos y envío push en segundo plano.
 - [ ] 2.8 Actualizar la interfaz de usuario en `src/app/features/gastos-fijos` (componentes de modal/formulario y vista de lista/matriz) para permitir capturar `dia_limite_mes` y `dias_anticipacion_alerta`, visualizando badges de estado de vencimiento (`al_dia`, `proximo`, `vence_hoy`, `vencido`).
 - [ ] 2.9 Verificación integral de calidad: ejecutar verificación de tipos (`tsc --noEmit`), suite completa de pruebas unitarias (`ng test`), análisis estático ESLint y confirmación de 0 regresiones sobre la base existente.
