@@ -1,4 +1,8 @@
 import type { ExpensePerson } from '../../gastos/data/expense.model';
+import type {
+  NotificationPayload,
+  NotificationResult,
+} from '../../../core/notifications/notification-provider.interface';
 
 export type FixedExpenseStatus = 'activo' | 'inactivo';
 
@@ -82,6 +86,28 @@ export interface ResultadoCalculoVencimiento {
   readonly fechaLimiteCalculada: string; // Formato canónico ISO 'YYYY-MM-DD'
   readonly estado: EstadoVencimiento;
   readonly requiereNotificacion: boolean;
+}
+
+/**
+ * Alerta evaluada e inmutable resultante de confrontar un gasto fijo contra el motor
+ * de vencimiento y determinar si genera un payload notificable.
+ */
+export interface AlertaGastoEvaluada {
+  readonly gasto: FixedExpense;
+  readonly calculo: ResultadoCalculoVencimiento;
+  readonly requiereNotificacion: boolean;
+  readonly payload?: NotificationPayload;
+}
+
+/**
+ * Resumen consolidado e inmutable del proceso de despacho de alertas push.
+ */
+export interface ResultadoDespachoAlertas {
+  readonly totalEvaluadas: number;
+  readonly enviadas: number;
+  readonly fallidas: number;
+  readonly omitidas: number;
+  readonly detalles?: readonly NotificationResult[];
 }
 
 /**

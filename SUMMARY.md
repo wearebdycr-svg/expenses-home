@@ -207,3 +207,35 @@
   - Adaptador en [src/app/core/notifications/adapters/fcm-notification.adapter.ts](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/core/notifications/adapters/fcm-notification.adapter.ts).
   - Suite de pruebas en [src/app/core/notifications/adapters/fcm-notification.adapter.spec.ts](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/core/notifications/adapters/fcm-notification.adapter.spec.ts).
   - Tarea 2.5 marcada como completada en [PLAN.md](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/PLAN.md).
+
+### Tarea 2.6: Servicio Orquestador de Alertas de Gastos Fijos (fixed-expense-alerts.service.ts)
+- **Fecha:** 2026-11-06
+- **Estado:** Completada
+- **Descripción:**
+  - Se implementó el servicio orquestador [`FixedExpenseAlertsService`](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/data/fixed-expense-alerts.service.ts) encargado de coordinar la evaluación de vencimientos de gastos fijos y el despacho seguro de alertas push.
+  - **Contratos Creados e Inmutables (`fixed-expense.model.ts`):**
+    - `AlertaGastoEvaluada`: Estructura inmutable resultante de confrontar un gasto fijo contra el motor de vencimiento (`gasto`, `calculo`, `requiereNotificacion`, `payload`).
+    - `ResultadoDespachoAlertas`: Resumen consolidado del ciclo de despacho push (`totalEvaluadas`, `enviadas`, `fallidas`, `omitidas`, `detalles`).
+  - **Arquitectura del Orquestador y Desacoplamiento Total:**
+    - **Inyección por Inversión de Dependencias (DIP):** Inyecta `NOTIFICATION_PROVIDER` mediante token de abstracción opcional (`inject(NOTIFICATION_PROVIDER, { optional: true })`) e `inject(FixedExpensesService)`, garantizando desacoplamiento total de implementaciones concretas y SDKs de terceros.
+    - **Composición con Función Pura:** Evalúa colecciones de gastos fijos utilizando `calcularVencimientoGastoFijo`, soportando retrocompatibilidad canónica (`dia_limite_mes ?? dueDay ?? 1` y `dias_anticipacion_alerta ?? 3`).
+    - **Filtrado Inteligente de Dominio:** Omite gastos inactivos (`status !== 'activo'`) y gastos cuyo ciclo actual ya se encuentre liquidado/pagado (`idsGastosPagados`).
+    - **Construcción Determinista de Payloads:** Genera títulos y cuerpos descriptivos con prioridad dinámica (`high` para `vence_hoy` y `vencido`, `normal` para `proximo`) y tags de agrupación `gasto-fijo-${id}`.
+    - **Despacho Concurrente y Resiliente:** Valida disponibilidad del canal (`isSupported()`), ejecuta despachos concurrentes mediante `Promise.allSettled` y tolera fallos lógicos (`success: false`) o promesas rechazadas sin interrumpir el lote ni lanzar excepciones no controladas.
+    - **Aislamiento en Testing:** Suite implementada con `MockNotificationProvider` independiente, sin acoplamiento a red ni llamadas HTTP reales.
+    - **Registro en Dependencias de la App:** Configuración provista en [`src/app/app.config.ts`](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/app.config.ts) enlazando `NOTIFICATION_PROVIDER` con `FcmNotificationAdapter`.
+- **Métricas de Cobertura:**
+  - Pruebas Unitarias del Orquestador: 9/9 tests pasando en verde ([`src/app/features/gastos-fijos/data/fixed-expense-alerts.service.spec.ts`](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/data/fixed-expense-alerts.service.spec.ts)).
+  - Pruebas Unitarias de Configuración: 2/2 tests pasando en verde ([`src/app/app.config.spec.ts`](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/app.config.spec.ts)).
+  - Total Global de Pruebas: 339 tests unitarios pasando en verde a través de 61 suites.
+- **Validación de Calidad y 0 Regresiones:**
+  - Compilación TypeScript (`tsc --noEmit`): 0 errores.
+  - Linter ESLint (`ng lint`): 0 errores y 0 advertencias en el código nuevo y sus suites.
+  - Suite de Pruebas de CI (`test:ci` / `ng test --watch=false`): 339 tests pasando (61 suites, 0 fallos).
+- **Entregables:**
+  - Modelos y contratos en [src/app/features/gastos-fijos/data/fixed-expense.model.ts](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/data/fixed-expense.model.ts).
+  - Servicio orquestador en [src/app/features/gastos-fijos/data/fixed-expense-alerts.service.ts](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/data/fixed-expense-alerts.service.ts).
+  - Suite de pruebas unitarias en [src/app/features/gastos-fijos/data/fixed-expense-alerts.service.spec.ts](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/data/fixed-expense-alerts.service.spec.ts).
+  - Registro de proveedor en [src/app/app.config.ts](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/app.config.ts).
+  - Pruebas de configuración en [src/app/app.config.spec.ts](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/app.config.spec.ts).
+  - Tarea 2.6 marcada como completada en [PLAN.md](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/PLAN.md).

@@ -21,7 +21,7 @@
 
 ### Fase 2.C: Despachador de Alertas y Adaptadores (Inversión de Dependencias)
 - [X] 2.5 Implementar adaptador concreto para notificaciones (`FcmNotificationAdapter` / `WebPushNotificationAdapter`) bajo el contrato `NotificationProvider` en `src/app/core/notifications/adapters/`.
-- [ ] 2.6 Desarrollar el servicio orquestador de alertas de gastos fijos (`fixed-expense-alerts.service.ts`) que evalúe la colección de gastos activos mediante la función pura y despache alertas a través de `NotificationProvider`, acompañado de pruebas unitarias con `MockNotificationProvider`.
+- [X] 2.6 Desarrollar el servicio orquestador de alertas de gastos fijos (`fixed-expense-alerts.service.ts`) que evalúe la colección de gastos activos mediante la función pura y despache alertas a través de `NotificationProvider`, acompañado de pruebas unitarias con `MockNotificationProvider`.
 
 ### Fase 2.D: Integración con Crons/Endpoints y Capa de Presentación (Mayor Acoplamiento)
 - [ ] 2.7 Actualizar / extender la función serverless de recordatorios en `api/cron-reminder.js` (o endpoint dedicado) para orquestar la verificación periódica de vencimientos y envío push en segundo plano.
