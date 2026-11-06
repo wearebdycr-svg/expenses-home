@@ -80,3 +80,24 @@
   - Contrato de tipos y Type Guard en [src/app/core/services/navigation.service.ts](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/core/services/navigation.service.ts).
   - Tests unitarios actualizados en [src/app/core/services/navigation.service.spec.ts](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/core/services/navigation.service.spec.ts).
 
+### Tarea 1.3: Verificación de Flujo Original, Integración y No-Regresión E2E
+- **Fecha:** 2026-11-05
+- **Estado:** Completada
+- **Resultados de Verificación:**
+  - **Pruebas de Caracterización y Unitarias:** 300/300 tests pasando (57 suites en Vitest).
+  - **Pruebas de Humo (Wave 0.2):** 2/2 tests en verde (`src/app/smoke.spec.ts`), garantizando el bootstrap del Shell principal y el pipeline de datos reactivo.
+  - **Comprobación Estática de Tipos:** `tsc --noEmit` completó con 0 errores.
+  - **Linter de Calidad:** `ng lint` finalizó con 0 errores (141 advertencias heredadas preexistentes sin variaciones).
+  - **Compilación de Producción:** `ng build` completado exitosamente (1.36 MB bundle inicial en 6.1s).
+  - **Servidor Local / Entorno de Prueba:** `ng serve` iniciado en `http://localhost:4200/` con respuesta HTTP 200 OK, carga del DOM con `<app-root>` y verificación de flujo de navegación sin alteraciones visuales ni de datos.
+- **Entregables:**
+  - Reporte de verificación integral en Artifact `reporte-verificacion-flujo-e2e.md`.
+  - Cierre formal de la **Wave 1: Modularización Atómica** en [PLAN.md](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/PLAN.md).
+
+### Cierre Consolidado de la Wave 1 (Modularización Atómica)
+- **Modularización:** Se desacopló la lógica de navegación reactiva, persistencia en `localStorage`, sincronización con URL Hash y orquestación del botón físico de retroceso (Capacitor) hacia el nuevo servicio singleton [NavigationService](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/core/services/navigation.service.ts). El componente raíz [App](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/app.ts) se redujo de 217 a 105 líneas de código, satisfaciendo el invariante de arquitectura (<150 líneas) y con separación limpia de responsabilidades.
+- **Tipado Estricto:** Se blindaron todas las entradas y salidas del módulo mediante la interfaz formal `INavigationService`, el Type Guard determinista `isValidSidebarPage`, la unión discriminada `BackButtonActionResult` y el tipo de callback `BackButtonCustomHandler`, erradicando aserciones no seguras (`as any` / `as SidebarPageId`).
+- **Verificación y No-Regresión E2E:** Se confirmó la estabilidad absoluta del sistema con 300/300 tests unitarios en verde (incluyendo los tests de caracterización de la Wave 0), 0 errores en `tsc --noEmit`, 0 errores en `ng lint`, compilación de producción exitosa y validación en vivo del servidor local sin cambios visuales ni regresión de datos. Wave 1 concluida con éxito.
+
+
+
