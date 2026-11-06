@@ -180,3 +180,30 @@
   - Función pura en [src/app/features/gastos-fijos/utils/due-date-calculator.ts](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/utils/due-date-calculator.ts).
   - Suite de pruebas enriquecida en [src/app/features/gastos-fijos/utils/due-date-calculator.spec.ts](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/utils/due-date-calculator.spec.ts).
   - Tarea 2.4 marcada como completada en [PLAN.md](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/PLAN.md).
+
+### Tarea 2.5: Implementar Adaptador Concreto para Notificaciones (FcmNotificationAdapter)
+- **Fecha:** 2026-11-06
+- **Estado:** Completada
+- **Descripción:**
+  - Se implementó el adaptador de infraestructura [`FcmNotificationAdapter`](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/core/notifications/adapters/fcm-notification.adapter.ts) bajo el contrato formal [`NotificationProvider`](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/core/notifications/notification-provider.interface.ts).
+  - Características de diseño:
+    - **Identidad del Puerto:** Propiedad `readonly providerName = 'fcm'`.
+    - **Inyección Limpia en Angular:** Servicio decorado con `@Injectable({ providedIn: 'root' })` utilizando `inject(HttpClient)` y `firstValueFrom` de RxJS para resolución de promesas.
+    - **Verificación de Canal (`isSupported`):** Detección nativa mediante `Capacitor.isNativePlatform()` y validación web con `Notification` y `serviceWorker`.
+    - **Resolución de Endpoint:** Resuelve ruta relativa `/api/notify` en entorno web/testing y URL absoluta con `environment.apiUrl` en ejecución móvil nativa Capacitor.
+    - **Despacho Seguro y Tolerante a Fallos (`sendNotification`):** Envía la petición HTTP POST adjuntando credenciales de autorización Bearer (`environment.supabaseAnonKey`), payload estructurado (`recipientId`, `title`, `body`, `tag`, `data`) y captura tanto errores lógicos de respuesta como fallas HTTP/red (`HttpErrorResponse`), retornando siempre `NotificationResult` con marca temporal ISO 8601 sin lanzar excepciones no controladas.
+  - **Cumplimiento de Restricciones Estrictas:**
+    - Se preservó intacta la zona protegida: 0 modificaciones y 0 imports desde `src/app/core/services/push-notification.service.ts`.
+    - 0 uso de `any` (tipado exhaustivo y estricto).
+    - Modularidad y tamaño óptimo: 106 líneas de código (invariante < 120 líneas cumplido).
+  - **Suite de Pruebas Unitarias:**
+    - Creada en [`fcm-notification.adapter.spec.ts`](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/core/notifications/adapters/fcm-notification.adapter.spec.ts) con 9 casos de prueba cubriendo: inicialización, resolución de soporte nativo/web, endpoints por plataforma, despacho HTTP exitoso, captura de fallos de respuesta lógica, captura de respuestas HTTP 400/500 y errores de red `ProgressEvent`.
+- **Validación de Calidad y Regresión:**
+  - Pruebas Unitarias del Adaptador: 9/9 tests pasando en verde.
+  - Verificación Estática TypeScript: `tsc --noEmit` completó con 0 errores.
+  - Linter ESLint: 0 errores y 0 advertencias sobre el adaptador y su suite de tests.
+  - Suite Global del Proyecto: 328/328 tests unitarios pasando en verde (59 suites en `npm run test:ci`).
+- **Entregables:**
+  - Adaptador en [src/app/core/notifications/adapters/fcm-notification.adapter.ts](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/core/notifications/adapters/fcm-notification.adapter.ts).
+  - Suite de pruebas en [src/app/core/notifications/adapters/fcm-notification.adapter.spec.ts](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/core/notifications/adapters/fcm-notification.adapter.spec.ts).
+  - Tarea 2.5 marcada como completada en [PLAN.md](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/PLAN.md).

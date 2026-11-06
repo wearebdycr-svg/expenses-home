@@ -20,7 +20,7 @@
 - [X] 2.4 Implementar la función pura `calcularVencimientoGastoFijo()` en `src/app/features/gastos-fijos/utils/due-date-calculator.ts` con normalización temporal UTC/civil agnóstica de zonas horarias, asegurando el 100% de cobertura en la suite de pruebas unitarias.
 
 ### Fase 2.C: Despachador de Alertas y Adaptadores (Inversión de Dependencias)
-- [ ] 2.5 Implementar adaptador concreto para notificaciones (`FcmNotificationAdapter` / `WebPushNotificationAdapter`) bajo el contrato `NotificationProvider` en `src/app/core/notifications/adapters/`.
+- [X] 2.5 Implementar adaptador concreto para notificaciones (`FcmNotificationAdapter` / `WebPushNotificationAdapter`) bajo el contrato `NotificationProvider` en `src/app/core/notifications/adapters/`.
 - [ ] 2.6 Desarrollar el servicio orquestador de alertas de gastos fijos (`fixed-expense-alerts.service.ts`) que evalúe la colección de gastos activos mediante la función pura y despache alertas a través de `NotificationProvider`, acompañado de pruebas unitarias con `MockNotificationProvider`.
 
 ### Fase 2.D: Integración con Crons/Endpoints y Capa de Presentación (Mayor Acoplamiento)
