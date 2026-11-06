@@ -99,5 +99,26 @@
 - **Tipado Estricto:** Se blindaron todas las entradas y salidas del módulo mediante la interfaz formal `INavigationService`, el Type Guard determinista `isValidSidebarPage`, la unión discriminada `BackButtonActionResult` y el tipo de callback `BackButtonCustomHandler`, erradicando aserciones no seguras (`as any` / `as SidebarPageId`).
 - **Verificación y No-Regresión E2E:** Se confirmó la estabilidad absoluta del sistema con 300/300 tests unitarios en verde (incluyendo los tests de caracterización de la Wave 0), 0 errores en `tsc --noEmit`, 0 errores en `ng lint`, compilación de producción exitosa y validación en vivo del servidor local sin cambios visuales ni regresión de datos. Wave 1 concluida con éxito.
 
+## Wave 2: Alertas de Vencimiento de Gastos Fijos con Notificaciones Push
+
+### Tarea 2.1: Extender Contrato de Modelo en fixed-expense.model.ts
+- **Fecha:** 2026-11-06
+- **Estado:** Completada
+- **Descripción:**
+  - Se extendió el contrato de [`FixedExpense`](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/data/fixed-expense.model.ts) incorporando `dia_limite_mes` (entero 1..31) y `dias_anticipacion_alerta` (entero >= 0), preservando `dueDay?: number` por compatibilidad regresiva.
+  - Se definieron formalmente las entidades de dominio inmutables para el motor de alertas:
+    - [`GastoFijoAlerta`](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/data/fixed-expense.model.ts#L55-L65): Modelo inmutable para evaluación pura de vencimientos.
+    - [`EstadoVencimiento`](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/data/fixed-expense.model.ts#L67-L75): Unión discriminada de estados (`'al_dia' | 'proximo' | 'vence_hoy' | 'vencido'`).
+    - [`ResultadoCalculoVencimiento`](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/data/fixed-expense.model.ts#L77-L85): Contrato de salida con fecha ISO canónica y flag de notificación.
+  - Se implementaron Type Guards estrictos sin uso de `any`: `isValidDiaLimiteMes`, `isValidDiasAnticipacionAlerta` e `isGastoFijoAlerta`.
+- **Validación de Regresión:**
+  - Compilación TypeScript (`tsc --noEmit`): 0 errores.
+  - Linter ESLint sobre el modelo (`eslint fixed-expense.model.ts`): 0 errores, 0 advertencias.
+  - Suite de pruebas unitarias (`npm run test:ci`): 300/300 tests pasando (57 suites).
+- **Entregables:**
+  - Modelo actualizado en [src/app/features/gastos-fijos/data/fixed-expense.model.ts](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/data/fixed-expense.model.ts).
+  - Tarea 2.1 marcada como completada en [PLAN.md](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/PLAN.md).
+
+
 
 
