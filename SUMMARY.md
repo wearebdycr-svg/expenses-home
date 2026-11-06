@@ -119,6 +119,25 @@
   - Modelo actualizado en [src/app/features/gastos-fijos/data/fixed-expense.model.ts](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/data/fixed-expense.model.ts).
   - Tarea 2.1 marcada como completada en [PLAN.md](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/PLAN.md).
 
+### Tarea 2.2: Definir el Puerto Abstracto NotificationProvider y DTOs
+- **Fecha:** 2026-11-06
+- **Estado:** Completada
+- **Descripción:**
+  - Se creó el puerto abstracto de notificaciones desacoplado de SDKs de terceros en [`src/app/core/notifications/notification-provider.interface.ts`](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/core/notifications/notification-provider.interface.ts).
+  - Se definieron los contratos e interfaces inmutables:
+    - [`NotificationPayload`](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/core/notifications/notification-provider.interface.ts#L6-L15): Contrato inmutable para datos de la notificación (`title`, `body`, `tag`, `data`, `priority`).
+    - [`NotificationResult`](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/core/notifications/notification-provider.interface.ts#L20-L28): Resultado estructurado con indicador de éxito, ID de mensaje, error y timestamp ISO 8601.
+    - [`NotificationProvider`](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/core/notifications/notification-provider.interface.ts#L34-L52): Puerto con métodos `sendNotification()` e `isSupported()`.
+    - [`NOTIFICATION_PROVIDER`](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/core/notifications/notification-provider.interface.ts#L57-L59): `InjectionToken<NotificationProvider>` para inyección desacoplada en Angular.
+- **Validación de Regresión:**
+  - Compilación TypeScript (`tsc --noEmit`): 0 errores.
+  - Linter ESLint (`eslint notification-provider.interface.ts`): 0 errores, 0 advertencias.
+  - Suite de pruebas unitarias (`npm run test:ci`): 300/300 tests pasando (57 suites).
+- **Entregables:**
+  - Archivo de contrato [src/app/core/notifications/notification-provider.interface.ts](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/core/notifications/notification-provider.interface.ts).
+  - Tarea 2.2 marcada como completada en [PLAN.md](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/PLAN.md).
+
+
 
 
 

@@ -13,7 +13,7 @@
 
 ### Fase 2.A: Contratos y Modelos de Datos (Bajo Acoplamiento)
 - [X] 2.1 Extender contrato de modelo en `src/app/features/gastos-fijos/data/fixed-expense.model.ts` incorporando `dia_limite_mes` (entero 1..31), `dias_anticipacion_alerta` (entero >= 0) y los tipos formales `GastoFijoAlerta`, `EstadoVencimiento` y `ResultadoCalculoVencimiento`.
-- [ ] 2.2 Definir la interfaz de abstracción del puerto `NotificationProvider` junto con `NotificationPayload` y `NotificationResult` en `src/app/core/notifications/notification-provider.interface.ts` desacoplada de SDKs de terceros.
+- [X] 2.2 Definir la interfaz de abstracción del puerto `NotificationProvider` junto con `NotificationPayload` y `NotificationResult` en `src/app/core/notifications/notification-provider.interface.ts` desacoplada de SDKs de terceros.
 
 ### Fase 2.B: Lógica Pura y Pruebas Unitarias (TDD / Core Aislado)
 - [ ] 2.3 Crear suite de pruebas unitarias en `src/app/features/gastos-fijos/utils/due-date-calculator.spec.ts` validando exhaustivamente: regla de clamping para fin de mes (días 28, 29, 30, 31 y bisiestos), cambio de año calendario, invariancia ante diferentes horas del día e inmutabilidad de parámetros.
