@@ -123,12 +123,36 @@
           <tbody>
             @for (item of service.monthlyStatuses(); track item.fixedExpense.id) {
               <tr [class.row-paid]="item.isPaid" [class.row-pending]="!item.isPaid">
-                <!-- Chulo Verde de Pagado o Pendiente -->
+                <!-- Chulo Verde de Pagado o Badge de Vencimiento -->
                 <td class="text-center col-status">
                   @if (item.isPaid) {
                     <div class="status-badge status-paid" title="Pagado automáticamente este mes">
                       <app-icon name="check-circle" [size]="18" />
                       <span>Pagado</span>
+                    </div>
+                  } @else if (item.vencimiento) {
+                    <div
+                      class="status-badge status-vencimiento vencimiento-{{ item.vencimiento.estado }}"
+                      [title]="'Fecha límite: ' + item.vencimiento.fechaLimiteCalculada"
+                    >
+                      @switch (item.vencimiento.estado) {
+                        @case ('al_dia') {
+                          <app-icon name="check-circle" [size]="16" />
+                          <span>{{ getEstadoVencimientoLabel(item.vencimiento.estado, item.vencimiento.diasRestantes) }}</span>
+                        }
+                        @case ('proximo') {
+                          <app-icon name="clock" [size]="16" />
+                          <span>{{ getEstadoVencimientoLabel(item.vencimiento.estado, item.vencimiento.diasRestantes) }}</span>
+                        }
+                        @case ('vence_hoy') {
+                          <app-icon name="alert-circle" [size]="16" />
+                          <span>¡Vence hoy!</span>
+                        }
+                        @case ('vencido') {
+                          <app-icon name="alert-circle" [size]="16" />
+                          <span>{{ getEstadoVencimientoLabel(item.vencimiento.estado, item.vencimiento.diasRestantes) }}</span>
+                        }
+                      }
                     </div>
                   } @else {
                     <div class="status-badge status-pending" title="Pendiente por pagar este mes">
@@ -155,10 +179,18 @@
                   </span>
                 </td>
 
-                <!-- Día Límite -->
+                <!-- Día Límite y Anticipación de Alerta -->
                 <td class="text-center col-day">
-                  @if (item.fixedExpense.dueDay) {
-                    <span class="due-day-badge">Día {{ item.fixedExpense.dueDay }}</span>
+                  @let dia = item.fixedExpense.dia_limite_mes ?? item.fixedExpense.dueDay;
+                  @if (dia) {
+                    <div class="day-cell-wrapper">
+                      <span class="due-day-badge">Día {{ dia }}</span>
+                      @if (item.fixedExpense.dias_anticipacion_alerta !== null && item.fixedExpense.dias_anticipacion_alerta !== undefined) {
+                        <span class="anticipation-badge" title="Alerta anticipada {{ item.fixedExpense.dias_anticipacion_alerta }} días antes">
+                          🔔 {{ item.fixedExpense.dias_anticipacion_alerta }}d
+                        </span>
+                      }
+                    </div>
                   } @else {
                     <span class="text-muted">—</span>
                   }

@@ -9,7 +9,11 @@ import { CommonModule } from '@angular/common';
 import { Icon } from '../../shared/ui/icon/icon';
 import { Select, type SelectOption } from '../../shared/ui/select/select';
 import { FixedExpensesService } from './data/fixed-expenses.service';
-import type { FixedExpense, FixedExpenseDraft, FixedExpenseMonthlyStatus } from './data/fixed-expense.model';
+import type {
+  EstadoVencimiento,
+  FixedExpense,
+  FixedExpenseDraft,
+} from './data/fixed-expense.model';
 import { FixedExpenseModal } from './components/fixed-expense-modal/fixed-expense-modal';
 import type { ExpensePerson } from '../gastos/data/expense.model';
 import { MONTHS } from '../gastos/data/expense.model';
@@ -99,6 +103,19 @@ export class GastosFijosPage {
     const fixed = this.historyExpense();
     if (!fixed) return [];
     return this.service.getYearlyHistoryForFixedExpense(fixed.id, this.service.selectedYear());
+  }
+
+  protected getEstadoVencimientoLabel(estado: EstadoVencimiento, diasRestantes: number): string {
+    switch (estado) {
+      case 'al_dia':
+        return `Al día (${diasRestantes}d)`;
+      case 'proximo':
+        return `Próximo (${diasRestantes}d)`;
+      case 'vence_hoy':
+        return '¡Vence hoy!';
+      case 'vencido':
+        return `Vencido (${Math.abs(diasRestantes)}d)`;
+    }
   }
 
   protected formatCOP(val: number): string {

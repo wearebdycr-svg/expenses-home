@@ -13,7 +13,7 @@
         [class.has-error]="hasSubmitted() && errors()['name']"
         placeholder="Ej: Somos Internet, Administración, Spotify, Seguro..."
         [value]="name()"
-        (input)="name.set($any($event.target).value)"
+        (input)="onNameInput($event)"
       />
       @if (hasSubmitted() && errors()['name']) {
         <span class="field-error">{{ errors()['name'] }}</span>
@@ -57,39 +57,62 @@
       </div>
     </div>
 
-    <!-- Día de Pago y Estado -->
+    <!-- Día de Pago y Días de Anticipación para Alerta Push -->
     <div class="form-row">
       <div class="form-group flex-1">
-        <label class="form-label" for="fe-day">
-          Día Límite del Mes (Opcional)
+        <label class="form-label" for="fe-dia-limite">
+          Día Límite del Mes (1–31)
         </label>
         <input
-          id="fe-day"
+          id="fe-dia-limite"
           type="number"
           min="1"
           max="31"
           class="form-input"
-          [class.has-error]="hasSubmitted() && errors()['dueDay']"
+          [class.has-error]="hasSubmitted() && errors()['diaLimiteMes']"
           placeholder="Ej: 5 (día 5 de cada mes)"
-          [value]="dueDay()"
-          (input)="dueDay.set($any($event.target).value)"
+          [value]="diaLimiteMes()"
+          (input)="onDiaLimiteInput($event)"
         />
-        @if (hasSubmitted() && errors()['dueDay']) {
-          <span class="field-error">{{ errors()['dueDay'] }}</span>
+        @if (hasSubmitted() && errors()['diaLimiteMes']) {
+          <span class="field-error">{{ errors()['diaLimiteMes'] }}</span>
         }
       </div>
 
-      @if (isEditMode()) {
-        <div class="form-group flex-1">
-          <app-select
-            label="Estado"
-            [options]="statusOptions"
-            [value]="status()"
-            (valueChange)="status.set($event)"
-          />
-        </div>
-      }
+      <div class="form-group flex-1">
+        <label class="form-label" for="fe-anticipacion">
+          Anticipación Alerta Push (Días)
+        </label>
+        <input
+          id="fe-anticipacion"
+          type="number"
+          min="0"
+          max="30"
+          class="form-input"
+          [class.has-error]="hasSubmitted() && errors()['diasAnticipacionAlerta']"
+          placeholder="Ej: 3 (3 días antes)"
+          [value]="diasAnticipacionAlerta()"
+          (input)="onDiasAnticipacionInput($event)"
+        />
+        @if (hasSubmitted() && errors()['diasAnticipacionAlerta']) {
+          <span class="field-error">{{ errors()['diasAnticipacionAlerta'] }}</span>
+        }
+      </div>
     </div>
+    <span class="field-hint" style="margin-top: -0.5rem; margin-bottom: 0.75rem;">
+      🔔 Se enviará notificación push cuando falten estos días o menos para el vencimiento.
+    </span>
+
+    @if (isEditMode()) {
+      <div class="form-group">
+        <app-select
+          label="Estado"
+          [options]="statusOptions"
+          [value]="status()"
+          (valueChange)="status.set($event)"
+        />
+      </div>
+    }
 
     <!-- Notas / Detalles -->
     <div class="form-group">
@@ -100,7 +123,7 @@
         rows="2"
         placeholder="Ej: Código de convenio 12345, débito automático en cuenta Bancolombia..."
         [value]="notes()"
-        (input)="notes.set($any($event.target).value)"
+        (input)="onNotesInput($event)"
       ></textarea>
     </div>
 

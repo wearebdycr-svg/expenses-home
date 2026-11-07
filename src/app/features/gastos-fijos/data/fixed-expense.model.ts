@@ -40,6 +40,7 @@ export interface FixedExpenseMonthlyStatus {
   paidDate?: string;
   expenseId?: string;
   expenseDescription?: string;
+  vencimiento?: ResultadoCalculoVencimiento;
 }
 
 export interface FixedExpensesSummary {

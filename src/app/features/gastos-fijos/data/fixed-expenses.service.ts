@@ -9,9 +9,25 @@ import type {
   FixedExpenseDraft,
   FixedExpenseMonthlyStatus,
   FixedExpensesSummary,
+  ResultadoCalculoVencimiento,
 } from './fixed-expense.model';
+import { calcularVencimientoGastoFijo } from '../utils/due-date-calculator';
 
 const STORAGE_FIXED_EXPENSES_KEY = 'expenses_home_fixed_expenses_v1';
+
+interface FixedExpenseDatabaseRow {
+  id: string | number;
+  name: string;
+  expected_amount?: number;
+  expectedAmount?: number;
+  person?: string;
+  due_day?: number;
+  dia_limite_mes?: number;
+  dias_anticipacion_alerta?: number;
+  status?: string;
+  notes?: string;
+  created_at?: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class FixedExpensesService {
@@ -69,8 +85,30 @@ export class FixedExpensesService {
       return y === year && m === month;
     });
 
+    const today = new Date();
+    const isCurrentPeriod = today.getFullYear() === year && today.getMonth() + 1 === month;
+    const refDateIso = isCurrentPeriod
+      ? `${year}-${String(month).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+      : `${year}-${String(month).padStart(2, '0')}-01`;
+
     return fixedList.map((fixed) => {
       const fixedNameNorm = fixed.name.trim().toLowerCase();
+
+      // Calcular estado de vencimiento determinista si tiene día límite asignado
+      const diaLimite = fixed.dia_limite_mes ?? fixed.dueDay;
+      let vencimiento: ResultadoCalculoVencimiento | undefined;
+      if (diaLimite != null && diaLimite >= 1 && diaLimite <= 31) {
+        vencimiento = calcularVencimientoGastoFijo(
+          {
+            id: fixed.id,
+            nombre: fixed.name,
+            monto: fixed.expectedAmount,
+            dia_limite_mes: diaLimite,
+            dias_anticipacion_alerta: fixed.dias_anticipacion_alerta ?? 3,
+          },
+          refDateIso
+        );
+      }
 
       // Buscar si existe un gasto asociado a este gasto fijo en este mes
       const matching = monthExpenses.find((e) => {
@@ -94,6 +132,7 @@ export class FixedExpensesService {
           paidDate: matching.date,
           expenseId: matching.id,
           expenseDescription: matching.description,
+          vencimiento,
         };
       }
 
@@ -101,6 +140,7 @@ export class FixedExpensesService {
         fixedExpense: fixed,
         isPaid: false,
         paidAmount: 0,
+        vencimiento,
       };
     });
   });
@@ -204,21 +244,37 @@ export class FixedExpensesService {
       }
 
       if (data) {
-        const mapped: FixedExpense[] = data.map((row: any) => ({
-          id: String(row.id),
-          name: String(row.name),
-          expectedAmount: Number(row.expected_amount ?? row.expectedAmount ?? 0),
-          person: (row.person as ExpensePerson) || 'Compartido',
-          dueDay: row.due_day ? Number(row.due_day) : undefined,
-          status: (row.status || 'activo') as 'activo' | 'inactivo',
-          notes: row.notes ? String(row.notes) : undefined,
-          createdAt: String(row.created_at || new Date().toISOString()),
-        }));
+        const rows = data as unknown as FixedExpenseDatabaseRow[];
+        const mapped: FixedExpense[] = rows.map((row) => {
+          const diaLimite =
+            row.dia_limite_mes != null
+              ? Number(row.dia_limite_mes)
+              : row.due_day != null
+                ? Number(row.due_day)
+                : undefined;
+          const anticipacion =
+            row.dias_anticipacion_alerta != null
+              ? Number(row.dias_anticipacion_alerta)
+              : undefined;
+
+          return {
+            id: String(row.id),
+            name: String(row.name),
+            expectedAmount: Number(row.expected_amount ?? row.expectedAmount ?? 0),
+            person: (row.person as ExpensePerson) || 'Compartido',
+            dueDay: diaLimite,
+            dia_limite_mes: diaLimite,
+            dias_anticipacion_alerta: anticipacion,
+            status: (row.status || 'activo') as 'activo' | 'inactivo',
+            notes: row.notes ? String(row.notes) : undefined,
+            createdAt: String(row.created_at || new Date().toISOString()),
+          };
+        });
 
         this.fixedExpensesSignal.set(mapped);
         this.saveToStorage(mapped);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.warn('Error de red al cargar gastos fijos:', err);
     } finally {
       this.loading.set(false);
@@ -228,9 +284,13 @@ export class FixedExpensesService {
   async addFixedExpense(draft: FixedExpenseDraft): Promise<FixedExpense> {
     this.lastLocalMutationTime = Date.now();
     const tempId = `fe-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+    const diaLimite = draft.dia_limite_mes ?? draft.dueDay;
     const newFixed: FixedExpense = {
       ...draft,
       id: tempId,
+      dueDay: diaLimite,
+      dia_limite_mes: diaLimite,
+      dias_anticipacion_alerta: draft.dias_anticipacion_alerta,
       createdAt: new Date().toISOString(),
     };
 
@@ -241,13 +301,19 @@ export class FixedExpensesService {
       return updated;
     });
 
-    const payload: Record<string, any> = {
+    const payload: Record<string, unknown> = {
       name: draft.name,
       expected_amount: draft.expectedAmount,
       person: draft.person,
       status: draft.status || 'activo',
     };
-    if (draft.dueDay != null) payload['due_day'] = draft.dueDay;
+    if (diaLimite != null) {
+      payload['due_day'] = diaLimite;
+      payload['dia_limite_mes'] = diaLimite;
+    }
+    if (draft.dias_anticipacion_alerta != null) {
+      payload['dias_anticipacion_alerta'] = draft.dias_anticipacion_alerta;
+    }
     if (draft.notes) payload['notes'] = draft.notes;
 
     try {
@@ -278,18 +344,31 @@ export class FixedExpensesService {
 
   async updateFixedExpense(id: string, draft: FixedExpenseDraft): Promise<void> {
     this.lastLocalMutationTime = Date.now();
+    const diaLimite = draft.dia_limite_mes ?? draft.dueDay;
     this.fixedExpensesSignal.update((list) => {
-      const updated = list.map((f) => (f.id === id ? { ...f, ...draft } : f));
+      const updated = list.map((f) =>
+        f.id === id
+          ? {
+              ...f,
+              ...draft,
+              dueDay: diaLimite,
+              dia_limite_mes: diaLimite,
+              dias_anticipacion_alerta: draft.dias_anticipacion_alerta,
+            }
+          : f,
+      );
       this.saveToStorage(updated);
       return updated;
     });
 
-    const payload: Record<string, any> = {
+    const payload: Record<string, unknown> = {
       name: draft.name,
       expected_amount: draft.expectedAmount,
       person: draft.person,
       status: draft.status,
-      due_day: draft.dueDay ?? null,
+      due_day: diaLimite ?? null,
+      dia_limite_mes: diaLimite ?? null,
+      dias_anticipacion_alerta: draft.dias_anticipacion_alerta ?? null,
       notes: draft.notes ?? null,
     };
 
@@ -379,7 +458,7 @@ export class FixedExpensesService {
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'fixed_expenses' },
-          (payload: any) => {
+          () => {
             if (Date.now() - this.lastLocalMutationTime < 3000) return;
             this.loadFixedExpenses();
           },

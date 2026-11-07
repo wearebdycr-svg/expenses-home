@@ -80,8 +80,12 @@
                   </span>
                 </div>
                 <div class="meta-row">
-                  @if (item.fixedExpense.dueDay) {
-                    <span class="due-tag">Límite día {{ item.fixedExpense.dueDay }}</span>
+                  @let dia = item.fixedExpense.dia_limite_mes ?? item.fixedExpense.dueDay;
+                  @if (dia) {
+                    <span class="due-tag">Límite día {{ dia }}</span>
+                    @if (item.fixedExpense.dias_anticipacion_alerta !== null && item.fixedExpense.dias_anticipacion_alerta !== undefined) {
+                      <span class="due-alert-tag">🔔 {{ item.fixedExpense.dias_anticipacion_alerta }}d</span>
+                    }
                   }
                   @if (item.isPaid && item.paidDate) {
                     <span class="paid-date-tag">Pagado el {{ item.paidDate }}</span>
@@ -96,8 +100,19 @@
                 <span class="amount-val" [class.amount-paid]="item.isPaid">
                   {{ item.isPaid ? formatCOP(item.paidAmount) : formatCOP(item.fixedExpense.expectedAmount) }}
                 </span>
-                <span class="status-pill" [class.pill-paid]="item.isPaid" [class.pill-pending]="!item.isPaid">
-                  {{ item.isPaid ? 'Pagado' : 'Por pagar' }}
+                <span
+                  class="status-pill"
+                  [class.pill-paid]="item.isPaid"
+                  [class.pill-pending]="!item.isPaid && !item.vencimiento"
+                  [ngClass]="!item.isPaid && item.vencimiento ? 'pill-' + item.vencimiento.estado : ''"
+                >
+                  @if (item.isPaid) {
+                    Pagado
+                  } @else if (item.vencimiento) {
+                    {{ getVencimientoLabel(item.vencimiento) }}
+                  } @else {
+                    Por pagar
+                  }
                 </span>
               </div>
 

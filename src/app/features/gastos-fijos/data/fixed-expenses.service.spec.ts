@@ -115,4 +115,45 @@ describe('FixedExpensesService - Gastos Fijos Mensuales', () => {
     expect(yearly[11].month).toBe(12);
     expect(yearly[11].isPaid).toBe(false);
   });
+
+  it('stores and updates dia_limite_mes and dias_anticipacion_alerta, calculating vencimiento in monthlyStatuses', async () => {
+    service.setYear(2026);
+    service.setMonth(11);
+
+    const fixed = await service.addFixedExpense({
+      name: 'Gimnasio',
+      expectedAmount: 120_000,
+      person: 'Charlie',
+      dia_limite_mes: 20,
+      dias_anticipacion_alerta: 5,
+      status: 'activo',
+    });
+
+    expect(fixed.dia_limite_mes).toBe(20);
+    expect(fixed.dias_anticipacion_alerta).toBe(5);
+    expect(fixed.dueDay).toBe(20);
+
+    const statuses = service.monthlyStatuses();
+    expect(statuses.length).toBe(1);
+    expect(statuses[0].vencimiento).toBeDefined();
+    expect(statuses[0].vencimiento?.fechaLimiteCalculada).toBe('2026-11-20');
+
+    // Actualizar con nuevos valores
+    await service.updateFixedExpense(fixed.id, {
+      name: 'Gimnasio Premium',
+      expectedAmount: 150_000,
+      person: 'Charlie',
+      dia_limite_mes: 25,
+      dias_anticipacion_alerta: 4,
+      status: 'activo',
+    });
+
+    const updated = service.fixedExpenses().find((f) => f.id === fixed.id);
+    expect(updated?.name).toBe('Gimnasio Premium');
+    expect(updated?.dia_limite_mes).toBe(25);
+    expect(updated?.dias_anticipacion_alerta).toBe(4);
+
+    const updatedStatuses = service.monthlyStatuses();
+    expect(updatedStatuses[0].vencimiento?.fechaLimiteCalculada).toBe('2026-11-25');
+  });
 });

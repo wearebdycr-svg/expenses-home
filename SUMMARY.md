@@ -260,3 +260,36 @@
 - **Entregables:**
   - Función serverless actualizada en [api/cron-reminder.js](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/api/cron-reminder.js).
   - Tarea 2.7 marcada como completada en [PLAN.md](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/PLAN.md).
+
+### Tarea 2.8: Interfaz de Usuario de Gastos Fijos con Captura de Fechas y Badges de Vencimiento
+- **Fecha:** 2026-11-06
+- **Estado:** Completada
+- **Descripción:**
+  - Se actualizó integralmente la capa de presentación y los componentes de formulario y visualización en [`src/app/features/gastos-fijos`](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos) para capturar de forma validada `dia_limite_mes` y `dias_anticipacion_alerta`, y proyectar badges visuales con el estado determinista de vencimiento (`al_dia`, `proximo`, `vence_hoy`, `vencido`).
+  - **Decisiones Técnicas y Arquitectura:**
+    - **Formulario Modal Reactivo ([`FixedExpenseModal`](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/components/fixed-expense-modal/fixed-expense-modal.ts)):**
+      - Captura de `diaLimiteMes` (entero 1..31) y `diasAnticipacionAlerta` (entero $\ge 0$, valor por defecto 3 días).
+      - Erradicación absoluta de `$any` en el template mediante métodos tipados (`onNameInput`, `onDiaLimiteInput`, `onDiasAnticipacionInput`, `onNotesInput`).
+      - Emisión de contratos tipados con retrocompatibilidad bidireccional (`dueDay` y `dia_limite_mes`).
+    - **Cálculo de Vencimiento Integrado en Servicio ([`FixedExpensesService`](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/data/fixed-expenses.service.ts)):**
+      - Contrato estricto `FixedExpenseDatabaseRow` para eliminar castings no seguros.
+      - Evaluación reactiva en `monthlyStatuses` usando la función pura `calcularVencimientoGastoFijo` contra la fecha de referencia del ciclo activo.
+      - Persistencia en base de datos Supabase y almacenamiento local de las columnas `dia_limite_mes`, `due_day` y `dias_anticipacion_alerta`.
+    - **Visualización en Tabla y Matriz Principal ([`GastosFijosPage`](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/gastos-fijos.html)):**
+      - Badges diferenciados por criticidad: `.vencimiento-al_dia` (verde suave con días restantes), `.vencimiento-proximo` (ámbar), `.vencimiento-vence_hoy` (naranja rojizo con pulso visual) y `.vencimiento-vencido` (rojo).
+      - Columna de día límite con chip de alerta anticipada (`🔔 Xd`).
+    - **Modal Rápido ([`FixedExpensesQuickModal`](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/components/fixed-expenses-quick-modal/fixed-expenses-quick-modal.html)):**
+      - Estados interactivos en píldoras laterales `.pill-al_dia`, `.pill-proximo`, `.pill-vence_hoy` y `.pill-vencido` para obligaciones pendientes.
+- **Validación de Calidad y 0 Regresiones:**
+  - Compilación TypeScript (`tsc --noEmit`): 0 errores.
+  - Linter ESLint en el módulo (`npx eslint src/app/features/gastos-fijos/`): 0 errores.
+  - Pruebas Unitarias del Módulo: 43/43 tests pasando en verde (5 suites).
+  - Suite Global del Proyecto: 346/346 tests pasando en verde a través de 62 suites (`ng test --watch=false`).
+- **Entregables:**
+  - Contrato de modelo en [src/app/features/gastos-fijos/data/fixed-expense.model.ts](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/data/fixed-expense.model.ts).
+  - Componente modal en [src/app/features/gastos-fijos/components/fixed-expense-modal/](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/components/fixed-expense-modal/).
+  - Suite de pruebas de modal en [src/app/features/gastos-fijos/components/fixed-expense-modal/fixed-expense-modal.spec.ts](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/components/fixed-expense-modal/fixed-expense-modal.spec.ts).
+  - Servicio y pruebas en [src/app/features/gastos-fijos/data/fixed-expenses.service.ts](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/data/fixed-expenses.service.ts) y [src/app/features/gastos-fijos/data/fixed-expenses.service.spec.ts](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/data/fixed-expenses.service.spec.ts).
+  - Vista principal en [src/app/features/gastos-fijos/gastos-fijos.html](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/gastos-fijos.html), [gastos-fijos.css](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/gastos-fijos.css) y [gastos-fijos.ts](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/gastos-fijos.ts).
+  - Modal rápido en [src/app/features/gastos-fijos/components/fixed-expenses-quick-modal/](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/src/app/features/gastos-fijos/components/fixed-expenses-quick-modal/).
+  - Tarea 2.8 marcada como completada en [PLAN.md](file:///Users/Carlos.Valencia/Desktop/CR_proyectos/expenses-home/PLAN.md).

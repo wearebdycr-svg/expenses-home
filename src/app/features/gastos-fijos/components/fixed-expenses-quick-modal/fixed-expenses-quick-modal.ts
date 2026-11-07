@@ -8,6 +8,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { Icon } from '../../../../shared/ui/icon/icon';
 import { FixedExpensesService } from '../../data/fixed-expenses.service';
+import type { ResultadoCalculoVencimiento } from '../../data/fixed-expense.model';
 import { MONTHS } from '../../../gastos/data/expense.model';
 
 @Component({
@@ -32,5 +33,18 @@ export class FixedExpensesQuickModal {
 
   protected formatCOP(val: number): string {
     return '$' + Math.round(val).toLocaleString('es-CO');
+  }
+
+  protected getVencimientoLabel(v: ResultadoCalculoVencimiento): string {
+    switch (v.estado) {
+      case 'al_dia':
+        return `Al día (${v.diasRestantes}d)`;
+      case 'proximo':
+        return `Próximo (${v.diasRestantes}d)`;
+      case 'vence_hoy':
+        return '¡Vence hoy!';
+      case 'vencido':
+        return `Vencido (${Math.abs(v.diasRestantes)}d)`;
+    }
   }
 }

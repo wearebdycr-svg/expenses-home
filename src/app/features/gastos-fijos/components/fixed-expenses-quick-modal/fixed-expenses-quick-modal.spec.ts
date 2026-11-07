@@ -52,7 +52,7 @@ describe('FixedExpensesQuickModal', () => {
     expect(navSpy).toHaveBeenCalled();
   });
 
-  it('displays items with paid and pending badges appropriately', async () => {
+  it('displays items with paid, vencimiento badges and pending badges appropriately', async () => {
     fixedService.setYear(2026);
     fixedService.setMonth(11); // Noviembre
 
@@ -60,7 +60,15 @@ describe('FixedExpensesQuickModal', () => {
       name: 'Internet Fibra',
       expectedAmount: 90_000,
       person: 'Compartido',
-      dueDay: 10,
+      dia_limite_mes: 10,
+      dias_anticipacion_alerta: 3,
+      status: 'activo',
+    });
+
+    await fixedService.addFixedExpense({
+      name: 'Suscripción Sin Fecha',
+      expectedAmount: 20_000,
+      person: 'Charlie',
       status: 'activo',
     });
 
@@ -68,7 +76,7 @@ describe('FixedExpensesQuickModal', () => {
       name: 'Netflix',
       expectedAmount: 40_000,
       person: 'Benny',
-      dueDay: 15,
+      dia_limite_mes: 15,
       status: 'activo',
     });
 
@@ -84,12 +92,17 @@ describe('FixedExpensesQuickModal', () => {
     fixture.detectChanges();
 
     const items = fixture.nativeElement.querySelectorAll('.quick-item-card');
-    expect(items.length).toBe(2);
+    expect(items.length).toBe(3);
 
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('Internet Fibra');
     expect(text).toContain('Netflix');
+    expect(text).toContain('Suscripción Sin Fecha');
     expect(text).toContain('Pagado');
     expect(text).toContain('Por pagar');
+
+    // Internet Fibra has due date -> check that a vencimiento status pill is rendered
+    const statusPill = fixture.nativeElement.querySelector('.quick-item-card .status-pill');
+    expect(statusPill).toBeTruthy();
   });
 });
