@@ -317,11 +317,25 @@ export class FixedExpensesService {
     if (draft.notes) payload['notes'] = draft.notes;
 
     try {
-      const { data, error } = await this.supabase.client
+      let { data, error } = await this.supabase.client
         .from('fixed_expenses')
         .insert([payload])
         .select()
         .single();
+
+      // Fallback defensivo si la base de datos aún no tiene las nuevas columnas
+      if (error && error.message.includes('schema cache')) {
+        const fallbackPayload: Record<string, unknown> = { ...payload };
+        delete fallbackPayload['dia_limite_mes'];
+        delete fallbackPayload['dias_anticipacion_alerta'];
+        const retry = await this.supabase.client
+          .from('fixed_expenses')
+          .insert([fallbackPayload])
+          .select()
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
 
       if (error) {
         console.error('Error insertando gasto fijo en Supabase:', error.message);
@@ -373,10 +387,22 @@ export class FixedExpensesService {
     };
 
     try {
-      const { error } = await this.supabase.client
+      let { error } = await this.supabase.client
         .from('fixed_expenses')
         .update(payload)
         .eq('id', id);
+
+      // Fallback defensivo si la base de datos aún no tiene las nuevas columnas
+      if (error && error.message.includes('schema cache')) {
+        const fallbackPayload: Record<string, unknown> = { ...payload };
+        delete fallbackPayload['dia_limite_mes'];
+        delete fallbackPayload['dias_anticipacion_alerta'];
+        const retry = await this.supabase.client
+          .from('fixed_expenses')
+          .update(fallbackPayload)
+          .eq('id', id);
+        error = retry.error;
+      }
 
       if (error) {
         console.error('Error actualizando gasto fijo en Supabase:', error.message);
