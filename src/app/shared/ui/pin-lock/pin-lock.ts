@@ -25,6 +25,7 @@ export class PinLock implements OnInit {
   protected readonly authPinService = inject(AuthPinService);
 
   unlocked = output<void>();
+  signOutSupabase = output<void>();
 
   protected readonly pin = signal<string>('');
   protected readonly errorMessage = signal<string>('');
@@ -169,6 +170,7 @@ export class PinLock implements OnInit {
   }
 
   protected async submitChangePin(): Promise<void> {
+    const hasExisting = this.authPinService.hasCustomPin();
     const current = this.changeCurrentPin().trim();
     const next = this.changeNewPin().trim();
     const confirm = this.changeConfirmPin().trim();
@@ -186,9 +188,9 @@ export class PinLock implements OnInit {
       return;
     }
 
-    const res = await this.authPinService.setCustomPin(next, current);
+    const res = await this.authPinService.setCustomPin(next, hasExisting ? current : undefined);
     if (res.success) {
-      this.changeSuccess.set('¡PIN actualizado con éxito! Ya puedes usarlo.');
+      this.changeSuccess.set('¡PIN guardado con éxito! Ya puedes usarlo.');
       setTimeout(() => {
         this.closeChangeModal();
         this.clearPin();
@@ -196,6 +198,10 @@ export class PinLock implements OnInit {
     } else {
       this.changeError.set(res.error || 'No se pudo actualizar el PIN.');
     }
+  }
+
+  protected onSignOut(): void {
+    this.signOutSupabase.emit();
   }
 
   protected toggleBiometric(event: Event): void {

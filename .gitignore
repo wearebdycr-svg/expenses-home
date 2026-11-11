@@ -53,3 +53,4 @@ Library/
 .env*.local
 src/environments/environment.ts
 src/environments/environment.development.ts
+/public/firebase-config.js

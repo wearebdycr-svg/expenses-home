@@ -81,8 +81,6 @@ prepare:assets:prod:
   stage: build-apk
   before_script:
     - yes | sdkmanager "platforms;android-36" "build-tools;36.0.0" || true
-    - mkdir -p ~/.android ~/.config/.android
-    - if [ ! -f ~/.android/debug.keystore ]; then keytool -genkeypair -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"; cp ~/.android/debug.keystore ~/.config/.android/debug.keystore; fi
   cache:
     key: gradle-cache-$CI_PROJECT_ID
     paths:
@@ -93,6 +91,8 @@ apk:android:dev:
   needs:
     - job: prepare:assets:dev
   script:
+    - mkdir -p ~/.android ~/.config/.android
+    - if [ ! -f ~/.android/debug.keystore ]; then keytool -genkeypair -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"; cp ~/.android/debug.keystore ~/.config/.android/debug.keystore; fi
     - echo "📦 [DEV] Ensamblando APK Debug con BD Desarrollo..."
     - chmod +x ./android/gradlew
     - ./android/gradlew -p android assembleDebug
@@ -113,9 +113,18 @@ apk:android:release:
   needs:
     - job: prepare:assets:prod
   script:
+    - echo "🚀 [PROD] Validando keystore de firma Release..."
+    - |
+      if [ -z "$RELEASE_KEYSTORE_BASE64" ] || [ -z "$RELEASE_STORE_PASSWORD" ] || [ -z "$RELEASE_KEY_ALIAS" ] || [ -z "$RELEASE_KEY_PASSWORD" ]; then
+        echo "❌ Error: Faltan variables de firma Release en GitLab CI/CD."
+        exit 1
+      fi
+      echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > android/app/release.keystore
+      export RELEASE_STORE_FILE="$CI_PROJECT_DIR/android/app/release.keystore"
     - echo "🚀 [PROD] Ensamblando APK Release con BD Producción..."
     - chmod +x ./android/gradlew
     - ./android/gradlew -p android assembleRelease
+    - rm -f android/app/release.keystore
     - mkdir -p apk-artifacts
     - cp android/app/build/outputs/apk/release/app-release.apk apk-artifacts/FinanzasHogar-release.apk
     - ls -lh apk-artifacts/

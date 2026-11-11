@@ -3,6 +3,11 @@
 
 importScripts('https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging-compat.js');
+try {
+  importScripts('/firebase-config.js');
+} catch {
+  // Configuración diferida vía postMessage si aún no existe /firebase-config.js
+}
 
 // 1. Forzar activación inmediata para que las actualizaciones se apliquen sin cerrar el navegador
 self.addEventListener('install', () => {
@@ -13,31 +18,16 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(clients.claim());
 });
 
-// 2. Extraer configuración dinámica sin exponer claves estáticas en el repositorio
+// 2. Cargar configuración inyectada en build-time (sin parámetros en URL)
 function getFirebaseConfig() {
-  try {
-    const params = new URLSearchParams(self.location.search);
-    const apiKey = params.get('apiKey');
-    const projectId = params.get('projectId');
-    if (apiKey && projectId) {
-      return {
-        apiKey,
-        authDomain: params.get('authDomain') || '',
-        projectId,
-        storageBucket: params.get('storageBucket') || '',
-        messagingSenderId: params.get('messagingSenderId') || '',
-        appId: params.get('appId') || '',
-        measurementId: params.get('measurementId') || '',
-      };
-    }
-  } catch (err) {
-    console.warn('[firebase-messaging-sw] No se pudieron leer parámetros de URL:', err);
+  const config = self.__FIREBASE_CONFIG__;
+  if (config && config.apiKey && config.projectId) {
+    return config;
   }
   return null;
 }
 
 function handleBackgroundMessage(payload) {
-  console.log('[firebase-messaging-sw] Notificación recibida desde Firebase:', payload);
   const title = payload.notification?.title || payload.data?.title || 'FinanzasHogar';
   const options = {
     body: payload.notification?.body || payload.data?.body || '',
@@ -52,7 +42,7 @@ function handleBackgroundMessage(payload) {
 }
 
 function initFirebase(config) {
-  if (config && config.apiKey && typeof firebase !== 'undefined' && !firebase.apps.length) {
+  if (config && config.apiKey && config.projectId && typeof firebase !== 'undefined' && !firebase.apps.length) {
     try {
       firebase.initializeApp(config);
       const messaging = firebase.messaging();
@@ -63,7 +53,7 @@ function initFirebase(config) {
   }
 }
 
-// Inicializar si la configuración viene en los parámetros de la URL de registro
+// Inicializar desde /firebase-config.js si está disponible
 const initialConfig = getFirebaseConfig();
 if (initialConfig) {
   initFirebase(initialConfig);

@@ -40,26 +40,27 @@ Gracias a **Supabase Realtime**, cualquier gasto que hagas en la calle aparecer�
 
 ---
 
-### Paso 3: Configurar tus Credenciales
-En las primeras líneas del archivo encontrarás la sección `CONFIG`:
+### Paso 3: Configurar tus Credenciales (Propiedades del Script)
+En el editor de Google Apps Script, ve a **Configuración del proyecto** $\to$ **Propiedades de la secuencia de comandos** y agrega las siguientes claves seguras (no pegues secretos dentro del código):
+
+* `SUPABASE_URL`: URL de tu proyecto de Supabase (ej: `https://TU_PROYECTO.supabase.co`).
+* `SUPABASE_SERVICE_ROLE_KEY`: Llave **Service Role** de Supabase (necesaria porque las tablas tienen RLS estricto para usuarios autenticados).
+* `NOTIFY_SECRET`: El mismo secreto `NOTIFY_SECRET` (o `CRON_SECRET`) configurado en Vercel para autorizar `/api/notify`.
+* `CRON_SECRET`: El mismo secreto `CRON_SECRET` configurado en Vercel para autorizar `/api/cron-reminder`.
+* `PERSON`: Persona de esta cuenta de Gmail (`Charlie` o `Benny`).
+* `SHARED_TC_DIGITS`: Últimos 4 dígitos de la Tarjeta de Crédito Compartida (separados por coma si hay más de una).
+
+En el código de [`bancolombia-sync.gs`](./bancolombia-sync.gs), la sección `CONFIG` lee automáticamente estas propiedades vía `PropertiesService`:
 
 ```javascript
 const CONFIG = {
-  // 1. URL de tu proyecto de Supabase (Producción o Dev)
-  SUPABASE_URL: 'https://TU_PROYECTO.supabase.co',
-
-  // 2. Llave anónima pública de Supabase
-  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-
-  // 3. URL de la aplicación web / Vercel para despachar notificaciones push a los celulares
+  SUPABASE_URL: PropertiesService.getScriptProperties().getProperty('SUPABASE_URL') || '',
+  SUPABASE_SERVICE_ROLE_KEY: PropertiesService.getScriptProperties().getProperty('SUPABASE_SERVICE_ROLE_KEY') || '',
+  NOTIFY_SECRET: PropertiesService.getScriptProperties().getProperty('NOTIFY_SECRET') || '',
+  CRON_SECRET: PropertiesService.getScriptProperties().getProperty('CRON_SECRET') || '',
   APP_BASE_URL: 'https://finanzas-hogar-control-familiar.vercel.app',
-
-  // 4. Persona de esta cuenta de Gmail ('Charlie' o 'Benny')
   PERSON: 'Charlie',
-
-  // 5. Últimos 4 dígitos de la Tarjeta de Crédito Compartida (ej: '0066' Bancolombia)
-  // Si la compra fue con esta tarjeta, irá a TC Compartida; si no, a Gastos Diarios
-  SHARED_TC_DIGITS: ['0066'], 
+  SHARED_TC_DIGITS: ['1234'],
 
   LABEL_PROCESSED: 'ExpensesHome/Procesado',
   LABEL_ERROR: 'ExpensesHome/Error',
@@ -102,4 +103,4 @@ const CONFIG = {
 ## 👥 ¿Cómo configurarlo para Benny y Charlie al tiempo?
 * **Charlie**: Sigue los pasos anteriores en su cuenta de Gmail con `PERSON: 'Charlie'`.
 * **Benny**: Sigue los mismos pasos en su cuenta de Gmail con `PERSON: 'Benny'`.
-* Ambos usan la misma `SUPABASE_URL` y `SUPABASE_ANON_KEY` y los mismos dígitos de la tarjeta compartida si ambos la usan.
+* Ambos usan la misma `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NOTIFY_SECRET`, `CRON_SECRET` y los mismos dígitos de la tarjeta compartida si ambos la usan.

@@ -28,23 +28,29 @@
 // 1. CONFIGURACIÓN PERSONALIZADA
 // ==============================================================================
 const CONFIG = {
-  // URL de tu proyecto de Supabase (ej: 'https://fbwljvmqzpmcfokogbpw.supabase.co')
-  SUPABASE_URL: (typeof PropertiesService !== 'undefined' && PropertiesService.getScriptProperties().getProperty('SUPABASE_URL')) || 'https://fbwljvmqzpmcfokogbpw.supabase.co',
+  // URL de tu proyecto de Supabase (configurar en Propiedades de la secuencia de comandos: SUPABASE_URL)
+  SUPABASE_URL: (typeof PropertiesService !== 'undefined' && PropertiesService.getScriptProperties().getProperty('SUPABASE_URL')) || '',
 
-  // Llave anónima pública de Supabase
-  // Puede configurarse en Google Apps Script -> Configuración del proyecto -> Propiedades de la secuencia de comandos (clave: SUPABASE_ANON_KEY),
-  // o pegarse directamente aquí en tu copia privada de Apps Script.
-  SUPABASE_ANON_KEY: (typeof PropertiesService !== 'undefined' && PropertiesService.getScriptProperties().getProperty('SUPABASE_ANON_KEY')) || '',
+  // Service Role Key de Supabase para escribir registros tras endurecer RLS (clave en Script Properties: SUPABASE_SERVICE_ROLE_KEY)
+  // IMPORTANTE: Nunca expongas esta llave en repositorios públicos ni código cliente.
+  SUPABASE_SERVICE_ROLE_KEY: (typeof PropertiesService !== 'undefined' && PropertiesService.getScriptProperties().getProperty('SUPABASE_SERVICE_ROLE_KEY')) || '',
+
+  // Secreto compartido para autenticar /api/notify y /api/cron-reminder en Vercel (claves en Script Properties: NOTIFY_SECRET / CRON_SECRET)
+  NOTIFY_SECRET: (typeof PropertiesService !== 'undefined' && PropertiesService.getScriptProperties().getProperty('NOTIFY_SECRET')) || '',
+  CRON_SECRET: (typeof PropertiesService !== 'undefined' && PropertiesService.getScriptProperties().getProperty('CRON_SECRET')) || '',
 
   // URL base de la aplicación en Vercel para despachar notificaciones push a los móviles
-  APP_BASE_URL: 'https://finanzas-hogar-control-familiar.vercel.app',
+  APP_BASE_URL: (typeof PropertiesService !== 'undefined' && PropertiesService.getScriptProperties().getProperty('APP_BASE_URL')) || 'https://finanzas-hogar-control-familiar.vercel.app',
 
   // Persona a la que pertenece esta cuenta de Gmail ('Charlie' o 'Benny')
-  PERSON: 'Charlie',
+  PERSON: (typeof PropertiesService !== 'undefined' && PropertiesService.getScriptProperties().getProperty('PERSON')) || 'Charlie',
 
-  // Últimos 4 dígitos de la(s) Tarjeta(s) de Crédito Compartida(s)
+  // Últimos 4 dígitos de la(s) Tarjeta(s) de Crédito Compartida(s) (ej: Script Property SHARED_TC_DIGITS="1234,5678")
   // Si la compra coincide con estos dígitos, se envía a 'tc_expenses'
-  SHARED_TC_DIGITS: ['0066'], 
+  SHARED_TC_DIGITS: ((typeof PropertiesService !== 'undefined' && PropertiesService.getScriptProperties().getProperty('SHARED_TC_DIGITS')) || '')
+    .split(',')
+    .map((d) => d.trim())
+    .filter(Boolean),
 
   // Etiqueta de Gmail para marcar correos ya procesados y no duplicar
   LABEL_PROCESSED: 'ExpensesHome/Procesado',
@@ -478,13 +484,17 @@ function guessCategory(description, isSharedTC) {
  * Guarda el registro en la tabla correspondiente de Supabase (expenses, tc_expenses o incomes)
  */
 function saveRecordToSupabase(record) {
+  if (!CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error('Falta configurar SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en Propiedades del Script.');
+  }
+
   // 1. Verificación anti-duplicados en Supabase (idempotencia)
   const checkUrl = `${CONFIG.SUPABASE_URL}/rest/v1/${record.targetTable}?date=eq.${record.date}&person=eq.${record.person}&amount=eq.${record.amount}&select=id`;
   const checkOptions = {
     method: 'get',
     headers: {
-      apikey: CONFIG.SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${CONFIG.SUPABASE_ANON_KEY}`,
+      apikey: CONFIG.SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${CONFIG.SUPABASE_SERVICE_ROLE_KEY}`,
     },
     muteHttpExceptions: true,
   };
@@ -528,8 +538,8 @@ function saveRecordToSupabase(record) {
     method: 'post',
     contentType: 'application/json',
     headers: {
-      apikey: CONFIG.SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${CONFIG.SUPABASE_ANON_KEY}`,
+      apikey: CONFIG.SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${CONFIG.SUPABASE_SERVICE_ROLE_KEY}`,
       Prefer: 'return=representation',
     },
     payload: JSON.stringify(payload),
@@ -594,11 +604,17 @@ function sendPushNotification(record) {
     },
   };
 
+  const notifySecret = CONFIG.NOTIFY_SECRET || CONFIG.CRON_SECRET;
+  if (!notifySecret) {
+    Logger.log('⚠️ NOTIFY_SECRET / CRON_SECRET no está configurado en Propiedades del Script. Omitiendo notificación push.');
+    return;
+  }
+
   const options = {
     method: 'post',
     contentType: 'application/json',
     headers: {
-      Authorization: `Bearer ${CONFIG.SUPABASE_ANON_KEY}`,
+      Authorization: `Bearer ${notifySecret}`,
     },
     payload: JSON.stringify(payload),
     muteHttpExceptions: true,
@@ -774,11 +790,16 @@ function testPushNotification() {
  */
 function sendDailyReminder7pm() {
   if (!CONFIG.APP_BASE_URL) return;
+  const cronSecret = CONFIG.CRON_SECRET || CONFIG.NOTIFY_SECRET;
+  if (!cronSecret) {
+    Logger.log('⚠️ CRON_SECRET no está configurado en Propiedades del Script. Omitiendo recordatorio.');
+    return;
+  }
   const url = `${CONFIG.APP_BASE_URL.replace(/\/$/, '')}/api/cron-reminder`;
   try {
     const resp = UrlFetchApp.fetch(url, {
       method: 'get',
-      headers: { Authorization: `Bearer ${CONFIG.SUPABASE_ANON_KEY}` },
+      headers: { Authorization: `Bearer ${cronSecret}` },
       muteHttpExceptions: true,
     });
     Logger.log(`⏰ Recordatorio 7:00 PM ejecutado (HTTP ${resp.getResponseCode()}): ${resp.getContentText()}`);

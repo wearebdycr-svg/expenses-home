@@ -1,16 +1,9 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { DestroyRef, effect, Injectable, inject, signal } from '@angular/core';
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { NativeBiometric, BiometryType } from '@capgo/capacitor-native-biometric';
-import { SupabaseService } from './supabase.service';
-
-export interface AppUserAccount {
-  username: string;
-  passwordHash: string;
-  salt: string;
-  name: string;
-  created_at?: string;
-}
+import type { User } from '@supabase/supabase-js';
+import { SupabaseAuthService } from './supabase-auth.service';
 
 export interface SecuritySession {
   token: string;
@@ -22,67 +15,105 @@ export interface SecuritySession {
 
 export const INACTIVITY_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutos estilo Bancolombia
 const SESSION_STORAGE_KEY = 'expenses_home_security_session_v2';
-const USERS_STORAGE_KEY = 'expenses_home_security_users_v2';
+const LEGACY_USERS_STORAGE_KEY = 'expenses_home_security_users_v2';
+const LEGACY_PIN_STORAGE_KEY = 'expenses_home_pin_hash';
+const LEGACY_PIN_SALT_KEY = 'expenses_home_pin_salt';
 const BIOMETRIC_ENROLLED_KEY = 'expenses_home_biometric_enrolled_v2';
 const FAILED_ATTEMPTS_KEY = 'expenses_home_login_failed_v2';
+const PIN_STORAGE_KEY = 'expenses_home_pin_hash_v2';
+const PIN_SALT_KEY = 'expenses_home_pin_salt_v2';
+const PBKDF2_ITERATIONS = 100_000;
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_MS = 30_000; // 30 segundos tras 5 intentos fallidos
 
-// PIN legacy para retrocompatibilidad
-const PIN_STORAGE_KEY = 'expenses_home_pin_hash';
-const DEFAULT_INITIAL_PIN = '2026';
-const FIXED_DEFAULT_SALT = 'expenses_home_family_salt_v1';
+interface AppStateListenerHandle {
+  remove: () => Promise<void>;
+}
 
-async function sha256(text: string): Promise<string> {
-  if (typeof globalThis.crypto?.subtle?.digest === 'function') {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(text);
-    const hashBuffer = await globalThis.crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+function hexToBytes(hex: string): Uint8Array<ArrayBuffer> {
+  const cleanHex = hex.trim();
+  const length = Math.floor(cleanHex.length / 2);
+  const buffer = new ArrayBuffer(length);
+  const view = new Uint8Array(buffer);
+  for (let i = 0; i < length; i++) {
+    view[i] = parseInt(cleanHex.slice(i * 2, i * 2 + 2), 16) || 0;
   }
-  // Fallback simple para entornos sin subtle crypto
-  let hash = 0;
-  for (let i = 0; i < text.length; i++) {
-    const char = text.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash |= 0;
+  return view;
+}
+
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) {
+    return false;
   }
-  return Math.abs(hash).toString(16).padStart(64, '0');
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
+async function hashPinPbkdf2(pin: string, saltHex: string): Promise<string> {
+  const subtle = globalThis.crypto?.subtle;
+  if (!subtle) {
+    throw new Error('Web Crypto PBKDF2 no está disponible en este entorno seguro.');
+  }
+
+  const encoder = new TextEncoder();
+  const keyMaterial = await subtle.importKey(
+    'raw',
+    encoder.encode(pin),
+    { name: 'PBKDF2' },
+    false,
+    ['deriveBits']
+  );
+
+  const derivedBits = await subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt: hexToBytes(saltHex),
+      iterations: PBKDF2_ITERATIONS,
+      hash: 'SHA-256',
+    },
+    keyMaterial,
+    256
+  );
+
+  return bytesToHex(new Uint8Array(derivedBits));
 }
 
 function generateSecureToken(): string {
   if (typeof globalThis.crypto?.randomUUID === 'function') {
     return globalThis.crypto.randomUUID();
   }
-  const bytes = new Uint8Array(24);
   if (typeof globalThis.crypto?.getRandomValues === 'function') {
+    const bytes = new Uint8Array(24);
     globalThis.crypto.getRandomValues(bytes);
-  } else {
-    for (let i = 0; i < bytes.length; i++) {
-      bytes[i] = Math.floor(Math.random() * 256);
-    }
+    return bytesToHex(bytes);
   }
-  return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('');
+  throw new Error('Generador criptográfico seguro no disponible.');
 }
 
 function generateSalt(): string {
-  const bytes = new Uint8Array(16);
-  if (typeof globalThis.crypto?.getRandomValues === 'function') {
-    globalThis.crypto.getRandomValues(bytes);
-  } else {
-    for (let i = 0; i < bytes.length; i++) {
-      bytes[i] = Math.floor(Math.random() * 256);
-    }
+  if (typeof globalThis.crypto?.getRandomValues !== 'function') {
+    throw new Error('Generador criptográfico seguro no disponible para salt.');
   }
-  return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('');
+  const bytes = new Uint8Array(16);
+  globalThis.crypto.getRandomValues(bytes);
+  return bytesToHex(bytes);
 }
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthPinService {
-  private readonly supabase = inject(SupabaseService);
+  private readonly supabaseAuth = inject(SupabaseAuthService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly isUnlocked = signal<boolean>(false);
   readonly isLockedOut = signal<boolean>(false);
@@ -96,75 +127,73 @@ export class AuthPinService {
   readonly biometryTypeName = signal<string>('Huella');
   readonly hasCustomPin = signal<boolean>(false);
 
-  private lockoutIntervalId: any = null;
-  private sessionCheckIntervalId: any = null;
+  private lockoutIntervalId: ReturnType<typeof setInterval> | null = null;
+  private sessionCheckIntervalId: ReturnType<typeof setInterval> | null = null;
+  private activityCleanupFns: Array<() => void> = [];
+  private appStateListenerHandle: AppStateListenerHandle | null = null;
   private lastActivityThrottle = 0;
 
   constructor() {
-    this.seedDefaultUsers();
     this.checkInitialState();
     this.setupAutoLockListeners();
     this.setupActivityListeners();
     this.startSessionExpiryMonitor();
+
+    effect(() => {
+      if (!this.supabaseAuth.isLoading() && !this.supabaseAuth.isAuthenticated()) {
+        this.logout();
+      }
+    });
+
+    this.destroyRef.onDestroy(() => {
+      this.cleanupResources();
+    });
   }
 
-  /**
-   * Inicializa usuarios por defecto (Charlie, Benny, Admin) si no existen todavía.
-   */
-  private async seedDefaultUsers(): Promise<void> {
-    if (typeof localStorage === 'undefined') return;
-    try {
-      const existing = localStorage.getItem(USERS_STORAGE_KEY);
-      if (!existing) {
-        const charlieSalt = generateSalt();
-        const bennySalt = generateSalt();
-        const adminSalt = generateSalt();
-
-        const defaultUsers: AppUserAccount[] = [
-          {
-            username: 'charlie',
-            passwordHash: await sha256(charlieSalt + 'charlie2026'),
-            salt: charlieSalt,
-            name: 'Charlie',
-            created_at: new Date().toISOString(),
-          },
-          {
-            username: 'benny',
-            passwordHash: await sha256(bennySalt + 'benny2026'),
-            salt: bennySalt,
-            name: 'Benny',
-            created_at: new Date().toISOString(),
-          },
-          {
-            username: 'admin',
-            passwordHash: await sha256(adminSalt + 'admin2026'),
-            salt: adminSalt,
-            name: 'Administrador',
-            created_at: new Date().toISOString(),
-          },
-        ];
-        localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(defaultUsers));
-      }
-    } catch {
-      // Ignorar
+  private cleanupResources(): void {
+    if (this.lockoutIntervalId !== null) {
+      clearInterval(this.lockoutIntervalId);
+      this.lockoutIntervalId = null;
+    }
+    if (this.sessionCheckIntervalId !== null) {
+      clearInterval(this.sessionCheckIntervalId);
+      this.sessionCheckIntervalId = null;
+    }
+    for (const cleanup of this.activityCleanupFns) {
+      cleanup();
+    }
+    this.activityCleanupFns = [];
+    if (this.appStateListenerHandle) {
+      void this.appStateListenerHandle.remove().catch(() => {});
+      this.appStateListenerHandle = null;
     }
   }
 
-  /**
-   * Comprueba el estado inicial de la sesión.
-   * Si hay un token válido y NO han pasado 10 minutos de inactividad, entra directo.
-   */
+  private clearLegacyInsecureStorage(): void {
+    try {
+      localStorage.removeItem(LEGACY_USERS_STORAGE_KEY);
+      localStorage.removeItem(LEGACY_PIN_STORAGE_KEY);
+      localStorage.removeItem(LEGACY_PIN_SALT_KEY);
+    } catch {
+      // Ignorar errores de almacenamiento
+    }
+  }
+
   private checkInitialState(): void {
     if (typeof localStorage === 'undefined') {
-      this.isUnlocked.set(true);
+      this.isUnlocked.set(false);
       return;
     }
 
+    this.clearLegacyInsecureStorage();
+
     // Comprobar huella en el dispositivo
-    this.checkBiometricAvailability().catch(() => {});
+    void this.checkBiometricAvailability().catch(() => {});
     const bioEnrolled = localStorage.getItem(BIOMETRIC_ENROLLED_KEY) === 'true';
     this.hasBiometricEnrolled.set(bioEnrolled);
-    this.hasCustomPin.set(Boolean(localStorage.getItem(PIN_STORAGE_KEY)));
+    this.hasCustomPin.set(
+      Boolean(localStorage.getItem(PIN_STORAGE_KEY) && localStorage.getItem(PIN_SALT_KEY))
+    );
 
     // Revisar bloqueo por intentos fallidos
     this.checkLockoutStatus();
@@ -173,19 +202,24 @@ export class AuthPinService {
     try {
       const sessionRaw = localStorage.getItem(SESSION_STORAGE_KEY);
       if (sessionRaw) {
-        const session: SecuritySession = JSON.parse(sessionRaw);
+        const session = JSON.parse(sessionRaw) as Partial<SecuritySession>;
         const now = Date.now();
-        if (session.expiresAt && now < session.expiresAt) {
-          // Sesión aún válida dentro de los 10 minutos
-          this.currentUser.set({ username: session.username, name: session.name });
+        if (
+          typeof session.expiresAt === 'number' &&
+          now < session.expiresAt &&
+          typeof session.username === 'string' &&
+          session.username.length > 0
+        ) {
+          this.currentUser.set({
+            username: session.username,
+            name: typeof session.name === 'string' && session.name ? session.name : session.username,
+          });
           this.sessionExpiresAt.set(session.expiresAt);
           this.isUnlocked.set(true);
           return;
-        } else {
-          // Sesión expirada
-          localStorage.removeItem(SESSION_STORAGE_KEY);
-          this.expiredNotice.set('Tu sesión expiró por inactividad (10 minutos).');
         }
+        localStorage.removeItem(SESSION_STORAGE_KEY);
+        this.expiredNotice.set('Tu sesión expiró por inactividad (10 minutos).');
       }
     } catch {
       localStorage.removeItem(SESSION_STORAGE_KEY);
@@ -194,9 +228,6 @@ export class AuthPinService {
     this.isUnlocked.set(false);
   }
 
-  /**
-   * Monitor de inactividad que evalúa periódicamente si pasaron los 10 minutos.
-   */
   private startSessionExpiryMonitor(): void {
     if (typeof window === 'undefined') return;
     this.sessionCheckIntervalId = setInterval(() => {
@@ -209,15 +240,16 @@ export class AuthPinService {
     }, 5000);
   }
 
-  /**
-   * Escucha eventos de interacción del usuario para extender la ventana de 10 minutos.
-   */
   private setupActivityListeners(): void {
     if (typeof window === 'undefined') return;
-    const events = ['pointerdown', 'keydown', 'scroll', 'touchstart'];
+    const events: ReadonlyArray<keyof WindowEventMap> = [
+      'pointerdown',
+      'keydown',
+      'scroll',
+      'touchstart',
+    ];
     const onUserInteraction = () => {
       const now = Date.now();
-      // Throttle: registrar actividad máximo una vez cada 10 segundos
       if (now - this.lastActivityThrottle > 10_000) {
         this.lastActivityThrottle = now;
         this.recordActivity();
@@ -226,18 +258,16 @@ export class AuthPinService {
 
     events.forEach((evt) => {
       window.addEventListener(evt, onUserInteraction, { passive: true });
+      this.activityCleanupFns.push(() => window.removeEventListener(evt, onUserInteraction));
     });
   }
 
-  /**
-   * Renueva el temporizador a +10 minutos cada vez que el usuario interactúa.
-   */
   recordActivity(): void {
-    if (!this.isUnlocked()) return;
+    if (!this.isUnlocked() || typeof localStorage === 'undefined') return;
     try {
       const sessionRaw = localStorage.getItem(SESSION_STORAGE_KEY);
       if (sessionRaw) {
-        const session: SecuritySession = JSON.parse(sessionRaw);
+        const session = JSON.parse(sessionRaw) as SecuritySession;
         const now = Date.now();
         session.lastActive = now;
         session.expiresAt = now + INACTIVITY_TIMEOUT_MS;
@@ -249,39 +279,41 @@ export class AuthPinService {
     }
   }
 
-  /**
-   * Configura listeners de ciclo de vida en la app móvil:
-   * Si el usuario se va a otra app o minimiza, NO BLOQUEA.
-   * Solo si pasan más de 10 minutos en segundo plano se cierra la sesión.
-   */
   private setupAutoLockListeners(): void {
     if (typeof window === 'undefined') return;
 
     if (Capacitor.isNativePlatform()) {
-      try {
-        CapApp.addListener('appStateChange', ({ isActive }) => {
-          if (!isActive) {
-            // Pasó a segundo plano: actualizar marca de tiempo
-            this.recordActivity();
-          } else {
-            // Regresó a primer plano: verificar si expiró la sesión
-            const sessionRaw = localStorage.getItem(SESSION_STORAGE_KEY);
-            if (sessionRaw) {
-              const session: SecuritySession = JSON.parse(sessionRaw);
+      void CapApp.addListener('appStateChange', ({ isActive }) => {
+        if (typeof localStorage === 'undefined') {
+          this.isUnlocked.set(false);
+          return;
+        }
+        if (!isActive) {
+          this.recordActivity();
+        } else {
+          const sessionRaw = localStorage.getItem(SESSION_STORAGE_KEY);
+          if (sessionRaw) {
+            try {
+              const session = JSON.parse(sessionRaw) as SecuritySession;
               if (Date.now() >= session.expiresAt) {
                 this.handleSessionExpired('Tu sesión expiró por inactividad (10 minutos).');
               } else {
-                // Sigue dentro de los 10 minutos: extender la sesión
                 this.recordActivity();
               }
-            } else {
+            } catch {
               this.isUnlocked.set(false);
             }
+          } else {
+            this.isUnlocked.set(false);
           }
+        }
+      })
+        .then((handle) => {
+          this.appStateListenerHandle = handle;
+        })
+        .catch(() => {
+          // Ignorar en entornos sin soporte nativo
         });
-      } catch {
-        // Ignorar
-      }
     }
   }
 
@@ -291,11 +323,12 @@ export class AuthPinService {
   }
 
   private checkLockoutStatus(): void {
+    if (typeof localStorage === 'undefined') return;
     try {
       const failedDataStr = localStorage.getItem(FAILED_ATTEMPTS_KEY);
       if (!failedDataStr) return;
 
-      const failedData = JSON.parse(failedDataStr);
+      const failedData = JSON.parse(failedDataStr) as { lockedUntil?: number };
       if (failedData.lockedUntil && Date.now() < failedData.lockedUntil) {
         this.triggerLockout(failedData.lockedUntil);
       } else if (failedData.lockedUntil && Date.now() >= failedData.lockedUntil) {
@@ -314,132 +347,45 @@ export class AuthPinService {
       const remaining = Math.max(0, Math.ceil((lockedUntil - Date.now()) / 1000));
       this.lockoutRemainingSecs.set(remaining);
       if (remaining <= 0) {
-        clearInterval(this.lockoutIntervalId);
+        if (this.lockoutIntervalId !== null) {
+          clearInterval(this.lockoutIntervalId);
+          this.lockoutIntervalId = null;
+        }
         this.isLockedOut.set(false);
-        localStorage.removeItem(FAILED_ATTEMPTS_KEY);
+        if (typeof localStorage !== 'undefined') {
+          localStorage.removeItem(FAILED_ATTEMPTS_KEY);
+        }
       }
     };
 
     updateRemaining();
-    if (this.lockoutIntervalId) clearInterval(this.lockoutIntervalId);
+    if (this.lockoutIntervalId !== null) clearInterval(this.lockoutIntervalId);
     this.lockoutIntervalId = setInterval(updateRemaining, 1000);
   }
 
-  /**
-   * Inicio de Sesión con Usuario y Contraseña (con token seguro bancario).
-   */
-  async loginWithCredentials(
-    rawUsername: string,
-    rawPassword: string,
-  ): Promise<{ success: boolean; error?: string }> {
-    if (this.isLockedOut()) {
-      return {
-        success: false,
-        error: `Acceso bloqueado por seguridad. Espera ${this.lockoutRemainingSecs()} segundos.`,
-      };
-    }
-
-    const username = rawUsername.trim().toLowerCase();
-    const password = rawPassword;
-
-    if (!username) {
-      return { success: false, error: 'Ingresa tu nombre de usuario o correo.' };
-    }
-    if (!password || password.length < 4) {
-      return { success: false, error: 'Ingresa una contraseña válida.' };
-    }
-
-    // 1. Buscar usuario local
-    const users: AppUserAccount[] = this.getLocalUsers();
-    let foundUser = users.find((u) => u.username === username);
-
-    // Si la lista está vacía, re-sembrar y reintentar
-    if (!foundUser && (username === 'charlie' || username === 'benny' || username === 'admin')) {
-      await this.seedDefaultUsers();
-      foundUser = this.getLocalUsers().find((u) => u.username === username);
-    }
-
-    if (!foundUser) {
-      this.registerFailedAttempt();
-      return {
-        success: false,
-        error: 'Usuario no encontrado. Si es tu primera vez, pulsa "Crear cuenta".',
-      };
-    }
-
-    const computedHash = await sha256(foundUser.salt + password);
-    if (computedHash !== foundUser.passwordHash) {
-      this.registerFailedAttempt();
-      return {
-        success: false,
-        error: 'Contraseña incorrecta. Verifica e intenta nuevamente.',
-      };
-    }
-
-    // Éxito: crear sesión bancaria de 10 minutos
-    this.createActiveSession(foundUser.username, foundUser.name);
-    return { success: true };
+  private resolveSupabaseIdentity(user: User): { username: string; name: string } {
+    const username = user.email || user.id;
+    const rawMetaName = user.user_metadata?.['full_name'] ?? user.user_metadata?.['name'];
+    const name =
+      typeof rawMetaName === 'string' && rawMetaName.trim().length > 0
+        ? rawMetaName.trim()
+        : username;
+    return { username, name };
   }
 
   /**
-   * Registro de un nuevo usuario en la app (con contraseña segura y hash salt).
+   * Inicia la sesión de desbloqueo de Fase 2 inmediatamente después de autenticar en Supabase.
    */
-  async registerUser(
-    rawUsername: string,
-    rawPassword: string,
-    rawName?: string,
-  ): Promise<{ success: boolean; error?: string }> {
-    const username = rawUsername.trim().toLowerCase();
-    const password = rawPassword;
-    const name = (rawName || rawUsername).trim();
-
-    if (!username || username.length < 3) {
-      return { success: false, error: 'El usuario debe tener al menos 3 caracteres.' };
+  startAuthenticatedSession(): boolean {
+    const supaUser = this.supabaseAuth.user();
+    if (!this.supabaseAuth.isAuthenticated() || !supaUser) {
+      return false;
     }
-    if (!password || password.length < 6) {
-      return { success: false, error: 'La contraseña debe tener al menos 6 caracteres.' };
-    }
-
-    const users = this.getLocalUsers();
-    if (users.some((u) => u.username === username)) {
-      return { success: false, error: 'Este nombre de usuario ya está registrado.' };
-    }
-
-    const salt = generateSalt();
-    const passwordHash = await sha256(salt + password);
-    const newUser: AppUserAccount = {
-      username,
-      passwordHash,
-      salt,
-      name: name || username,
-      created_at: new Date().toISOString(),
-    };
-
-    users.push(newUser);
-    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
-
-    // Intentar sincronizar en Supabase si la tabla app_users existe
-    try {
-      await this.supabase.client.from('app_users').insert([
-        {
-          username: newUser.username,
-          password_hash: newUser.passwordHash,
-          salt: newUser.salt,
-          full_name: newUser.name,
-        },
-      ]);
-    } catch {
-      // Ignorar si la tabla aún no se ha creado en Supabase
-    }
-
-    // Iniciar sesión inmediatamente
-    this.createActiveSession(newUser.username, newUser.name);
-    return { success: true };
+    const { username, name } = this.resolveSupabaseIdentity(supaUser);
+    this.createActiveSession(username, name);
+    return true;
   }
 
-  /**
-   * Crea una sesión activa con token seguro y temporizador de 10 minutos.
-   */
   private createActiveSession(username: string, name: string): void {
     const token = generateSecureToken();
     const now = Date.now();
@@ -453,13 +399,14 @@ export class AuthPinService {
       expiresAt,
     };
 
-    localStorage.removeItem(FAILED_ATTEMPTS_KEY);
-    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(FAILED_ATTEMPTS_KEY);
+      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
 
-    // En celular, registrar que el usuario tiene acceso biométrico listo
-    if (Capacitor.isNativePlatform() && this.isBiometricAvailable()) {
-      localStorage.setItem(BIOMETRIC_ENROLLED_KEY, 'true');
-      this.hasBiometricEnrolled.set(true);
+      if (Capacitor.isNativePlatform() && this.isBiometricAvailable()) {
+        localStorage.setItem(BIOMETRIC_ENROLLED_KEY, 'true');
+        this.hasBiometricEnrolled.set(true);
+      }
     }
 
     this.isLockedOut.set(false);
@@ -470,21 +417,13 @@ export class AuthPinService {
     this.isUnlocked.set(true);
   }
 
-  private getLocalUsers(): AppUserAccount[] {
-    try {
-      const raw = localStorage.getItem(USERS_STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  }
-
   private registerFailedAttempt(): void {
+    if (typeof localStorage === 'undefined') return;
     try {
       const dataStr = localStorage.getItem(FAILED_ATTEMPTS_KEY);
       let count = 1;
       if (dataStr) {
-        const data = JSON.parse(dataStr);
+        const data = JSON.parse(dataStr) as { count?: number };
         count = (data.count || 0) + 1;
       }
 
@@ -492,7 +431,7 @@ export class AuthPinService {
         const lockedUntil = Date.now() + LOCKOUT_MS;
         localStorage.setItem(
           FAILED_ATTEMPTS_KEY,
-          JSON.stringify({ count, lockedUntil }),
+          JSON.stringify({ count, lockedUntil })
         );
         this.triggerLockout(lockedUntil);
       } else {
@@ -504,9 +443,25 @@ export class AuthPinService {
   }
 
   /**
-   * Desbloqueo directo con Huella en el celular (APK).
+   * Desbloqueo de Fase 2 con Huella/Rostro únicamente cuando la sesión Supabase es válida.
    */
   async unlockWithBiometric(): Promise<{ success: boolean; error?: string }> {
+    if (!this.supabaseAuth.isAuthenticated() || !this.supabaseAuth.user()) {
+      return {
+        success: false,
+        error: 'Debes iniciar sesión con tu cuenta antes de usar biometría.',
+      };
+    }
+
+    const supaUser = this.supabaseAuth.user();
+    const identity = this.currentUser() || (supaUser ? this.resolveSupabaseIdentity(supaUser) : null);
+    if (!identity) {
+      return {
+        success: false,
+        error: 'No hay una identidad de usuario verificada para desbloquear.',
+      };
+    }
+
     if (this.isLockedOut()) {
       return {
         success: false,
@@ -523,64 +478,125 @@ export class AuthPinService {
         title: 'Expenses Home',
         subtitle: 'Acceso Seguro',
         description: `Usa tu ${this.biometryTypeName().toLowerCase()} para ingresar`,
-        negativeButtonText: 'Usar Contraseña',
+        negativeButtonText: 'Usar PIN',
         maxAttempts: 3,
       });
 
-      // Huella exitosa: crear nueva sesión de 10 minutos
-      const lastUser = this.currentUser() || { username: 'charlie', name: 'Charlie' };
-      this.createActiveSession(lastUser.username, lastUser.name);
+      this.createActiveSession(identity.username, identity.name);
       return { success: true };
-    } catch (err: any) {
-      const msg = err?.message || String(err || '');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err || '');
       return { success: false, error: msg };
     }
   }
 
   /**
-   * Retrocompatibilidad para PinLock si se requiere verificación de PIN numérico.
+   * Desbloqueo de Fase 2 mediante PIN personalizado verificado con PBKDF2.
    */
   async unlock(pin: string, _rememberDevice = true): Promise<{ success: boolean; error?: string }> {
-    if (this.isLockedOut()) {
+    if (!this.supabaseAuth.isAuthenticated() || !this.supabaseAuth.user()) {
       return {
         success: false,
-        error: `Acceso bloqueado. Espera ${this.lockoutRemainingSecs()} segundos.`,
+        error: 'Debes iniciar sesión con tu cuenta antes de ingresar el PIN.',
       };
     }
 
+    if (this.isLockedOut()) {
+      return {
+        success: false,
+        error: `Acceso bloqueado por seguridad. Espera ${this.lockoutRemainingSecs()} segundos.`,
+      };
+    }
+
+    if (typeof localStorage === 'undefined') {
+      return { success: false, error: 'Almacenamiento seguro no disponible.' };
+    }
+
     const savedHash = localStorage.getItem(PIN_STORAGE_KEY);
-    const salt = localStorage.getItem('expenses_home_pin_salt') || FIXED_DEFAULT_SALT;
-    const isValid = !savedHash ? pin === DEFAULT_INITIAL_PIN : (await sha256(salt + pin)) === savedHash;
+    const salt = localStorage.getItem(PIN_SALT_KEY);
+    if (!savedHash || !salt) {
+      return {
+        success: false,
+        error: 'No hay un PIN personalizado configurado. Configura tu PIN primero.',
+      };
+    }
+
+    let isValid = false;
+    try {
+      const computed = await hashPinPbkdf2(pin, salt);
+      isValid = constantTimeEqual(computed, savedHash);
+    } catch {
+      return {
+        success: false,
+        error: 'No es posible verificar el PIN en este entorno sin Web Crypto.',
+      };
+    }
 
     if (isValid) {
-      this.createActiveSession('usuario', 'Familia');
+      const supaUser = this.supabaseAuth.user();
+      const identity =
+        this.currentUser() || (supaUser ? this.resolveSupabaseIdentity(supaUser) : null);
+      if (!identity) {
+        return { success: false, error: 'No existe usuario autenticado en Supabase.' };
+      }
+      this.createActiveSession(identity.username, identity.name);
       return { success: true };
-    } else {
-      this.registerFailedAttempt();
-      return { success: false, error: 'PIN incorrecto.' };
     }
+
+    this.registerFailedAttempt();
+    return { success: false, error: 'PIN incorrecto.' };
   }
 
   async setCustomPin(newPin: string, currentPin?: string): Promise<{ success: boolean; error?: string }> {
-    if (!newPin || newPin.length < 4) {
-      return { success: false, error: 'El PIN debe tener al menos 4 dígitos.' };
+    if (!this.supabaseAuth.isAuthenticated()) {
+      return {
+        success: false,
+        error: 'Debes iniciar sesión con tu cuenta antes de configurar el PIN.',
+      };
     }
-    if (currentPin) {
-      const savedHash = localStorage.getItem(PIN_STORAGE_KEY);
-      const salt = localStorage.getItem('expenses_home_pin_salt') || FIXED_DEFAULT_SALT;
-      const isValid = !savedHash
-        ? currentPin === DEFAULT_INITIAL_PIN
-        : (await sha256(salt + currentPin)) === savedHash;
-      if (!isValid) {
-        return { success: false, error: 'El PIN actual es incorrecto.' };
+
+    if (!newPin || !/^\d{4,6}$/.test(newPin)) {
+      return { success: false, error: 'El PIN debe tener entre 4 y 6 dígitos numéricos.' };
+    }
+
+    if (typeof localStorage === 'undefined') {
+      return { success: false, error: 'Almacenamiento seguro no disponible.' };
+    }
+
+    const savedHash = localStorage.getItem(PIN_STORAGE_KEY);
+    const savedSalt = localStorage.getItem(PIN_SALT_KEY);
+    const hasExistingPin = Boolean(savedHash && savedSalt);
+
+    if (hasExistingPin && savedHash && savedSalt) {
+      if (!currentPin) {
+        return { success: false, error: 'Debes ingresar tu PIN actual para cambiarlo.' };
+      }
+      try {
+        const computedCurrent = await hashPinPbkdf2(currentPin, savedSalt);
+        if (!constantTimeEqual(computedCurrent, savedHash)) {
+          return { success: false, error: 'El PIN actual es incorrecto.' };
+        }
+      } catch {
+        return {
+          success: false,
+          error: 'No es posible validar el PIN en este entorno sin Web Crypto.',
+        };
       }
     }
-    const salt = generateSalt();
-    const hash = await sha256(salt + newPin);
-    localStorage.setItem(PIN_STORAGE_KEY, hash);
-    localStorage.setItem('expenses_home_pin_salt', salt);
-    this.hasCustomPin.set(true);
-    return { success: true };
+
+    try {
+      const salt = generateSalt();
+      const hash = await hashPinPbkdf2(newPin, salt);
+      localStorage.setItem(PIN_STORAGE_KEY, hash);
+      localStorage.setItem(PIN_SALT_KEY, salt);
+      this.hasCustomPin.set(true);
+      return { success: true };
+    } catch {
+      return {
+        success: false,
+        error: 'No es posible proteger el PIN en este entorno sin Web Crypto.',
+      };
+    }
   }
 
   async checkBiometricAvailability(): Promise<boolean> {
@@ -615,9 +631,6 @@ export class AuthPinService {
     this.isBiometricEnabled.set(enabled);
   }
 
-  /**
-   * Cierra manualmente la sesión (bloqueo voluntario).
-   */
   lock(): void {
     if (typeof localStorage !== 'undefined') {
       localStorage.removeItem(SESSION_STORAGE_KEY);
@@ -626,9 +639,6 @@ export class AuthPinService {
     this.isUnlocked.set(false);
   }
 
-  /**
-   * Cierra la sesión activa y elimina datos de usuario activo.
-   */
   logout(): void {
     this.lock();
     this.currentUser.set(null);

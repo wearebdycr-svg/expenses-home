@@ -52,17 +52,35 @@ describe('PinLock Component', () => {
     expect(component['pin']()).toBe('');
   });
 
-  it('automatically attempts submit and unlocks when 4 valid digits are entered', async () => {
+  it('allows setting initial custom PIN without default 2026 and then unlocks on 4 digits', async () => {
+    component['openChangeModal']();
+    component['changeNewPin'].set('4821');
+    component['changeConfirmPin'].set('4821');
+    await component['submitChangePin']();
+
+    expect(authService.hasCustomPin()).toBe(true);
+
     const unlockedSpy = vi.fn();
     component.unlocked.subscribe(unlockedSpy);
 
-    // Default PIN is 2026
+    component['appendDigit']('4');
+    component['appendDigit']('8');
     component['appendDigit']('2');
-    component['appendDigit']('0');
-    component['appendDigit']('2');
-    component['appendDigit']('6');
+    component['appendDigit']('1');
 
-    await fixture.whenStable();
-    expect(authService.isUnlocked()).toBe(true);
+    await vi.waitFor(() => {
+      expect(authService.isUnlocked()).toBe(true);
+    });
+    expect(unlockedSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('emits signOutSupabase when clicking sign out button', () => {
+    const signOutSpy = vi.fn();
+    component.signOutSupabase.subscribe(signOutSpy);
+
+    const signOutBtn = fixture.nativeElement.querySelector('.btn-signout-link') as HTMLButtonElement;
+    signOutBtn.click();
+
+    expect(signOutSpy).toHaveBeenCalledTimes(1);
   });
 });

@@ -3,31 +3,36 @@
 -- Proyecto destino: fbwljvmqzpmcfokogbpw (PRODUCCIÓN)
 -- ==============================================================================
 
--- 1. POLÍTICAS DE RLS PARA PRODUCCIÓN (Permitir lectura y escritura a la app)
+-- 1. POLÍTICAS DE RLS PARA PRODUCCIÓN (Solo usuarios autenticados del hogar)
 ALTER TABLE IF EXISTS public.persons ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.persons FROM anon;
 DROP POLICY IF EXISTS "app_access_persons" ON public.persons;
 DROP POLICY IF EXISTS "Permitir acceso completo a persons" ON public.persons;
-CREATE POLICY "app_access_persons" ON public.persons FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "app_access_persons" ON public.persons FOR ALL TO authenticated USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
 
 ALTER TABLE IF EXISTS public.expenses ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.expenses FROM anon;
 DROP POLICY IF EXISTS "app_access_expenses" ON public.expenses;
 DROP POLICY IF EXISTS "Permitir acceso completo a expenses" ON public.expenses;
-CREATE POLICY "app_access_expenses" ON public.expenses FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "app_access_expenses" ON public.expenses FOR ALL TO authenticated USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
 
 ALTER TABLE IF EXISTS public.incomes ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.incomes FROM anon;
 DROP POLICY IF EXISTS "app_access_incomes" ON public.incomes;
 DROP POLICY IF EXISTS "Permitir acceso completo a incomes" ON public.incomes;
-CREATE POLICY "app_access_incomes" ON public.incomes FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "app_access_incomes" ON public.incomes FOR ALL TO authenticated USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
 
 ALTER TABLE IF EXISTS public.debts ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.debts FROM anon;
 DROP POLICY IF EXISTS "app_access_debts" ON public.debts;
 DROP POLICY IF EXISTS "Permitir acceso completo a debts" ON public.debts;
-CREATE POLICY "app_access_debts" ON public.debts FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "app_access_debts" ON public.debts FOR ALL TO authenticated USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
 
 ALTER TABLE IF EXISTS public.tc_expenses ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.tc_expenses FROM anon;
 DROP POLICY IF EXISTS "app_access_tc_expenses" ON public.tc_expenses;
 DROP POLICY IF EXISTS "Permitir acceso completo a tc_expenses" ON public.tc_expenses;
-CREATE POLICY "app_access_tc_expenses" ON public.tc_expenses FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "app_access_tc_expenses" ON public.tc_expenses FOR ALL TO authenticated USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
 
 -- 2. PERSONAS (3 registros)
 INSERT INTO public.persons (id, name, color, created_at) VALUES ('benny', 'Benny', '#3B82F6', '2026-09-29T16:39:09.135692+00:00') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, color = EXCLUDED.color;

@@ -17,16 +17,17 @@ CREATE TABLE IF NOT EXISTS public.fixed_expenses (
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
--- 2. Habilitar RLS
+-- 2. Habilitar RLS y revocar acceso anónimo
 ALTER TABLE public.fixed_expenses ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.fixed_expenses FROM anon;
 
--- 3. Crear políticas RLS permisivas para anon y authenticated
+-- 3. Políticas RLS estrictas solo para usuarios autenticados del hogar
 DROP POLICY IF EXISTS "app_access_fixed_expenses" ON public.fixed_expenses;
-CREATE POLICY "app_access_fixed_expenses" 
-ON public.fixed_expenses 
-FOR ALL TO anon, authenticated 
-USING (true) 
-WITH CHECK (true);
+CREATE POLICY "app_access_fixed_expenses"
+ON public.fixed_expenses
+FOR ALL TO authenticated
+USING (auth.uid() IS NOT NULL)
+WITH CHECK (auth.uid() IS NOT NULL);
 
 -- 4. Publicación Realtime (idempotente)
 DO $$

@@ -18,29 +18,25 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    def releaseStoreFilePath = project.findProperty('RELEASE_STORE_FILE') ?: System.getenv('RELEASE_STORE_FILE')
+    def releaseStorePassword = project.findProperty('RELEASE_STORE_PASSWORD') ?: System.getenv('RELEASE_STORE_PASSWORD')
+    def releaseKeyAlias = project.findProperty('RELEASE_KEY_ALIAS') ?: System.getenv('RELEASE_KEY_ALIAS')
+    def releaseKeyPassword = project.findProperty('RELEASE_KEY_PASSWORD') ?: System.getenv('RELEASE_KEY_PASSWORD')
+    def hasReleaseSigning = Boolean.valueOf(
+        releaseStoreFilePath &&
+        file(releaseStoreFilePath).exists() &&
+        releaseStorePassword &&
+        releaseKeyAlias &&
+        releaseKeyPassword
+    )
+
     signingConfigs {
         release {
-            if (project.hasProperty('RELEASE_STORE_FILE') && file(project.property('RELEASE_STORE_FILE')).exists()) {
-                storeFile file(project.property('RELEASE_STORE_FILE'))
-                storePassword project.property('RELEASE_STORE_PASSWORD')
-                keyAlias project.property('RELEASE_KEY_ALIAS')
-                keyPassword project.property('RELEASE_KEY_PASSWORD')
-            } else {
-                def defaultKeystore = file("${System.getProperty('user.home')}/.android/debug.keystore")
-                def configKeystore = file("${System.getProperty('user.home')}/.config/.android/debug.keystore")
-                if (!configKeystore.exists() && !defaultKeystore.exists()) {
-                    configKeystore.parentFile.mkdirs()
-                    defaultKeystore.parentFile.mkdirs()
-                    try {
-                        def cmd = ['keytool', '-genkeypair', '-v', '-keystore', configKeystore.absolutePath, '-alias', 'androiddebugkey', '-storepass', 'android', '-keypass', 'android', '-keyalg', 'RSA', '-keysize', '2048', '-validity', '10000', '-dname', 'CN=AndroidDebug,O=Android,C=US']
-                        def p = cmd.execute()
-                        p.waitFor()
-                        if (configKeystore.exists()) {
-                            java.nio.file.Files.copy(configKeystore.toPath(), defaultKeystore.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
-                        }
-                    } catch (Exception ignored) {}
-                }
-                initWith debug
+            if (hasReleaseSigning) {
+                storeFile file(releaseStoreFilePath)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
             }
         }
     }
@@ -52,10 +48,20 @@ android {
         }
         release {
             signingConfig signingConfigs.release
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             manifestPlaceholders = [appName: "Finanzas Hogar"]
         }
+    }
+}
+
+gradle.taskGraph.whenReady { taskGraph ->
+    def needsReleaseSigning = taskGraph.allTasks.any { task ->
+        def name = task.name.toLowerCase()
+        name.contains('release') && (name.contains('assemble') || name.contains('bundle') || name.contains('package'))
+    }
+    if (needsReleaseSigning && !hasReleaseSigning) {
+        throw new GradleException('Release signing configuration is required (RELEASE_STORE_FILE, RELEASE_STORE_PASSWORD, RELEASE_KEY_ALIAS, RELEASE_KEY_PASSWORD). Refusing to fall back to debug keystore.')
     }
 }
 

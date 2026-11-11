@@ -3,6 +3,7 @@ import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http
 import { firstValueFrom } from 'rxjs';
 import { Capacitor } from '@capacitor/core';
 import { environment } from '../../../../environments/environment';
+import { SupabaseService } from '../../services/supabase.service';
 import {
   NotificationPayload,
   NotificationProvider,
@@ -26,6 +27,7 @@ export class FcmNotificationAdapter implements NotificationProvider {
   readonly providerName = 'fcm';
 
   private readonly http = inject(HttpClient);
+  private readonly supabase = inject(SupabaseService);
   private readonly endpointPath = '/api/notify';
 
   getEndpointUrl(): string {
@@ -51,11 +53,20 @@ export class FcmNotificationAdapter implements NotificationProvider {
   ): Promise<NotificationResult> {
     try {
       const url = this.getEndpointUrl();
-      let headers = new HttpHeaders({ 'Content-Type': 'application/json' });
-
-      if (environment.supabaseAnonKey) {
-        headers = headers.set('Authorization', `Bearer ${environment.supabaseAnonKey}`);
+      const { data: sessionData } = await this.supabase.client.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      if (!accessToken) {
+        return {
+          success: false,
+          error: 'Sesión de Supabase no autenticada para enviar notificaciones',
+          timestamp: new Date().toISOString(),
+        };
       }
+
+      const headers = new HttpHeaders({
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      });
 
       const body = {
         recipientId,

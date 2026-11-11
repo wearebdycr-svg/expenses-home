@@ -282,6 +282,23 @@
   color: #fb923c;
 }
 
+.btn-signout-link {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.76rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  transition: color 0.2s ease;
+}
+
+.btn-signout-link:hover {
+  color: #f87171;
+  text-decoration: underline;
+}
+
 /* ==============================================================================
    MODAL CONFIGURAR PIN
    ============================================================================== */

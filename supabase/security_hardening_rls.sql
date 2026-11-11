@@ -1,215 +1,180 @@
 -- ==============================================================================
 -- EXPENSES HOME: Blindaje de Ciberseguridad y Row Level Security (RLS)
+-- Idempotente y tolerante a entornos donde algunas tablas opcionales aún no existan.
 -- ==============================================================================
 
--- 0. TABLA: public.persons (Personas del Hogar: Benny, Charlie, Compartido)
-ALTER TABLE IF EXISTS public.persons ENABLE ROW LEVEL SECURITY;
+DO $rls$
+DECLARE
+  rec RECORD;
+  target_tbl TEXT;
+  pol TEXT;
+BEGIN
+  -- 0. TABLA: public.persons (Personas del Hogar: Solo lectura para autenticados)
+  IF EXISTS (
+    SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'persons'
+  ) THEN
+    EXECUTE 'ALTER TABLE public.persons ENABLE ROW LEVEL SECURITY';
+    EXECUTE 'REVOKE ALL ON TABLE public.persons FROM anon';
 
-DROP POLICY IF EXISTS "Permitir acceso completo a personas" ON public.persons;
-DROP POLICY IF EXISTS "Solo autenticados pueden ver personas" ON public.persons;
+    FOR pol IN
+      SELECT policyname FROM pg_policies WHERE schemaname = 'public' AND tablename = 'persons'
+    LOOP
+      EXECUTE format('DROP POLICY IF EXISTS %I ON public.persons', pol);
+    END LOOP;
 
-CREATE POLICY "Solo autenticados pueden ver personas"
-ON public.persons FOR SELECT
-TO authenticated
-USING (true);
+    EXECUTE $p$
+      CREATE POLICY "Solo autenticados pueden ver personas"
+      ON public.persons FOR SELECT
+      TO authenticated
+      USING (auth.uid() IS NOT NULL)
+    $p$;
+  ELSE
+    RAISE NOTICE 'Tabla public.persons no existe en esta BD; se omite.';
+  END IF;
 
+  -- 1–4, 6–8. TABLAS CRUD DEL HOGAR
+  FOR rec IN
+    SELECT * FROM (
+      VALUES
+        ('expenses', 'gastos'),
+        ('incomes', 'ingresos'),
+        ('debts', 'deudas'),
+        ('tc_expenses', 'tc_expenses'),
+        ('tc_cards', 'tc_cards'),
+        ('projects', 'projects'),
+        ('project_expenses', 'project_expenses')
+    ) AS t(tbl_name, label)
+  LOOP
+    IF EXISTS (
+      SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = rec.tbl_name
+    ) THEN
+      EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', rec.tbl_name);
+      EXECUTE format('REVOKE ALL ON TABLE public.%I FROM anon', rec.tbl_name);
 
--- 1. TABLA: public.expenses (Gastos Diarios)
-ALTER TABLE IF EXISTS public.expenses ENABLE ROW LEVEL SECURITY;
+      FOR pol IN
+        SELECT policyname FROM pg_policies WHERE schemaname = 'public' AND tablename = rec.tbl_name
+      LOOP
+        EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', pol, rec.tbl_name);
+      END LOOP;
 
-DROP POLICY IF EXISTS "Permitir acceso completo a gastos" ON public.expenses;
-DROP POLICY IF EXISTS "Permitir lectura a todos" ON public.expenses;
-DROP POLICY IF EXISTS "Permitir insercion a todos" ON public.expenses;
-DROP POLICY IF EXISTS "Solo autenticados pueden ver gastos" ON public.expenses;
-DROP POLICY IF EXISTS "Solo autenticados pueden crear gastos" ON public.expenses;
-DROP POLICY IF EXISTS "Solo autenticados pueden actualizar gastos" ON public.expenses;
-DROP POLICY IF EXISTS "Solo autenticados pueden eliminar gastos" ON public.expenses;
+      EXECUTE format(
+        'CREATE POLICY %I ON public.%I FOR SELECT TO authenticated USING (auth.uid() IS NOT NULL)',
+        'Solo autenticados pueden ver ' || rec.label,
+        rec.tbl_name
+      );
+      EXECUTE format(
+        'CREATE POLICY %I ON public.%I FOR INSERT TO authenticated WITH CHECK (auth.uid() IS NOT NULL)',
+        'Solo autenticados pueden crear ' || rec.label,
+        rec.tbl_name
+      );
+      EXECUTE format(
+        'CREATE POLICY %I ON public.%I FOR UPDATE TO authenticated USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL)',
+        'Solo autenticados pueden actualizar ' || rec.label,
+        rec.tbl_name
+      );
+      EXECUTE format(
+        'CREATE POLICY %I ON public.%I FOR DELETE TO authenticated USING (auth.uid() IS NOT NULL)',
+        'Solo autenticados pueden eliminar ' || rec.label,
+        rec.tbl_name
+      );
+    ELSE
+      RAISE NOTICE 'Tabla public.% no existe en esta BD; se omite.', rec.tbl_name;
+    END IF;
+  END LOOP;
 
-CREATE POLICY "Solo autenticados pueden ver gastos"
-ON public.expenses FOR SELECT
-TO authenticated
-USING (true);
+  -- 5. TABLA: public.fcm_tokens (Tokens de Notificaciones Push)
+  IF EXISTS (
+    SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'fcm_tokens'
+  ) THEN
+    EXECUTE 'ALTER TABLE public.fcm_tokens ENABLE ROW LEVEL SECURITY';
+    EXECUTE 'REVOKE ALL ON TABLE public.fcm_tokens FROM anon';
 
-CREATE POLICY "Solo autenticados pueden crear gastos"
-ON public.expenses FOR INSERT
-TO authenticated
-WITH CHECK (true);
+    FOR pol IN
+      SELECT policyname FROM pg_policies WHERE schemaname = 'public' AND tablename = 'fcm_tokens'
+    LOOP
+      EXECUTE format('DROP POLICY IF EXISTS %I ON public.fcm_tokens', pol);
+    END LOOP;
 
-CREATE POLICY "Solo autenticados pueden actualizar gastos"
-ON public.expenses FOR UPDATE
-TO authenticated
-USING (true)
-WITH CHECK (true);
+    EXECUTE $p$
+      CREATE POLICY "Permitir insercion de tokens push autenticados"
+      ON public.fcm_tokens FOR INSERT
+      TO authenticated
+      WITH CHECK (auth.uid() IS NOT NULL AND char_length(token) > 10)
+    $p$;
+    EXECUTE $p$
+      CREATE POLICY "Permitir lectura de tokens solo a autenticados"
+      ON public.fcm_tokens FOR SELECT
+      TO authenticated
+      USING (auth.uid() IS NOT NULL)
+    $p$;
+    EXECUTE $p$
+      CREATE POLICY "Permitir actualizacion de tokens solo a autenticados"
+      ON public.fcm_tokens FOR UPDATE
+      TO authenticated
+      USING (auth.uid() IS NOT NULL)
+      WITH CHECK (auth.uid() IS NOT NULL AND char_length(token) > 10)
+    $p$;
+    EXECUTE $p$
+      CREATE POLICY "Permitir eliminacion de tokens solo a autenticados"
+      ON public.fcm_tokens FOR DELETE
+      TO authenticated
+      USING (auth.uid() IS NOT NULL)
+    $p$;
+  ELSE
+    RAISE NOTICE 'Tabla public.fcm_tokens no existe en esta BD; se omite.';
+  END IF;
 
-CREATE POLICY "Solo autenticados pueden eliminar gastos"
-ON public.expenses FOR DELETE
-TO authenticated
-USING (true);
+  -- 9–10. TABLAS FOR ALL: category_budgets y fixed_expenses
+  FOREACH target_tbl IN ARRAY ARRAY['category_budgets', 'fixed_expenses']
+  LOOP
+    IF EXISTS (
+      SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = target_tbl
+    ) THEN
+      EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', target_tbl);
+      EXECUTE format('REVOKE ALL ON TABLE public.%I FROM anon', target_tbl);
 
+      FOR pol IN
+        SELECT policyname FROM pg_policies WHERE schemaname = 'public' AND tablename = target_tbl
+      LOOP
+        EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', pol, target_tbl);
+      END LOOP;
 
--- 2. TABLA: public.incomes (Ingresos)
-ALTER TABLE IF EXISTS public.incomes ENABLE ROW LEVEL SECURITY;
+      EXECUTE format(
+        'CREATE POLICY %I ON public.%I FOR ALL TO authenticated USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL)',
+        'Solo autenticados pueden acceder a ' || target_tbl,
+        target_tbl
+      );
+    ELSE
+      RAISE NOTICE 'Tabla public.% no existe en esta BD; se omite.', target_tbl;
+    END IF;
+  END LOOP;
 
-DROP POLICY IF EXISTS "Permitir acceso completo a ingresos" ON public.incomes;
-DROP POLICY IF EXISTS "Solo autenticados pueden ver ingresos" ON public.incomes;
-DROP POLICY IF EXISTS "Solo autenticados pueden crear ingresos" ON public.incomes;
-DROP POLICY IF EXISTS "Solo autenticados pueden actualizar ingresos" ON public.incomes;
-DROP POLICY IF EXISTS "Solo autenticados pueden eliminar ingresos" ON public.incomes;
+  -- 11. TABLA: public.app_users (Sin acceso directo desde clientes Supabase)
+  IF EXISTS (
+    SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'app_users'
+  ) THEN
+    EXECUTE 'ALTER TABLE public.app_users ENABLE ROW LEVEL SECURITY';
+    EXECUTE 'REVOKE ALL ON TABLE public.app_users FROM anon, authenticated';
 
-CREATE POLICY "Solo autenticados pueden ver ingresos"
-ON public.incomes FOR SELECT
-TO authenticated
-USING (true);
+    FOR pol IN
+      SELECT policyname FROM pg_policies WHERE schemaname = 'public' AND tablename = 'app_users'
+    LOOP
+      EXECUTE format('DROP POLICY IF EXISTS %I ON public.app_users', pol);
+    END LOOP;
+  ELSE
+    RAISE NOTICE 'Tabla public.app_users no existe en esta BD; se omite.';
+  END IF;
 
-CREATE POLICY "Solo autenticados pueden crear ingresos"
-ON public.incomes FOR INSERT
-TO authenticated
-WITH CHECK (true);
-
-CREATE POLICY "Solo autenticados pueden actualizar ingresos"
-ON public.incomes FOR UPDATE
-TO authenticated
-USING (true)
-WITH CHECK (true);
-
-CREATE POLICY "Solo autenticados pueden eliminar ingresos"
-ON public.incomes FOR DELETE
-TO authenticated
-USING (true);
-
-
--- 3. TABLA: public.debts (Deudas y Créditos)
-ALTER TABLE IF EXISTS public.debts ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Permitir acceso completo a deudas" ON public.debts;
-DROP POLICY IF EXISTS "Permitir lectura de debts" ON public.debts;
-DROP POLICY IF EXISTS "Permitir insercion de debts" ON public.debts;
-DROP POLICY IF EXISTS "Permitir actualizacion de debts" ON public.debts;
-DROP POLICY IF EXISTS "Permitir eliminacion de debts" ON public.debts;
-DROP POLICY IF EXISTS "Permitir lectura publica de debts" ON public.debts;
-DROP POLICY IF EXISTS "Permitir insercion publica de debts" ON public.debts;
-DROP POLICY IF EXISTS "Permitir actualizacion publica de debts" ON public.debts;
-DROP POLICY IF EXISTS "Permitir eliminacion publica de debts" ON public.debts;
-DROP POLICY IF EXISTS "Solo autenticados pueden ver deudas" ON public.debts;
-DROP POLICY IF EXISTS "Solo autenticados pueden crear deudas" ON public.debts;
-DROP POLICY IF EXISTS "Solo autenticados pueden actualizar deudas" ON public.debts;
-DROP POLICY IF EXISTS "Solo autenticados pueden eliminar deudas" ON public.debts;
-
-CREATE POLICY "Solo autenticados pueden ver deudas"
-ON public.debts FOR SELECT
-TO authenticated
-USING (true);
-
-CREATE POLICY "Solo autenticados pueden crear deudas"
-ON public.debts FOR INSERT
-TO authenticated
-WITH CHECK (true);
-
-CREATE POLICY "Solo autenticados pueden actualizar deudas"
-ON public.debts FOR UPDATE
-TO authenticated
-USING (true)
-WITH CHECK (true);
-
-CREATE POLICY "Solo autenticados pueden eliminar deudas"
-ON public.debts FOR DELETE
-TO authenticated
-USING (true);
-
-
--- 4. TABLA: public.tc_expenses (Consumos de Tarjeta de Crédito Compartida)
-ALTER TABLE IF EXISTS public.tc_expenses ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Permitir lectura de tc_expenses" ON public.tc_expenses;
-DROP POLICY IF EXISTS "Permitir insercion de tc_expenses" ON public.tc_expenses;
-DROP POLICY IF EXISTS "Permitir actualizacion de tc_expenses" ON public.tc_expenses;
-DROP POLICY IF EXISTS "Permitir eliminacion de tc_expenses" ON public.tc_expenses;
-DROP POLICY IF EXISTS "Solo autenticados pueden ver tc_expenses" ON public.tc_expenses;
-DROP POLICY IF EXISTS "Solo autenticados pueden crear tc_expenses" ON public.tc_expenses;
-DROP POLICY IF EXISTS "Solo autenticados pueden actualizar tc_expenses" ON public.tc_expenses;
-DROP POLICY IF EXISTS "Solo autenticados pueden eliminar tc_expenses" ON public.tc_expenses;
-
-CREATE POLICY "Solo autenticados pueden ver tc_expenses"
-ON public.tc_expenses FOR SELECT
-TO authenticated
-USING (true);
-
-CREATE POLICY "Solo autenticados pueden crear tc_expenses"
-ON public.tc_expenses FOR INSERT
-TO authenticated
-WITH CHECK (true);
-
-CREATE POLICY "Solo autenticados pueden actualizar tc_expenses"
-ON public.tc_expenses FOR UPDATE
-TO authenticated
-USING (true)
-WITH CHECK (true);
-
-CREATE POLICY "Solo autenticados pueden eliminar tc_expenses"
-ON public.tc_expenses FOR DELETE
-TO authenticated
-USING (true);
-
-
--- 5. TABLA: public.fcm_tokens (Tokens de Notificaciones Push)
-ALTER TABLE IF EXISTS public.fcm_tokens ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Permitir insercion y lectura de tokens" ON public.fcm_tokens;
-DROP POLICY IF EXISTS "Permitir lectura publica de fcm_tokens" ON public.fcm_tokens;
-DROP POLICY IF EXISTS "Permitir insercion publica de fcm_tokens" ON public.fcm_tokens;
-DROP POLICY IF EXISTS "Permitir actualizacion publica de fcm_tokens" ON public.fcm_tokens;
-DROP POLICY IF EXISTS "Permitir eliminacion publica de fcm_tokens" ON public.fcm_tokens;
-DROP POLICY IF EXISTS "Permitir insercion de tokens push autenticados" ON public.fcm_tokens;
-DROP POLICY IF EXISTS "Permitir lectura de tokens solo a autenticados" ON public.fcm_tokens;
-DROP POLICY IF EXISTS "Permitir actualizacion de tokens solo a autenticados" ON public.fcm_tokens;
-DROP POLICY IF EXISTS "Permitir eliminacion de tokens solo a autenticados" ON public.fcm_tokens;
-
-CREATE POLICY "Permitir insercion de tokens push autenticados"
-ON public.fcm_tokens FOR INSERT
-TO authenticated
-WITH CHECK (char_length(token) > 10);
-
-CREATE POLICY "Permitir lectura de tokens solo a autenticados"
-ON public.fcm_tokens FOR SELECT
-TO authenticated
-USING (true);
-
-CREATE POLICY "Permitir actualizacion de tokens solo a autenticados"
-ON public.fcm_tokens FOR UPDATE
-TO authenticated
-USING (true);
-
-CREATE POLICY "Permitir eliminacion de tokens solo a autenticados"
-ON public.fcm_tokens FOR DELETE
-TO authenticated
-USING (true);
-
-
--- 6. TABLA: public.tc_cards (Tarjetas de Crédito del Hogar)
-ALTER TABLE IF EXISTS public.tc_cards ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Solo autenticados pueden ver tc_cards" ON public.tc_cards;
-DROP POLICY IF EXISTS "Solo autenticados pueden crear tc_cards" ON public.tc_cards;
-DROP POLICY IF EXISTS "Solo autenticados pueden actualizar tc_cards" ON public.tc_cards;
-DROP POLICY IF EXISTS "Solo autenticados pueden eliminar tc_cards" ON public.tc_cards;
-
-CREATE POLICY "Solo autenticados pueden ver tc_cards"
-ON public.tc_cards FOR SELECT
-TO authenticated
-USING (true);
-
-CREATE POLICY "Solo autenticados pueden crear tc_cards"
-ON public.tc_cards FOR INSERT
-TO authenticated
-WITH CHECK (true);
-
-CREATE POLICY "Solo autenticados pueden actualizar tc_cards"
-ON public.tc_cards FOR UPDATE
-TO authenticated
-USING (true)
-WITH CHECK (true);
-
-CREATE POLICY "Solo autenticados pueden eliminar tc_cards"
-ON public.tc_cards FOR DELETE
-TO authenticated
-USING (true);
+  -- 12. VISTA: public.v_monthly_summary (Security Invoker y sin acceso anónimo)
+  IF EXISTS (
+    SELECT 1
+    FROM pg_views
+    WHERE schemaname = 'public' AND viewname = 'v_monthly_summary'
+  ) THEN
+    EXECUTE 'ALTER VIEW public.v_monthly_summary SET (security_invoker = true)';
+    EXECUTE 'REVOKE ALL ON public.v_monthly_summary FROM anon';
+    EXECUTE 'GRANT SELECT ON public.v_monthly_summary TO authenticated';
+  ELSE
+    RAISE NOTICE 'Vista public.v_monthly_summary no existe en esta BD; se omite.';
+  END IF;
+END $rls$;

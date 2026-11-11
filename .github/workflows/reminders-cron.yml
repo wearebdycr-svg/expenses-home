@@ -30,17 +30,15 @@ jobs:
       - name: Trigger 7:00 PM Reminder
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY_PROD || secrets.SUPABASE_ANON_KEY }}
         run: |
           FORCE="${{ github.event.inputs.force || 'false' }}"
           echo "Disparando recordatorio push de las 7:00 PM Colombia (force=$FORCE)..."
           URL="https://finanzas-hogar-control-familiar.vercel.app/api/cron-reminder?force=$FORCE"
-          TOKEN="${CRON_SECRET:-$SUPABASE_ANON_KEY}"
-          if [ -z "$TOKEN" ]; then
-            echo "❌ Error: Ni CRON_SECRET ni SUPABASE_ANON_KEY están configurados en GitHub Secrets."
+          if [ -z "$CRON_SECRET" ]; then
+            echo "❌ Error: CRON_SECRET no está configurado en GitHub Secrets."
             exit 1
           fi
-          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -H "Authorization: Bearer $TOKEN" "$URL")
+          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -H "Authorization: Bearer $CRON_SECRET" "$URL")
           echo "Respuesta del servidor:"
           echo "$RESPONSE"
           STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS" | cut -d':' -f2)

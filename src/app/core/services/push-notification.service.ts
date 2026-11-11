@@ -1,4 +1,4 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { effect, Injectable, inject, signal } from '@angular/core';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage, Messaging } from 'firebase/messaging';
 import { Capacitor } from '@capacitor/core';
@@ -16,6 +16,7 @@ import type { IncomeDraft } from '../../features/ingresos/data/income.model';
 import type { DebtDraft } from '../../features/deudas/data/debt.model';
 import { formatCOP } from '../../features/categoria/data/categoria.model';
 import { RemoteConfigService } from './remote-config.service';
+import { SupabaseAuthService } from './supabase-auth.service';
 import { SupabaseService } from './supabase.service';
 import { ToastService } from './toast.service';
 
@@ -59,11 +60,14 @@ export interface PushNotificationMessage {
 })
 export class PushNotificationService {
   private readonly supabase = inject(SupabaseService);
+  private readonly supabaseAuth = inject(SupabaseAuthService);
   private readonly remoteConfig = inject(RemoteConfigService);
   private readonly toastService = inject(ToastService);
 
   private messagingInstance: Messaging | null = null;
   private swRegistration: ServiceWorkerRegistration | null = null;
+  private lastSyncedToken: string | null = null;
+  private lastSyncedPerson: string | null = null;
 
   // Signals reactivos
   readonly isSupported = signal<boolean>(false);
@@ -74,6 +78,21 @@ export class PushNotificationService {
 
   constructor() {
     this.init();
+
+    effect(() => {
+      if (!this.supabaseAuth.isAuthenticated()) {
+        this.lastSyncedToken = null;
+        return;
+      }
+
+      const storedToken =
+        typeof localStorage !== 'undefined' ? localStorage.getItem(FCM_TOKEN_STORAGE_KEY) : null;
+      const token = this.currentToken() || storedToken;
+      const person = this.registeredPerson();
+      if (token && (token !== this.lastSyncedToken || person !== this.lastSyncedPerson)) {
+        void this.registerTokenInBackend(token, person);
+      }
+    });
   }
 
   isNative(): boolean {
@@ -142,7 +161,6 @@ export class PushNotificationService {
 
       // 3. Listener para token recibido
       await PushNotifications.addListener('registration', async (token: Token) => {
-        console.log('[Native Push] Token FCM recibido:', token.value);
         localStorage.setItem(FCM_TOKEN_STORAGE_KEY, token.value);
         this.currentToken.set(token.value);
         this.isSubscribed.set(true);
@@ -208,27 +226,22 @@ export class PushNotificationService {
 
     try {
       const firebaseConfig = environment.firebase;
-      let swUrl = '/firebase-messaging-sw.js';
-      if (firebaseConfig?.apiKey && firebaseConfig?.projectId) {
-        const queryParams = new URLSearchParams({
-          apiKey: firebaseConfig.apiKey,
-          authDomain: firebaseConfig.authDomain || '',
-          projectId: firebaseConfig.projectId,
-          storageBucket: firebaseConfig.storageBucket || '',
-          messagingSenderId: firebaseConfig.messagingSenderId || '',
-          appId: firebaseConfig.appId || '',
-          measurementId: firebaseConfig.measurementId || '',
-        }).toString();
-        swUrl = `/firebase-messaging-sw.js?${queryParams}`;
-      }
-      // Registrar el Service Worker estándar de FCM con configuración dinámica
-      this.swRegistration = await navigator.serviceWorker.register(swUrl);
+      // Registrar el Service Worker estándar de FCM (lee configuración desde /firebase-config.js)
+      this.swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
       console.log('[PushNotificationService] Service Worker registrado:', this.swRegistration.scope);
 
-      if (this.swRegistration.active && firebaseConfig?.apiKey) {
+      if (this.swRegistration.active && firebaseConfig?.apiKey && firebaseConfig?.projectId) {
         this.swRegistration.active.postMessage({
           type: 'INIT_FIREBASE_MESSAGING',
-          config: firebaseConfig,
+          config: {
+            apiKey: firebaseConfig.apiKey,
+            authDomain: firebaseConfig.authDomain || '',
+            projectId: firebaseConfig.projectId,
+            storageBucket: firebaseConfig.storageBucket || '',
+            messagingSenderId: firebaseConfig.messagingSenderId || '',
+            appId: firebaseConfig.appId || '',
+            measurementId: firebaseConfig.measurementId || '',
+          },
         });
       }
 
@@ -315,13 +328,13 @@ export class PushNotificationService {
       if (this.messagingInstance) {
         try {
           const swReg = this.swRegistration || (await navigator.serviceWorker.ready);
-          const vapidKey = (environment.firebase as any)?.vapidKey;
+          const firebaseEnv = environment.firebase as { vapidKey?: string } | undefined;
+          const vapidKey = firebaseEnv?.vapidKey;
           console.log('[PushNotificationService] Solicitando token FCM oficial a Google...');
           token = await getToken(this.messagingInstance, {
             serviceWorkerRegistration: swReg,
             ...(vapidKey ? { vapidKey } : {}),
           });
-          console.log('[PushNotificationService] Token oficial de FCM obtenido con éxito:', token);
         } catch (e: any) {
           console.error('[PushNotificationService] Error al obtener getToken de Firebase:', e);
           this.toastService.error(`Error Firebase: ${e?.message || e}`);
@@ -368,6 +381,12 @@ export class PushNotificationService {
    * Registra el token en la tabla fcm_tokens de Supabase y mediante el endpoint /api/fcm-token
    */
   async registerTokenInBackend(token: string, person: string = 'Hogar'): Promise<void> {
+    const { data: sessionData } = await this.supabase.client.auth.getSession();
+    const accessToken = sessionData?.session?.access_token;
+    if (!accessToken) {
+      return;
+    }
+
     try {
       await this.supabase.client.from('fcm_tokens').upsert(
         {
@@ -386,9 +405,12 @@ export class PushNotificationService {
     // Llamado complementario a la API serverless con URL absoluta si corre en móvil
     try {
       const url = this.getApiUrl('/api/fcm-token');
-      await fetch(url, {
+      const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({
           token,
           person,
@@ -396,6 +418,10 @@ export class PushNotificationService {
           device_info: typeof navigator !== 'undefined' ? navigator.userAgent : '',
         }),
       });
+      if (response.ok) {
+        this.lastSyncedToken = token;
+        this.lastSyncedPerson = person;
+      }
     } catch (err) {
       console.warn('[PushNotificationService] Error registrando token en backend API:', err);
     }
@@ -605,12 +631,13 @@ export class PushNotificationService {
       const url = this.getApiUrl('/api/notify');
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 
-      // Adjuntar token de autenticación para protección de función crítica
+      // Adjuntar JWT de sesión autenticada para protección de función crítica
       const { data: sessionData } = await this.supabase.client.auth.getSession();
-      const authToken = sessionData?.session?.access_token || environment.supabaseAnonKey;
-      if (authToken) {
-        headers['Authorization'] = `Bearer ${authToken}`;
+      const authToken = sessionData?.session?.access_token;
+      if (!authToken) {
+        return;
       }
+      headers['Authorization'] = `Bearer ${authToken}`;
 
       await fetch(url, {
         method: 'POST',

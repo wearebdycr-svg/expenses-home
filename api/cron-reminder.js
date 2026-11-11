@@ -1,9 +1,10 @@
-import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
-
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseAnonKey;
+import {
+  applyCors,
+  createSupabaseClientForRequest,
+  extractBearerToken,
+  timingSafeEqualSecret,
+} from './_security.js';
 
 /**
  * Obtiene las credenciales de la cuenta de servicio de Firebase
@@ -266,31 +267,41 @@ async function dispatchSingleNotification({
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  const cors = applyCors(req, res, 'GET, POST, OPTIONS');
+  if (!cors.allowed) {
+    return res.status(403).json({ error: 'Origin not allowed' });
+  }
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  try {
-    // 1. Verificación de autenticación para función crítica (CWE-306)
-    const authHeader = req.headers['authorization'] || '';
-    const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7).trim() : '';
-    const expectedSecret = process.env.CRON_SECRET || process.env.NOTIFY_SECRET;
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    return res.status(405).json({ error: 'Método no permitido' });
+  }
 
-    let isAuthorized = false;
-    if (expectedSecret && token === expectedSecret) {
-      isAuthorized = true;
-    } else if (token && supabaseAnonKey && token === supabaseAnonKey) {
-      isAuthorized = true;
-    } else if (!expectedSecret && process.env.NODE_ENV !== 'production') {
-      isAuthorized = true;
+  try {
+    // 1. Verificación estricta de autenticación (fail-closed si falta el secreto)
+    const expectedSecret = process.env.CRON_SECRET || process.env.NOTIFY_SECRET || '';
+    if (!expectedSecret) {
+      return res.status(500).json({
+        error: 'Server misconfigured: CRON_SECRET o NOTIFY_SECRET es obligatorio',
+      });
     }
 
-    if (expectedSecret && !isAuthorized) {
-      return res.status(401).json({ error: 'Unauthorized: Se requiere token de autorización para invocar el recordatorio programado' });
+    const token = extractBearerToken(req);
+    if (!timingSafeEqualSecret(token, expectedSecret)) {
+      return res.status(401).json({
+        error: 'Unauthorized: Se requiere token de autorización para invocar el recordatorio programado',
+      });
+    }
+
+    const supabaseUrl = process.env.SUPABASE_URL || '';
+    const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
+      return res.status(500).json({
+        error: 'Server misconfigured: SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY son obligatorios para cron',
+      });
     }
 
     // 2. Obtener hora exacta en Colombia (America/Bogota, UTC-5 todo el año)
@@ -339,12 +350,12 @@ export default async function handler(req, res) {
       });
     }
 
-    // 4. Conexión a Supabase para verificaciones de deduplicación y tokens
+    // 4. Conexión a Supabase con service_role para verificaciones de deduplicación y tokens
+    const supabase = createSupabaseClientForRequest({
+      supabaseUrl,
+      supabaseServiceRoleKey,
+    });
     let tokens = [];
-    let supabase = null;
-    if (supabaseUrl && supabaseKey) {
-      supabase = createClient(supabaseUrl, supabaseKey);
-    }
 
     // 5. Obtener los tokens FCM de los dispositivos registrados
     if (supabase) {

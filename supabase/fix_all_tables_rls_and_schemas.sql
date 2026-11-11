@@ -23,10 +23,11 @@ INSERT INTO public.persons (id, name, color) VALUES
 ON CONFLICT (id) DO NOTHING;
 
 ALTER TABLE public.persons ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.persons FROM anon;
 DROP POLICY IF EXISTS "app_access_persons" ON public.persons;
 DROP POLICY IF EXISTS "Solo autenticados pueden ver personas" ON public.persons;
 DROP POLICY IF EXISTS "Permitir acceso completo a personas" ON public.persons;
-CREATE POLICY "app_access_persons" ON public.persons FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "app_access_persons" ON public.persons FOR ALL TO authenticated USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
 
 
 -- ------------------------------------------------------------------------------
@@ -55,7 +56,8 @@ DROP POLICY IF EXISTS "Solo autenticados pueden ver gastos" ON public.expenses;
 DROP POLICY IF EXISTS "Solo autenticados pueden crear gastos" ON public.expenses;
 DROP POLICY IF EXISTS "Solo autenticados pueden actualizar gastos" ON public.expenses;
 DROP POLICY IF EXISTS "Solo autenticados pueden eliminar gastos" ON public.expenses;
-CREATE POLICY "app_access_expenses" ON public.expenses FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "app_access_expenses" ON public.expenses FOR ALL TO authenticated USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
+REVOKE ALL ON TABLE public.expenses FROM anon;
 
 
 -- ------------------------------------------------------------------------------
@@ -77,7 +79,8 @@ DROP POLICY IF EXISTS "Solo autenticados pueden ver ingresos" ON public.incomes;
 DROP POLICY IF EXISTS "Solo autenticados pueden crear ingresos" ON public.incomes;
 DROP POLICY IF EXISTS "Solo autenticados pueden actualizar ingresos" ON public.incomes;
 DROP POLICY IF EXISTS "Solo autenticados pueden eliminar ingresos" ON public.incomes;
-CREATE POLICY "app_access_incomes" ON public.incomes FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "app_access_incomes" ON public.incomes FOR ALL TO authenticated USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
+REVOKE ALL ON TABLE public.incomes FROM anon;
 
 
 -- ------------------------------------------------------------------------------
@@ -112,7 +115,8 @@ DROP POLICY IF EXISTS "Permitir lectura de debts" ON public.debts;
 DROP POLICY IF EXISTS "Permitir insercion de debts" ON public.debts;
 DROP POLICY IF EXISTS "Permitir actualizacion de debts" ON public.debts;
 DROP POLICY IF EXISTS "Permitir eliminacion de debts" ON public.debts;
-CREATE POLICY "app_access_debts" ON public.debts FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "app_access_debts" ON public.debts FOR ALL TO authenticated USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
+REVOKE ALL ON TABLE public.debts FROM anon;
 
 
 -- ------------------------------------------------------------------------------
@@ -143,7 +147,8 @@ DROP POLICY IF EXISTS "Solo autenticados pueden ver tc_cards" ON public.tc_cards
 DROP POLICY IF EXISTS "Solo autenticados pueden crear tc_cards" ON public.tc_cards;
 DROP POLICY IF EXISTS "Solo autenticados pueden actualizar tc_cards" ON public.tc_cards;
 DROP POLICY IF EXISTS "Solo autenticados pueden eliminar tc_cards" ON public.tc_cards;
-CREATE POLICY "app_access_tc_cards" ON public.tc_cards FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "app_access_tc_cards" ON public.tc_cards FOR ALL TO authenticated USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
+REVOKE ALL ON TABLE public.tc_cards FROM anon;
 
 
 -- ------------------------------------------------------------------------------
@@ -174,7 +179,8 @@ DROP POLICY IF EXISTS "Solo autenticados pueden ver tc_expenses" ON public.tc_ex
 DROP POLICY IF EXISTS "Solo autenticados pueden crear tc_expenses" ON public.tc_expenses;
 DROP POLICY IF EXISTS "Solo autenticados pueden actualizar tc_expenses" ON public.tc_expenses;
 DROP POLICY IF EXISTS "Solo autenticados pueden eliminar tc_expenses" ON public.tc_expenses;
-CREATE POLICY "app_access_tc_expenses" ON public.tc_expenses FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "app_access_tc_expenses" ON public.tc_expenses FOR ALL TO authenticated USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
+REVOKE ALL ON TABLE public.tc_expenses FROM anon;
 
 
 -- ------------------------------------------------------------------------------
@@ -218,15 +224,17 @@ DROP POLICY IF EXISTS "Solo autenticados pueden ver projects" ON public.projects
 DROP POLICY IF EXISTS "Solo autenticados pueden crear projects" ON public.projects;
 DROP POLICY IF EXISTS "Solo autenticados pueden actualizar projects" ON public.projects;
 DROP POLICY IF EXISTS "Solo autenticados pueden eliminar projects" ON public.projects;
-CREATE POLICY "app_access_projects" ON public.projects FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "app_access_projects" ON public.projects FOR ALL TO authenticated USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
+REVOKE ALL ON TABLE public.projects FROM anon;
 
 ALTER TABLE public.project_expenses ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.project_expenses FROM anon;
 DROP POLICY IF EXISTS "app_access_project_expenses" ON public.project_expenses;
 DROP POLICY IF EXISTS "Solo autenticados pueden ver project_expenses" ON public.project_expenses;
 DROP POLICY IF EXISTS "Solo autenticados pueden crear project_expenses" ON public.project_expenses;
 DROP POLICY IF EXISTS "Solo autenticados pueden actualizar project_expenses" ON public.project_expenses;
 DROP POLICY IF EXISTS "Solo autenticados pueden eliminar project_expenses" ON public.project_expenses;
-CREATE POLICY "app_access_project_expenses" ON public.project_expenses FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "app_access_project_expenses" ON public.project_expenses FOR ALL TO authenticated USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
 
 
 -- ------------------------------------------------------------------------------
@@ -241,8 +249,9 @@ CREATE TABLE IF NOT EXISTS public.category_budgets (
 );
 
 ALTER TABLE public.category_budgets ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.category_budgets FROM anon;
 DROP POLICY IF EXISTS "app_access_category_budgets" ON public.category_budgets;
-CREATE POLICY "app_access_category_budgets" ON public.category_budgets FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "app_access_category_budgets" ON public.category_budgets FOR ALL TO authenticated USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
 
 
 -- ------------------------------------------------------------------------------
@@ -259,12 +268,13 @@ CREATE TABLE IF NOT EXISTS public.fcm_tokens (
 );
 
 ALTER TABLE public.fcm_tokens ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.fcm_tokens FROM anon;
 DROP POLICY IF EXISTS "app_access_fcm_tokens" ON public.fcm_tokens;
-CREATE POLICY "app_access_fcm_tokens" ON public.fcm_tokens FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "app_access_fcm_tokens" ON public.fcm_tokens FOR ALL TO authenticated USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL AND char_length(token) > 10);
 
 
 -- ------------------------------------------------------------------------------
--- 10. TABLA: public.app_users (Usuarios y accesos)
+-- 10. TABLA: public.app_users (Sin acceso directo desde clientes Supabase)
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.app_users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -276,8 +286,11 @@ CREATE TABLE IF NOT EXISTS public.app_users (
 );
 
 ALTER TABLE public.app_users ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.app_users FROM anon, authenticated;
 DROP POLICY IF EXISTS "app_access_app_users" ON public.app_users;
-CREATE POLICY "app_access_app_users" ON public.app_users FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Permitir lectura de app_users" ON public.app_users;
+DROP POLICY IF EXISTS "Permitir insercion de app_users" ON public.app_users;
+DROP POLICY IF EXISTS "Permitir actualizacion de app_users" ON public.app_users;
 
 
 -- ------------------------------------------------------------------------------
@@ -331,7 +344,9 @@ LEFT JOIN months_incomes i ON p.year = i.year AND p.month = i.month
 LEFT JOIN months_expenses e ON p.year = e.year AND p.month = e.month
 ORDER BY p.year, p.month;
 
-GRANT SELECT ON public.v_monthly_summary TO anon, authenticated;
+ALTER VIEW public.v_monthly_summary SET (security_invoker = true);
+REVOKE ALL ON public.v_monthly_summary FROM anon;
+GRANT SELECT ON public.v_monthly_summary TO authenticated;
 
 
 -- ------------------------------------------------------------------------------

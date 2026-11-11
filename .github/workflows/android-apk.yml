@@ -58,7 +58,10 @@ jobs:
       - name: Grant Execute Permission to Gradle Wrapper
         run: chmod +x ./android/gradlew
 
-      - name: Ensure Android Keystore Exists (Fallback Signing)
+      - name: Ensure Android Debug Keystore Exists (DEV only)
+        if: >
+          (github.ref == 'refs/heads/develop') ||
+          (github.event_name == 'workflow_dispatch' && (github.event.inputs.target_env == 'dev' || github.event.inputs.target_env == 'both'))
         run: |
           mkdir -p ~/.android ~/.config/.android
           if [ ! -f ~/.android/debug.keystore ] && [ ! -f ~/.config/.android/debug.keystore ]; then
@@ -139,6 +142,10 @@ jobs:
           FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
           FIREBASE_MEASUREMENT_ID: ${{ secrets.FIREBASE_MEASUREMENT_ID }}
           FIREBASE_VAPID_KEY: ${{ secrets.FIREBASE_VAPID_KEY }}
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
           echo "🚀 [PROD] Inyectando configuración de Base de Datos PRODUCCIÓN..."
           node scripts/set-env.js --env=prod
@@ -146,8 +153,15 @@ jobs:
           npm run build
           echo "📲 [PROD] Sincronizando Capacitor con Android..."
           npx cap sync android
+          if [ -z "$RELEASE_KEYSTORE_BASE64" ] || [ -z "$RELEASE_STORE_PASSWORD" ] || [ -z "$RELEASE_KEY_ALIAS" ] || [ -z "$RELEASE_KEY_PASSWORD" ]; then
+            echo "❌ Error: Faltan secretos de firma Release (RELEASE_KEYSTORE_BASE64, RELEASE_STORE_PASSWORD, RELEASE_KEY_ALIAS, RELEASE_KEY_PASSWORD)."
+            exit 1
+          fi
+          echo "$RELEASE_KEYSTORE_BASE64" | base64 --decode > android/app/release.keystore
+          export RELEASE_STORE_FILE="${{ github.workspace }}/android/app/release.keystore"
           echo "📦 [PROD] Ensamblando APK Release (co.wearebdycr.expenseshome)..."
           ./android/gradlew -p android assembleRelease --no-daemon --stacktrace
+          rm -f android/app/release.keystore
           mkdir -p build-artifacts
           cp android/app/build/outputs/apk/release/app-release.apk build-artifacts/FinanzasHogar-release.apk
           echo "✅ [PROD] FinanzasHogar-release.apk generado con éxito."

@@ -1,5 +1,11 @@
-@if (!authPinService.isUnlocked()) {
-  <app-auth-login (authenticated)="onAppUnlocked()" />
+@if (supabaseAuth.isLoading()) {
+  <div class="auth-loading-overlay" aria-busy="true" aria-label="Verificando sesión">
+    <div class="auth-loading-spinner"></div>
+  </div>
+} @else if (!supabaseAuth.isAuthenticated()) {
+  <app-auth-login (authenticated)="onSupabaseAuthenticated()" />
+} @else if (!authPinService.isUnlocked()) {
+  <app-pin-lock (unlocked)="onAppUnlocked()" (signOutSupabase)="onSignOutSupabase()" />
 } @else {
   <div class="app-shell">
     <app-sidebar

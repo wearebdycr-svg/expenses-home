@@ -58,7 +58,13 @@
       </div>
     } @else {
       <div class="pin-hint">
-        <span>Ingresa tu PIN de seguridad</span>
+        <span>
+          {{
+            authPinService.hasCustomPin()
+              ? 'Ingresa tu PIN de seguridad'
+              : 'Configura tu PIN personal para habilitar este bloqueo rápido'
+          }}
+        </span>
       </div>
     }
 
@@ -121,7 +127,14 @@
     <!-- Opciones inferiores -->
     <div class="pin-footer">
       <button type="button" class="btn-change-pin-link" (click)="openChangeModal()">
-        ⚙️ Cambiar o personalizar PIN
+        {{
+          authPinService.hasCustomPin()
+            ? '⚙️ Cambiar o personalizar PIN'
+            : '🔐 Configurar PIN inicial'
+        }}
+      </button>
+      <button type="button" class="btn-signout-link" (click)="onSignOut()">
+        Cerrar sesión familiar
       </button>
     </div>
   </div>
@@ -131,13 +144,13 @@
     <div class="change-pin-modal-backdrop" (click)="closeChangeModal()">
       <div class="change-pin-modal" (click)="$event.stopPropagation()">
         <div class="modal-header">
-          <h2>Configurar PIN Familiar</h2>
+          <h2>{{ authPinService.hasCustomPin() ? 'Cambiar PIN Familiar' : 'Crear PIN de Seguridad' }}</h2>
           <button type="button" class="btn-close-modal" (click)="closeChangeModal()">×</button>
         </div>
 
         <div class="modal-body">
           <p class="modal-desc">
-            Define un nuevo PIN de 4 a 6 dígitos para proteger las cuentas del hogar.
+            Define un PIN numérico de 4 a 6 dígitos para proteger las cuentas del hogar.
           </p>
 
           @if (changeError()) {
@@ -147,18 +160,20 @@
             <div class="pin-alert success-alert">{{ changeSuccess() }}</div>
           }
 
-          <div class="form-group">
-            <label for="currentPinInput">PIN Actual:</label>
-            <input
-              id="currentPinInput"
-              type="password"
-              maxlength="6"
-              class="pin-input-field"
-              placeholder="••••"
-              [value]="changeCurrentPin()"
-              (input)="changeCurrentPin.set($any($event.target).value)"
-            />
-          </div>
+          @if (authPinService.hasCustomPin()) {
+            <div class="form-group">
+              <label for="currentPinInput">PIN Actual:</label>
+              <input
+                id="currentPinInput"
+                type="password"
+                maxlength="6"
+                class="pin-input-field"
+                placeholder="••••"
+                [value]="changeCurrentPin()"
+                (input)="changeCurrentPin.set($any($event.target).value)"
+              />
+            </div>
+          }
 
           <div class="form-group">
             <label for="newPinInput">Nuevo PIN (4 a 6 dígitos):</label>

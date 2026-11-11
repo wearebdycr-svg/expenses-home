@@ -1,9 +1,11 @@
-import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
-
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseAnonKey;
+import {
+  applyCors,
+  createSupabaseClientForRequest,
+  extractBearerToken,
+  timingSafeEqualSecret,
+  verifySupabaseUserToken,
+} from './_security.js';
 
 /**
  * Obtiene las credenciales de la cuenta de servicio de Firebase
@@ -87,23 +89,26 @@ async function getGoogleAccessToken(serviceAccount) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  const cors = applyCors(req, res, 'GET, POST, OPTIONS');
+  if (!cors.allowed) {
+    return res.status(403).json({ error: 'Origin not allowed' });
+  }
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
+
+  const supabaseUrl = process.env.SUPABASE_URL || '';
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
+  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  const notifySecret = process.env.NOTIFY_SECRET || process.env.CRON_SECRET || '';
 
   if (req.method === 'GET') {
     const serviceAccount = getServiceAccount();
     const fcmServerKey = process.env.FIREBASE_SERVER_KEY || process.env.FCM_SERVER_KEY;
     return res.status(200).json({
       status: 'online',
-      hasSupabaseConfig: !!(supabaseUrl && supabaseAnonKey),
-      dbHost: supabaseUrl ? new URL(supabaseUrl).host : 'none',
       authMethod: serviceAccount ? 'fcm_v1' : fcmServerKey ? 'fcm_legacy' : 'none',
-      projectId: serviceAccount?.project_id || process.env.FIREBASE_PROJECT_ID || 'expenses-home',
     });
   }
 
@@ -111,29 +116,18 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Método no permitido' });
   }
 
-  // 1. Verificación de autenticación para función crítica (CWE-306)
-  const authHeader = req.headers['authorization'] || '';
-  const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7).trim() : '';
-  const notifySecret = process.env.NOTIFY_SECRET || process.env.CRON_SECRET;
+  // 1. Verificación estricta de autenticación (solo NOTIFY_SECRET/CRON_SECRET o JWT de usuario Supabase válido)
+  const token = extractBearerToken(req);
+  const isServerCaller = timingSafeEqualSecret(token, notifySecret);
+  const jwtResult = isServerCaller
+    ? { ok: false, configured: Boolean(supabaseUrl && supabaseAnonKey), user: null }
+    : await verifySupabaseUserToken(token, supabaseUrl, supabaseAnonKey);
 
-  let isAuthorized = false;
-  if (notifySecret && token === notifySecret) {
-    isAuthorized = true;
-  } else if (token && supabaseAnonKey && token === supabaseAnonKey) {
-    isAuthorized = true;
-  } else if (token && supabaseUrl && supabaseAnonKey) {
-    try {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-      const { data: { user }, error } = await supabase.auth.getUser(token);
-      if (!error && user) {
-        isAuthorized = true;
-      }
-    } catch {
-      // Ignorar fallo de validación
-    }
+  if (!notifySecret && !jwtResult.configured) {
+    return res.status(500).json({ error: 'Server misconfigured: notification authentication is not configured' });
   }
 
-  if (!isAuthorized && (notifySecret || (supabaseUrl && supabaseAnonKey))) {
+  if (!isServerCaller && !jwtResult.ok) {
     return res.status(401).json({ error: 'Unauthorized: Se requiere token de autorización válido' });
   }
 
@@ -216,8 +210,14 @@ export default async function handler(req, res) {
     let supabase = null;
 
     // 1. Obtener tokens de Supabase (excluyendo el dispositivo emisor)
-    if (supabaseUrl && supabaseKey) {
-      supabase = createClient(supabaseUrl, supabaseKey);
+    supabase = createSupabaseClientForRequest({
+      supabaseUrl,
+      supabaseServiceRoleKey,
+      supabaseAnonKey,
+      userToken: jwtResult.ok ? token : '',
+    });
+
+    if (supabase) {
       let query = supabase.from('fcm_tokens').select('token');
 
       // Por defecto despachamos a todos los dispositivos del hogar (incluyendo confirmación en el propio móvil).

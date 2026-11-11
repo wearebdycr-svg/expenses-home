@@ -5,6 +5,7 @@
         <app-icon name="home" [size]="28" />
       </div>
       <h1 class="auth-title">Expenses Home</h1>
+      <p class="auth-subtitle">Acceso seguro a las finanzas del hogar</p>
     </div>
 
     @if (authPinService.expiredNotice()) {
@@ -30,37 +31,26 @@
       </div>
     }
 
-    @if (authPinService.isBiometricAvailable() && authPinService.hasBiometricEnrolled()) {
-      <button
-        type="button"
-        class="biometric-login-btn"
-        (click)="onBiometricLogin()"
-        [disabled]="isLoading() || authPinService.isLockedOut()"
-      >
-        <app-icon name="fingerprint" [size]="26" />
-        <div class="biometric-btn-text">
-          <span class="bio-main">Ingresar con {{ authPinService.biometryTypeName() }}</span>
-        </div>
-      </button>
-
-      <div class="divider">
-        <span>o ingresa con tu contraseña</span>
+    @if (successMessage()) {
+      <div class="auth-alert success">
+        <app-icon name="check-circle" [size]="18" />
+        <span>{{ successMessage() }}</span>
       </div>
     }
 
     <form class="auth-form" (ngSubmit)="onSubmit()">
       <div class="form-group">
-        <label for="auth-username">Usuario</label>
+        <label for="auth-email">Correo electrónico</label>
         <div class="input-wrapper">
           <input
-            id="auth-username"
-            type="text"
-            name="username"
-            [ngModel]="username()"
-            (ngModelChange)="username.set($event)"
-            placeholder="Usuario"
+            id="auth-email"
+            type="email"
+            name="email"
+            [ngModel]="email()"
+            (ngModelChange)="email.set($event)"
+            placeholder="correo@ejemplo.com"
             required
-            autocomplete="username"
+            autocomplete="email"
           />
         </div>
       </div>
@@ -76,7 +66,7 @@
             (ngModelChange)="password.set($event)"
             placeholder="••••••••"
             required
-            autocomplete="current-password"
+            [attr.autocomplete]="isSignUpMode() ? 'new-password' : 'current-password'"
           />
           <button
             type="button"
@@ -100,9 +90,19 @@
           <span>Verificando...</span>
         } @else {
           <app-icon name="lock" [size]="18" />
-          <span>Iniciar Sesión</span>
+          <span>{{ isSignUpMode() ? 'Crear Cuenta' : 'Iniciar Sesión' }}</span>
         }
       </button>
     </form>
+
+    <div class="auth-footer">
+      <button type="button" class="toggle-mode-btn" (click)="toggleMode()">
+        {{
+          isSignUpMode()
+            ? '¿Ya tienes cuenta? Inicia sesión'
+            : '¿Primera vez? Registra tu cuenta'
+        }}
+      </button>
+    </div>
   </div>
 </div>

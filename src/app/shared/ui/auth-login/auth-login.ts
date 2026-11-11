@@ -1,7 +1,6 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  OnInit,
   inject,
   output,
   signal,
@@ -9,6 +8,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthPinService } from '../../../core/services/auth-pin.service';
+import { SupabaseAuthService } from '../../../core/services/supabase-auth.service';
 import { Icon } from '../icon/icon';
 
 @Component({
@@ -19,33 +19,19 @@ import { Icon } from '../icon/icon';
   templateUrl: './auth-login.html',
   styleUrl: './auth-login.css',
 })
-export class AuthLogin implements OnInit {
+export class AuthLogin {
   protected readonly authPinService = inject(AuthPinService);
+  protected readonly supabaseAuth = inject(SupabaseAuthService);
 
   authenticated = output<void>();
 
-  protected readonly username = signal<string>('');
+  protected readonly email = signal<string>('');
   protected readonly password = signal<string>('');
-  protected readonly fullName = signal<string>('');
   protected readonly isSignUpMode = signal<boolean>(false);
   protected readonly showPassword = signal<boolean>(false);
   protected readonly isLoading = signal<boolean>(false);
   protected readonly errorMessage = signal<string>('');
   protected readonly successMessage = signal<string>('');
-
-  async ngOnInit(): Promise<void> {
-    await this.authPinService.checkBiometricAvailability();
-    // En móvil, si la huella está enrolada y no hay bloqueo, ofrecer intento suave
-    if (
-      this.authPinService.isBiometricAvailable() &&
-      this.authPinService.hasBiometricEnrolled() &&
-      !this.authPinService.isLockedOut()
-    ) {
-      setTimeout(() => {
-        this.onBiometricLogin(true);
-      }, 400);
-    }
-  }
 
   protected toggleMode(): void {
     this.isSignUpMode.update((v) => !v);
@@ -57,32 +43,6 @@ export class AuthLogin implements OnInit {
     this.showPassword.update((v) => !v);
   }
 
-  protected fillQuickAccount(user: string, pass: string): void {
-    this.username.set(user);
-    this.password.set(pass);
-    this.errorMessage.set('');
-  }
-
-  protected async onBiometricLogin(isAuto = false): Promise<void> {
-    if (this.isLoading() || this.authPinService.isLockedOut()) return;
-
-    this.errorMessage.set('');
-    const res = await this.authPinService.unlockWithBiometric();
-    if (res.success) {
-      this.authenticated.emit();
-    } else if (!isAuto && res.error) {
-      const err = res.error.toLowerCase();
-      const isCancellation =
-        err.includes('cancel') ||
-        err.includes('negative') ||
-        err.includes('user_cancel') ||
-        err.includes('dismiss');
-      if (!isCancellation) {
-        this.errorMessage.set('Huella no reconocida. Ingresa tu usuario y contraseña.');
-      }
-    }
-  }
-
   protected async onSubmit(): Promise<void> {
     if (this.authPinService.isLockedOut()) {
       this.errorMessage.set(
@@ -91,16 +51,16 @@ export class AuthLogin implements OnInit {
       return;
     }
 
-    const rawUser = this.username().trim();
+    const rawEmail = this.email().trim().toLowerCase();
     const rawPass = this.password();
 
-    if (!rawUser) {
-      this.errorMessage.set('Por favor ingresa tu usuario o correo.');
+    if (!rawEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail)) {
+      this.errorMessage.set('Por favor ingresa un correo electrónico válido.');
       return;
     }
 
-    if (!rawPass || rawPass.length < 4) {
-      this.errorMessage.set('La contraseña debe tener al menos 4 caracteres.');
+    if (!rawPass || rawPass.length < 6) {
+      this.errorMessage.set('La contraseña debe tener al menos 6 caracteres.');
       return;
     }
 
@@ -110,29 +70,47 @@ export class AuthLogin implements OnInit {
 
     try {
       if (this.isSignUpMode()) {
-        const res = await this.authPinService.registerUser(
-          rawUser,
-          rawPass,
-          this.fullName().trim() || rawUser
-        );
-        if (res.success) {
+        const { error, user } = await this.supabaseAuth.signUp(rawEmail, rawPass);
+        if (error) {
+          this.handleAuthError(error);
+          return;
+        }
+        if (this.supabaseAuth.isAuthenticated()) {
           this.authenticated.emit();
-        } else {
-          this.errorMessage.set(res.error || 'No se pudo registrar el usuario.');
+        } else if (user) {
+          this.successMessage.set(
+            '¡Cuenta creada! Revisa tu correo para confirmar tu cuenta antes de iniciar sesión.'
+          );
+          this.isSignUpMode.set(false);
         }
       } else {
-        const res = await this.authPinService.loginWithCredentials(rawUser, rawPass);
-        if (res.success) {
-          this.authenticated.emit();
-        } else {
-          this.errorMessage.set(res.error || 'Credenciales incorrectas.');
+        const { error } = await this.supabaseAuth.signInWithPassword(rawEmail, rawPass);
+        if (error) {
+          this.handleAuthError(error);
+          return;
         }
+        this.authenticated.emit();
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       this.errorMessage.set('Error al conectar: ' + msg);
     } finally {
       this.isLoading.set(false);
+    }
+  }
+
+  private handleAuthError(error: Error): void {
+    const msg = (error.message || '').toLowerCase();
+    if (msg.includes('invalid login credentials') || msg.includes('invalid credentials')) {
+      this.errorMessage.set('Correo o contraseña incorrectos.');
+    } else if (msg.includes('email not confirmed')) {
+      this.errorMessage.set('Tu correo aún no ha sido confirmado. Revisa tu bandeja de entrada.');
+    } else if (msg.includes('already registered') || msg.includes('user already registered')) {
+      this.errorMessage.set('Este correo ya está registrado. Intenta iniciar sesión.');
+    } else if (msg.includes('rate limit') || msg.includes('too many requests')) {
+      this.errorMessage.set('Demasiados intentos. Espera un momento antes de volver a intentar.');
+    } else {
+      this.errorMessage.set(error.message || 'No se pudo completar la autenticación.');
     }
   }
 }

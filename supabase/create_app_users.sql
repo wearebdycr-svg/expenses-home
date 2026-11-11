@@ -12,25 +12,12 @@ CREATE TABLE IF NOT EXISTS public.app_users (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Habilitar Row Level Security (RLS)
+-- Habilitar Row Level Security (RLS) sin políticas cliente para proteger hashes/salts
 ALTER TABLE public.app_users ENABLE ROW LEVEL SECURITY;
 
--- Políticas de lectura e inserción para la app
+REVOKE ALL ON TABLE public.app_users FROM anon, authenticated;
+
 DROP POLICY IF EXISTS "Permitir lectura de app_users" ON public.app_users;
-CREATE POLICY "Permitir lectura de app_users"
-ON public.app_users FOR SELECT
-TO anon, authenticated
-USING (true);
-
 DROP POLICY IF EXISTS "Permitir insercion de app_users" ON public.app_users;
-CREATE POLICY "Permitir insercion de app_users"
-ON public.app_users FOR INSERT
-TO anon, authenticated
-WITH CHECK (true);
-
 DROP POLICY IF EXISTS "Permitir actualizacion de app_users" ON public.app_users;
-CREATE POLICY "Permitir actualizacion de app_users"
-ON public.app_users FOR UPDATE
-TO anon, authenticated
-USING (true)
-WITH CHECK (true);
+DROP POLICY IF EXISTS "app_access_app_users" ON public.app_users;

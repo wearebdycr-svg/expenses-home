@@ -61,5 +61,9 @@ LEFT JOIN months_incomes i ON p.year = i.year AND p.month = i.month
 LEFT JOIN months_expenses e ON p.year = e.year AND p.month = e.month
 ORDER BY p.year, p.month;
 
--- Otorgar permisos de consulta para el cliente Supabase
-GRANT SELECT ON public.v_monthly_summary TO anon, authenticated;
+-- Ejecutar la vista con permisos del invocador (respetando RLS de incomes y expenses)
+ALTER VIEW public.v_monthly_summary SET (security_invoker = true);
+
+-- Restringir acceso únicamente a usuarios autenticados
+REVOKE ALL ON public.v_monthly_summary FROM anon;
+GRANT SELECT ON public.v_monthly_summary TO authenticated;

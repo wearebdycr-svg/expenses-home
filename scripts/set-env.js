@@ -117,6 +117,29 @@ export const environment = {
 fs.writeFileSync(path.join(targetDir, 'environment.ts'), envFileContent(isProduction), 'utf8');
 fs.writeFileSync(path.join(targetDir, 'environment.development.ts'), envFileContent(false), 'utf8');
 
+// 5. Generar configuración pública de Firebase para el Service Worker sin pasar claves por query strings
+const publicDir = path.resolve(__dirname, '../public');
+if (!fs.existsSync(publicDir)) {
+  fs.mkdirSync(publicDir, { recursive: true });
+}
+
+const swFirebaseConfig = {
+  apiKey: firebaseConfig.apiKey,
+  authDomain: firebaseConfig.authDomain,
+  projectId: firebaseConfig.projectId,
+  storageBucket: firebaseConfig.storageBucket,
+  messagingSenderId: firebaseConfig.messagingSenderId,
+  appId: firebaseConfig.appId,
+  measurementId: firebaseConfig.measurementId,
+};
+
+const swConfigContent = `// Archivo generado automáticamente por scripts/set-env.js
+// NO MODIFICAR MANUALMENTE NI SUBIR A CONTROL DE VERSIONES
+self.__FIREBASE_CONFIG__ = ${JSON.stringify(swFirebaseConfig, null, 2)};
+`;
+
+fs.writeFileSync(path.join(publicDir, 'firebase-config.js'), swConfigContent, 'utf8');
+
 console.log(
   '\x1b[32m%s\x1b[0m',
   `✅ [ENV] Configuración inyectada con éxito para: ${envLabel}`

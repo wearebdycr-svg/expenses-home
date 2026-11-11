@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
 import { PushNotificationService } from './push-notification.service';
 import { RemoteConfigService } from './remote-config.service';
+import { SupabaseService } from './supabase.service';
 import { ToastService } from './toast.service';
 import type { Expense, ExpenseDraft } from '../../features/gastos/data/expense.model';
 
@@ -243,6 +244,108 @@ describe('PushNotificationService', () => {
         title: '🗑️ Ingreso Eliminado (Charlie)',
       })
     );
+  });
+
+  describe('authenticated backend requests', () => {
+    let authService: PushNotificationService;
+    let getSessionMock: ReturnType<typeof vi.fn>;
+    let upsertMock: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      TestBed.resetTestingModule();
+      getSessionMock = vi.fn().mockResolvedValue({ data: { session: null }, error: null });
+      upsertMock = vi.fn().mockResolvedValue({ error: null });
+
+      TestBed.configureTestingModule({
+        providers: [
+          {
+            provide: SupabaseService,
+            useValue: {
+              client: {
+                auth: {
+                  getSession: getSessionMock,
+                  onAuthStateChange: () => ({
+                    data: { subscription: { unsubscribe: () => {} } },
+                  }),
+                },
+                from: () => ({
+                  upsert: upsertMock,
+                }),
+              },
+            },
+          },
+        ],
+      });
+
+      authService = TestBed.inject(PushNotificationService);
+    });
+
+    it('dispatchPushNotification skips network call when no Supabase user session is active', async () => {
+      getSessionMock.mockResolvedValueOnce({ data: { session: null }, error: null });
+      const fetchSpy = vi
+        .spyOn(globalThis, 'fetch')
+        .mockResolvedValue(new Response('{}', { status: 200 }));
+
+      await authService.dispatchPushNotification({
+        title: 'Test',
+        body: 'Body',
+      });
+
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it('dispatchPushNotification attaches authenticated Supabase JWT instead of anon key', async () => {
+      getSessionMock.mockResolvedValueOnce({
+        data: { session: { access_token: 'user-jwt-token-xyz' } },
+        error: null,
+      });
+      const fetchSpy = vi
+        .spyOn(globalThis, 'fetch')
+        .mockResolvedValue(new Response('{}', { status: 200 }));
+
+      await authService.dispatchPushNotification({
+        title: 'Test',
+        body: 'Body',
+      });
+
+      expect(fetchSpy).toHaveBeenCalledWith(
+        '/api/notify',
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({
+            Authorization: 'Bearer user-jwt-token-xyz',
+          }),
+        })
+      );
+    });
+
+    it('registerTokenInBackend skips backend calls without session and uses Bearer JWT when signed in', async () => {
+      getSessionMock.mockResolvedValueOnce({ data: { session: null }, error: null });
+      const fetchSpy = vi
+        .spyOn(globalThis, 'fetch')
+        .mockResolvedValue(new Response('{}', { status: 200 }));
+
+      await authService.registerTokenInBackend('fcm-token-1234567890', 'Charlie');
+      expect(upsertMock).not.toHaveBeenCalled();
+      expect(fetchSpy).not.toHaveBeenCalled();
+
+      getSessionMock.mockResolvedValueOnce({
+        data: { session: { access_token: 'user-jwt-token-xyz' } },
+        error: null,
+      });
+
+      await authService.registerTokenInBackend('fcm-token-1234567890', 'Charlie');
+      expect(upsertMock).toHaveBeenCalled();
+      expect(fetchSpy).toHaveBeenCalledWith(
+        '/api/fcm-token',
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({
+            Authorization: 'Bearer user-jwt-token-xyz',
+          }),
+        })
+      );
+    });
   });
 });
 

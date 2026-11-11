@@ -5,8 +5,9 @@
 
 BEGIN;
 
--- 1. DESBLOQUEAR RLS EN PROYECTOS Y GASTOS DE PROYECTOS (Permitir a anon y authenticated)
+-- 1. RLS ESTRICTO EN PROYECTOS Y GASTOS DE PROYECTOS (Solo usuarios autenticados)
 ALTER TABLE IF EXISTS public.projects ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.projects FROM anon;
 DROP POLICY IF EXISTS "Solo autenticados pueden ver projects" ON public.projects;
 DROP POLICY IF EXISTS "Solo autenticados pueden crear projects" ON public.projects;
 DROP POLICY IF EXISTS "Solo autenticados pueden actualizar projects" ON public.projects;
@@ -14,11 +15,12 @@ DROP POLICY IF EXISTS "Solo autenticados pueden eliminar projects" ON public.pro
 DROP POLICY IF EXISTS "app_access_projects" ON public.projects;
 
 CREATE POLICY "app_access_projects" ON public.projects
-FOR ALL TO anon, authenticated
-USING (true)
-WITH CHECK (true);
+FOR ALL TO authenticated
+USING (auth.uid() IS NOT NULL)
+WITH CHECK (auth.uid() IS NOT NULL);
 
 ALTER TABLE IF EXISTS public.project_expenses ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.project_expenses FROM anon;
 DROP POLICY IF EXISTS "Solo autenticados pueden ver project_expenses" ON public.project_expenses;
 DROP POLICY IF EXISTS "Solo autenticados pueden crear project_expenses" ON public.project_expenses;
 DROP POLICY IF EXISTS "Solo autenticados pueden actualizar project_expenses" ON public.project_expenses;
@@ -26,9 +28,9 @@ DROP POLICY IF EXISTS "Solo autenticados pueden eliminar project_expenses" ON pu
 DROP POLICY IF EXISTS "app_access_project_expenses" ON public.project_expenses;
 
 CREATE POLICY "app_access_project_expenses" ON public.project_expenses
-FOR ALL TO anon, authenticated
-USING (true)
-WITH CHECK (true);
+FOR ALL TO authenticated
+USING (auth.uid() IS NOT NULL)
+WITH CHECK (auth.uid() IS NOT NULL);
 
 -- 2. SOPORTE DE COLUMNAS USD Y TRM
 ALTER TABLE IF EXISTS public.project_expenses 
@@ -58,11 +60,11 @@ CREATE TABLE IF NOT EXISTS public.app_users (
 );
 
 ALTER TABLE IF EXISTS public.app_users ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.app_users FROM anon, authenticated;
 DROP POLICY IF EXISTS "app_access_app_users" ON public.app_users;
-CREATE POLICY "app_access_app_users" ON public.app_users
-FOR ALL TO anon, authenticated
-USING (true)
-WITH CHECK (true);
+DROP POLICY IF EXISTS "Permitir lectura de app_users" ON public.app_users;
+DROP POLICY IF EXISTS "Permitir insercion de app_users" ON public.app_users;
+DROP POLICY IF EXISTS "Permitir actualizacion de app_users" ON public.app_users;
 
 -- 4. RESTAURAR / INSERTAR EL PROYECTO DEL VIAJE A SAN JUAN PUERTO RICO
 -- Se inserta con persona 'Compartido' para que ambos puedan verlo y registrar gastos

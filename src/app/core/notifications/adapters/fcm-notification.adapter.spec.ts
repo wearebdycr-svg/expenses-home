@@ -6,10 +6,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { FcmNotificationAdapter } from './fcm-notification.adapter';
 import { NotificationPayload } from '../notification-provider.interface';
 import { environment } from '../../../../environments/environment';
+import { SupabaseService } from '../../services/supabase.service';
 
 describe('FcmNotificationAdapter', () => {
   let adapter: FcmNotificationAdapter;
   let httpTesting: HttpTestingController;
+  let getSessionMock: ReturnType<typeof vi.fn>;
 
   const mockPayload: NotificationPayload = {
     title: 'Alerta de Vencimiento',
@@ -20,11 +22,25 @@ describe('FcmNotificationAdapter', () => {
   };
 
   beforeEach(() => {
+    getSessionMock = vi.fn().mockResolvedValue({
+      data: { session: { access_token: 'mock-supabase-jwt' } },
+    });
+
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
         FcmNotificationAdapter,
+        {
+          provide: SupabaseService,
+          useValue: {
+            client: {
+              auth: {
+                getSession: getSessionMock,
+              },
+            },
+          },
+        },
       ],
     });
 
@@ -82,10 +98,11 @@ describe('FcmNotificationAdapter', () => {
   });
 
   describe('sendNotification', () => {
-    it('debe enviar la petición HTTP POST con el payload estructurado y retornar success true', async () => {
+    it('debe enviar la petición HTTP POST con el token JWT de sesión y retornar success true', async () => {
       vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(false);
 
       const sendPromise = adapter.sendNotification('fcm-token-123', mockPayload);
+      await Promise.resolve();
 
       const req = httpTesting.expectOne('/api/notify');
       expect(req.request.method).toBe('POST');
@@ -102,11 +119,7 @@ describe('FcmNotificationAdapter', () => {
         },
       });
 
-      if (environment.supabaseAnonKey) {
-        expect(req.request.headers.get('Authorization')).toBe(
-          `Bearer ${environment.supabaseAnonKey}`
-        );
-      }
+      expect(req.request.headers.get('Authorization')).toBe('Bearer mock-supabase-jwt');
 
       req.flush({ success: true, messageId: 'msg-abc-987' });
 
@@ -118,10 +131,21 @@ describe('FcmNotificationAdapter', () => {
       expect(result.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
     });
 
+    it('debe rechazar el envío sin llamar HTTP cuando no existe sesión autenticada en Supabase', async () => {
+      getSessionMock.mockResolvedValueOnce({ data: { session: null } });
+
+      const result = await adapter.sendNotification('fcm-token-123', mockPayload);
+
+      httpTesting.expectNone('/api/notify');
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('no autenticada');
+    });
+
     it('debe capturar fallo lógico de respuesta (success: false) sin lanzar excepción', async () => {
       vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(false);
 
       const sendPromise = adapter.sendNotification('fcm-token-123', mockPayload);
+      await Promise.resolve();
 
       const req = httpTesting.expectOne('/api/notify');
       req.flush({ success: false, error: 'Token FCM inválido o revocado' });
@@ -137,6 +161,7 @@ describe('FcmNotificationAdapter', () => {
       vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(false);
 
       const sendPromise = adapter.sendNotification('fcm-token-123', mockPayload);
+      await Promise.resolve();
 
       const req = httpTesting.expectOne('/api/notify');
       req.flush(
@@ -155,6 +180,7 @@ describe('FcmNotificationAdapter', () => {
       vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(false);
 
       const sendPromise = adapter.sendNotification('fcm-token-123', mockPayload);
+      await Promise.resolve();
 
       const req = httpTesting.expectOne('/api/notify');
       req.error(new ProgressEvent('error'), { status: 0, statusText: 'Network Error' });
