@@ -25,8 +25,6 @@ import { Sidebar, type SidebarPageId } from './shared/ui/sidebar/sidebar';
 import { DailyReminderBanner } from './shared/ui/daily-reminder-banner/daily-reminder-banner';
 import { ToastContainer } from './shared/ui/toast-container/toast-container';
 import { AuthLogin } from './shared/ui/auth-login/auth-login';
-import { PinLock } from './shared/ui/pin-lock/pin-lock';
-import { AuthPinService } from './core/services/auth-pin.service';
 import { RemoteConfigService } from './core/services/remote-config.service';
 import { SupabaseAuthService } from './core/services/supabase-auth.service';
 import { PushNotificationService } from './core/services/push-notification.service';
@@ -54,7 +52,6 @@ export { ACTIVE_PAGE_STORAGE_KEY, VALID_SIDEBAR_PAGES };
     DailyReminderBanner,
     ToastContainer,
     AuthLogin,
-    PinLock,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app.html',
@@ -71,7 +68,6 @@ export class App {
   private readonly tcService = inject(TcService);
   private readonly remoteConfigService = inject(RemoteConfigService);
   private readonly resumenService = inject(ResumenService);
-  protected readonly authPinService = inject(AuthPinService);
   protected readonly supabaseAuth = inject(SupabaseAuthService);
   protected readonly currentPage = this.navigationService.currentPage;
   protected readonly showFixedExpensesQuickModal = signal(false);
@@ -125,21 +121,8 @@ export class App {
     this.onNavigate('gastos-fijos');
   }
 
-  protected onLockApp(): void {
-    this.authPinService.lock();
-  }
-
-  protected onAppUnlocked(): void {
-    // Desbloqueo instantáneo sin splash screen ni retardos
-  }
-
-  protected onSupabaseAuthenticated(): void {
-    this.authPinService.startAuthenticatedSession();
-  }
-
   protected async onSignOutSupabase(): Promise<void> {
     await this.supabaseAuth.signOut();
-    this.authPinService.logout();
   }
 
   protected onNavigate(pageId: SidebarPageId): void {

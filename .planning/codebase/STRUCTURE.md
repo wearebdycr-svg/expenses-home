@@ -67,7 +67,7 @@ expenses-home/
 
 **`src/app/core/services/`:**
 - Purpose: App-wide singleton services (`providedIn: 'root'`) handling infrastructure clients, authentication, navigation, remote configuration, notifications, and exchange rates.
-- Key files: `supabase.service.ts`, `supabase-auth.service.ts`, `auth-pin.service.ts`, `navigation.service.ts`, `push-notification.service.ts`, `remote-config.service.ts`, `daily-reminder.service.ts`, `trm.service.ts`, `toast.service.ts`.
+- Key files: `supabase.service.ts`, `supabase-auth.service.ts`, `navigation.service.ts`, `push-notification.service.ts`, `remote-config.service.ts`, `daily-reminder.service.ts`, `trm.service.ts`, `toast.service.ts`.
 
 **`src/app/features/gastos/`:**
 - Purpose: Daily expenses hub and primary transaction creation entry point (`GastosPage`, `ExpensesService`).
@@ -103,7 +103,7 @@ expenses-home/
 
 **`src/app/shared/`:**
 - Purpose: Cross-feature presentational components and pure utility helpers.
-- `ui/`: `auth-login/`, `badge/`, `daily-reminder-banner/`, `icon/`, `modal/`, `pin-lock/` (unused/legacy), `select/`, `sidebar/`, `splash-screen/` (unused/legacy), `toast-container/`.
+- `ui/`: `auth-login/`, `badge/`, `daily-reminder-banner/`, `icon/`, `modal/`, `select/`, `sidebar/`, `splash-screen/` (unused/legacy), `toast-container/`.
 - `utils/`: `color.ts` (`hexToRgba`), `format.utils.ts` (`formatThousands`, `parseThousands`), `security.util.ts` (`escapeHtml`).
 
 ### Backend, Mobile, Automation & Tooling
@@ -162,7 +162,7 @@ expenses-home/
 - `src/app/features/gastos-fijos/utils/due-date-calculator.ts`: Pure UTC-noon due-date calculator.
 - `src/app/features/gastos-fijos/data/fixed-expense-alerts.service.ts`: Hexagonal fixed-expense alert orchestrator.
 - `src/app/core/services/navigation.service.ts`: Hash/storage navigation + Capacitor back-button handler.
-- `src/app/core/services/auth-pin.service.ts`: Device login, SHA-256 hashing, 10-min TTL, biometrics.
+- `src/app/core/services/supabase-auth.service.ts`: Supabase Auth email login, 10-min inactivity token expiry, 5-attempt lockout.
 - `src/app/features/tc-compartida/data/tc.service.ts`: FIFO shared credit-card amortization (`calculateAmortizedPendingDebt`).
 - `src/app/features/deudas/data/debt.model.ts`: French amortization formulas (`calculateAmortization`, `calculateMonthlyPayment`).
 

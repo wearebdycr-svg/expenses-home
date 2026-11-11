@@ -99,14 +99,16 @@ describe('Sidebar', () => {
     expect(titleEl.textContent?.trim()).toBe('TCs');
   });
 
-  it('emits lockApp when the mobile lock button is clicked', () => {
+  it('emits signOutSupabase when the sign out button is clicked', () => {
     const spy = vi.fn();
-    component.lockApp.subscribe(spy);
+    component.signOutSupabase.subscribe(spy);
 
-    const lockBtn = fixture.nativeElement.querySelector('.mobile-lock-btn') as HTMLButtonElement;
-    lockBtn.click();
+    const logoutBtn = fixture.nativeElement.querySelector('.btn-logout-app') as HTMLButtonElement;
+    logoutBtn.click();
 
     expect(spy).toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('.mobile-lock-btn')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.btn-lock-app')).toBeNull();
   });
 
   it('emits viewFixedExpenses when the sidebar quick action button is clicked', () => {

@@ -14,7 +14,7 @@
 - [Modelo de Base de Datos (Supabase)](#-modelo-de-base-de-datos-supabase)
 - [Configuración Dinámica (Firebase Remote Config)](#-configuración-dinámica-firebase-remote-config)
 - [Notificaciones Push y Recordatorios](#-notificaciones-push-y-recordatorios)
-- [Seguridad y Control de Acceso (PIN Lock)](#-seguridad-y-control-de-acceso-pin-lock)
+- [Seguridad y Control de Acceso](#-seguridad-y-control-de-acceso)
 - [Flujo de CI/CD y Calidad de Software](#-flujo-de-cicd-y-calidad-de-software)
 - [Guía de Desarrollo y Puesta en Marcha](#-guía-de-desarrollo-y-puesta-en-marcha)
 - [Scripts Disponibles](#-scripts-disponibles)
@@ -29,7 +29,7 @@
 - **Transparencia total**: Visibilidad clara de quién gasta, quién aporta y cuánto le corresponde pagar a cada uno.
 - **Topes dinámicos e inmutables**: Presupuestos por categoría controlados centralizadamente sin necesidad de desplegar nuevo código.
 - **Liquidación justa de deudas y tarjetas**: Control de compras en cuotas, cálculo de saldos restantes y amortización FIFO de deudas.
-- **Privacidad familiar**: Bloqueo criptográfico con PIN de 4 dígitos y protección anti-fuerza bruta.
+- **Privacidad familiar**: Autenticación por correo con Supabase Auth, expiración automática de sesión por token a los 10 minutos de inactividad y protección anti-fuerza bruta.
 - **Automatización**: Recordatorios diarios por Web Push para mantener las cuentas al día.
 
 ---
@@ -307,14 +307,14 @@ El sistema mantiene a los usuarios al día mediante dos capas de recordatorios:
 
 ---
 
-## 🔒 Seguridad y Control de Acceso (PIN Lock)
+## 🔒 Seguridad y Control de Acceso
 
-Para proteger la información financiera de miradas no autorizadas al compartir dispositivos familiares:
+Para proteger la información financiera en web y dispositivos móviles compartidos:
 
-- **Criptografía Nativa**: El PIN de 4 dígitos nunca se almacena en texto plano. Se procesa usando la **Web Crypto API** (`crypto.subtle.digest`) con algoritmo **SHA-256** y adición de *Salt* criptográfico único.
-- **Protección Anti-Fuerza Bruta**: Si se introducen **5 intentos fallidos consecutivos**, el sistema impone un bloqueo temporal de seguridad de **30 segundos** antes de permitir un nuevo intento.
-- **Persistencia Segura**: Opción para recordar el dispositivo de confianza durante 30 días mediante un token de sesión hasheado.
-- **Gestión de Credenciales**: Capacidad para actualizar el PIN familiar en cualquier momento desde la barra lateral.
+- **Autenticación Directa por Correo (Supabase Auth)**: El acceso a la aplicación se realiza únicamente con correo electrónico y contraseña validados por **Supabase Auth** (sin pantalla secundaria de PIN).
+- **Caducidad del Token por Inactividad (10 Minutos)**: La sesión mantiene una ventana deslizante de **10 minutos de inactividad**. Si no hay interacción activa durante ese período (incluido tiempo en segundo plano, pestaña oculta, app minimizada o tras recargar), la sesión caduca automáticamente, revoca el acceso y exige volver a iniciar sesión con el correo.
+- **Protección Anti-Fuerza Bruta**: Tras **5 intentos fallidos consecutivos** de inicio de sesión, el sistema impone un bloqueo temporal de seguridad de **30 segundos** antes de permitir un nuevo intento.
+- **Cierre de Sesión Explícito**: Opción directa desde la barra lateral (`Cerrar sesión familiar`) para revocar la sesión en el dispositivo.
 - **Auditoría Continua y PR Gating con Aikido Security**: Escaneo continuo de seguridad (SAST, SCA, detección de secretos expuestos y configuraciones IaC) integrado mediante la GitHub App oficial de Aikido Security en cada Pull Request.
 
 ---
@@ -410,7 +410,7 @@ flowchart TD
    ```bash
    npm start
    ```
-   Abre [http://localhost:4200/](http://localhost:4200/) en tu navegador. El PIN inicial por defecto es `2026`.
+   Abre [http://localhost:4200/](http://localhost:4200/) en tu navegador e inicia sesión con tu correo y contraseña registrados en Supabase Auth.
 
 6. **Compilar y abrir en Android**:
    ```bash
@@ -487,7 +487,7 @@ expenses-home/
 │   │   │   ├── tc-compartida/  # Gestión de tarjetas compartidas y cuotas
 │   │   │   └── deudas/         # Pasivos, créditos y abonos a capital (prepagos)
 │   │   └── shared/             # Componentes de UI reutilizables y utilidades
-│   │       ├── ui/             # Sidebar, Modal, PinLock, Toast, Badges...
+│   │       ├── ui/             # Sidebar, Modal, AuthLogin, Toast, Badges...
 │   │       └── utils/          # Formateadores monetarios (Intl), fechas, etc.
 │   └── environments/           # Archivos de entorno generados dinámicamente
 ├── supabase/                   # Scripts de migración SQL, esquemas y políticas RLS

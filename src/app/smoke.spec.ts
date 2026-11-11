@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { App } from './app';
-import { AuthPinService } from './core/services/auth-pin.service';
+import { SupabaseAuthService } from './core/services/supabase-auth.service';
 import { ExpensesService } from './features/gastos/data/expenses.service';
 import type { ExpenseDraft } from './features/gastos/data/expense.model';
 
@@ -18,13 +18,13 @@ describe('Critical Smoke Tests (Wave 0.2)', () => {
   });
 
   describe('Smoke Test 1: Application Entry Point & Shell Bootstrap', () => {
-    it('debe inicializar la aplicación, autenticar en estado desbloqueado y renderizar el shell principal sin fallos', async () => {
+    it('debe inicializar la aplicación con sesión autenticada y renderizar el shell principal sin fallos', async () => {
       await TestBed.configureTestingModule({
         imports: [App],
       }).compileComponents();
 
-      const authPinService = TestBed.inject(AuthPinService);
-      authPinService.isUnlocked.set(true);
+      const supabaseAuth = TestBed.inject(SupabaseAuthService);
+      supabaseAuth.isAuthenticated.set(true);
 
       const fixture = TestBed.createComponent(App);
       fixture.detectChanges();

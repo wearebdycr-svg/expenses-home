@@ -3,15 +3,12 @@
     <div class="auth-loading-spinner"></div>
   </div>
 } @else if (!supabaseAuth.isAuthenticated()) {
-  <app-auth-login (authenticated)="onSupabaseAuthenticated()" />
-} @else if (!authPinService.isUnlocked()) {
-  <app-pin-lock (unlocked)="onAppUnlocked()" (signOutSupabase)="onSignOutSupabase()" />
+  <app-auth-login />
 } @else {
   <div class="app-shell">
     <app-sidebar
       [currentPage]="currentPage()"
       (navigate)="onNavigate($event)"
-      (lockApp)="onLockApp()"
       (signOutSupabase)="onSignOutSupabase()"
       (viewFixedExpenses)="openFixedExpensesQuickModal()"
     />

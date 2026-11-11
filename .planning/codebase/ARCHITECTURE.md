@@ -9,7 +9,7 @@
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │                 Web Browser (PWA) / Android WebView (Capacitor 8)            │
 │  `src/main.ts` -> `App` (`src/app/app.ts`) + `NavigationService` (Hash/State) │
-│  Auth Gate: `AuthPinService` + `AuthLogin` (`@if (!authPinService.isUnlocked())`)│
+│  Auth Gate: `SupabaseAuthService` + `AuthLogin` (`!supabaseAuth.isAuthenticated()`)│
 ├────────────────────┬─────────────────────────────┬───────────────────────────┤
 │   Feature Pages    │    Feature Data Services    │    Shared UI & Utils      │
 │  `src/app/features`│  Signals + LocalStorage     │  `src/app/shared/ui/*`    │
@@ -43,11 +43,10 @@
 | Component | Responsibility | File |
 |-----------|----------------|------|
 | SDD Governance Triad | Architectural baseline, phased Wave roadmap, and completed change audit trail | `CONTEXT.md`, `PLAN.md`, `SUMMARY.md`, `.antigravity/rules.md` |
-| Root Shell (`App`) | Auth gate (`AuthPinService`), page `@switch` rendering, quick fixed-expense modal, hardware back-button hookup | `src/app/app.ts`, `src/app/app.html` |
+| Root Shell (`App`) | Auth gate (`SupabaseAuthService`), page `@switch` rendering, quick fixed-expense modal, hardware back-button hookup | `src/app/app.ts`, `src/app/app.html` |
 | Application Config | Bootstraps HTTP client, Charts, empty Router, and binds `NOTIFICATION_PROVIDER` to `FcmNotificationAdapter` | `src/app/app.config.ts` |
 | Navigation & Back-Button | Signal-based active page (`currentPage`), URL hash & `localStorage` sync, Capacitor `backButton` priority stack | `src/app/core/services/navigation.service.ts` |
-| Device Auth & Biometrics | Salted SHA-256 user login, 10-min inactivity TTL, 5-attempt lockout, Capacitor biometric verification, legacy PIN | `src/app/core/services/auth-pin.service.ts` |
-| Supabase Client & Auth | Singleton `SupabaseClient` with automatic Vitest mock proxy; optional JWT session wrapper | `src/app/core/services/supabase.service.ts`, `src/app/core/services/supabase-auth.service.ts` |
+| Supabase Client & Auth | Singleton `SupabaseClient` with automatic Vitest mock proxy; email/password JWT session, 10-min inactivity TTL, and 5-attempt/30s lockout | `src/app/core/services/supabase.service.ts`, `src/app/core/services/supabase-auth.service.ts` |
 | Notification Port & Adapter | Hexagonal outbound port (`NotificationProvider`) and `/api/notify` HTTP adapter (`FcmNotificationAdapter`) | `src/app/core/notifications/notification-provider.interface.ts`, `src/app/core/notifications/adapters/fcm-notification.adapter.ts` |
 | Legacy Push & Remote Config | Direct FCM Web/Capacitor registration, foreground toast/system alerts, budget thresholds, Firebase Remote Config | `src/app/core/services/push-notification.service.ts`, `src/app/core/services/remote-config.service.ts` |
 | Feature Domain Modules (8) | Vertical UI + Signal state + Supabase Realtime CRUD for expenses, incomes, summary, categories, fixed expenses, debts, shared credit cards, and projects | `src/app/features/*/` |
@@ -92,9 +91,9 @@
 - Used by: Core orchestration services, feature services, and `app.config.ts`.
 
 **Core Cross-Cutting Services Layer:**
-- Purpose: Provides app-wide singletons for authentication/PIN lock, navigation state, toast feedback, daily client reminders, and legacy push notifications.
-- Location: `src/app/core/services/*.ts` (`auth-pin.service.ts`, `supabase-auth.service.ts`, `navigation.service.ts`, `push-notification.service.ts`, `daily-reminder.service.ts`, `toast.service.ts`)
-- Contains: Signal-based singletons (`AuthPinService`, `SupabaseAuthService`, `NavigationService`, `PushNotificationService`, `DailyReminderService`, `ToastService`).
+- Purpose: Provides app-wide singletons for email session auth (with 10-min inactivity token expiry), navigation state, toast feedback, daily client reminders, and legacy push notifications.
+- Location: `src/app/core/services/*.ts` (`supabase-auth.service.ts`, `navigation.service.ts`, `push-notification.service.ts`, `daily-reminder.service.ts`, `toast.service.ts`)
+- Contains: Signal-based singletons (`SupabaseAuthService`, `NavigationService`, `PushNotificationService`, `DailyReminderService`, `ToastService`).
 - Depends on: Infrastructure adapters, Capacitor plugins (`@capacitor/app`, `@capacitor/push-notifications`, `@capacitor/local-notifications`, `@capgo/capacitor-native-biometric`), and (in legacy violations) certain feature models/services.
 - Used by: `App` (`src/app/app.ts`), `Shared UI`, and feature services/components.
 
@@ -108,7 +107,7 @@
 **Presentation / UI Layer:**
 - Purpose: Renders responsive desktop/mobile interfaces using Angular 22 standalone components with `ChangeDetectionStrategy.OnPush`, Signals, and native control flow (`@if`, `@for`, `@switch`).
 - Location: `src/app/app.ts`, `src/app/app.html`, `src/app/features/*/*.ts`, `src/app/features/*/components/*`, `src/app/shared/ui/*`, `src/app/shared/utils/*`
-- Contains: Root `App` shell, 8 page components (`GastosPage`, `IngresosPage`, `ResumenPage`, `CategoriaPage`, `GastosFijosPage`, `DeudasPage`, `TcPage`, `ProyectosPage`), feature modals/filters/charts/tables, shared primitives (`Sidebar`, `AuthLogin`, `DailyReminderBanner`, `Modal`, `Select`, `Badge`, `Icon`, `ToastContainer`, plus unused `PinLock` and `SplashScreen`).
+- Contains: Root `App` shell, 8 page components (`GastosPage`, `IngresosPage`, `ResumenPage`, `CategoriaPage`, `GastosFijosPage`, `DeudasPage`, `TcPage`, `ProyectosPage`), feature modals/filters/charts/tables, shared primitives (`Sidebar`, `AuthLogin`, `DailyReminderBanner`, `Modal`, `Select`, `Badge`, `Icon`, `ToastContainer`, plus unused `SplashScreen`).
 - Depends on: Feature services, Core services, `ng2-charts` / `chart.js`, `@capacitor/haptics`, `src/styles.css` design tokens.
 - Used by: End users on Web PWA and Android Capacitor WebView.
 
@@ -153,18 +152,17 @@
         │
         ▼
   `App` (`src/app/app.ts`)
-  checks `authPinService.isUnlocked()` (`src/app/app.html:1`)
+  checks `supabaseAuth.isLoading()` / `supabaseAuth.isAuthenticated()` (`src/app/app.html:1`)
         ├── false ──► renders `<app-auth-login>` (`src/app/shared/ui/auth-login/auth-login.ts`)
-        │             - On native Android, auto-prompts `NativeBiometric.verifyIdentity()`
-        │             - Or validates salted SHA-256 against `localStorage` (`expenses_home_security_users_v2`)
-        │               (seeded defaults: charlie, benny, admin; sign-up also inserts into `public.app_users`)
-        │             - Grants 10-min sliding session (`INACTIVITY_TIMEOUT_MS`); 5 fails -> 30s lockout
+        │             - Email/password login or signup via Supabase Auth (`signInWithPassword` / `signUp`)
+        │             - Enforces 10-min sliding inactivity timeout (`SESSION_INACTIVITY_TIMEOUT_MS`);
+        │               backgrounded/reloaded idle sessions fail closed & revoke JWT; 5 fails -> 30s lockout
         │
         └── true  ──► renders `.app-shell` (`<app-sidebar>`, `<app-daily-reminder-banner>`, `@switch (currentPage())`)
                       - `NavigationService` (`src/app/core/services/navigation.service.ts`) resolves initial page:
                         `window.location.hash` -> `localStorage['expenses_home_active_page']` -> `'gastos'`
                       - Hardware Back Button (`CapApp.addListener('backButton')`) priority order:
-                        1. Close `.change-pin-modal` if locked, else `exitApp()`
+                        1. `exitApp()` if unauthenticated (`!supabaseAuth.isAuthenticated()`)
                         2. Execute custom modal closer (e.g. `showFixedExpensesQuickModal`)
                         3. Click `.modal-backdrop .modal-close` / `.btn-cancel`
                         4. Close mobile `.sidebar.is-open`
@@ -242,9 +240,9 @@
 ## Architectural Constraints
 
 - **Threading & Execution Context:** Single-threaded Angular Zone/Signal execution in browser/WebView; background Web Push runs in an isolated Service Worker (`public/firebase-messaging-sw.js`) without DOM or `localStorage` access.
-- **Global Mutable Singleton State:** All core and feature services use `@Injectable({ providedIn: 'root' })` with constructor side effects (`loadExpenses()`, `setupRealtime()`, `initAuth()`, `initRemoteConfig()`, `refreshTrm()`, `startSessionExpiryMonitor()`) and shared `localStorage` keys.
+- **Global Mutable Singleton State:** All core and feature services use `@Injectable({ providedIn: 'root' })` with constructor side effects (`loadExpenses()`, `setupRealtime()`, `initAuth()`, `initRemoteConfig()`, `refreshTrm()`) and shared `localStorage` keys.
 - **Cross-Feature Coupling & Circular Risks:** `ExpensesService`, `TcService`, `DebtsService`, `FixedExpensesService`, and `ProjectsService` form a tight dependency graph around `ExpensesService` (`DebtsService` -> `TcService` + `ExpensesService`; `ProjectsService` -> `TcService` + `ExpensesService`; `TcService` -> `ExpensesService`; `FixedExpensesService` -> `ExpensesService`). Adding an import from `ExpensesService` back to any of those services will create a circular DI error.
-- **SDD Governance Limits (`.antigravity/rules.md`, `CONTEXT.md`):** Strict TypeScript (`noImplicitOverride`, `noImplicitReturns`, `noPropertyAccessFromIndexSignature`, `strict` in `tsconfig.app.json`) forbids `any` in new code; `CONTEXT.md` designates `tc.service.ts` (1,112 lines), `push-notification.service.ts` (919 lines), `expense-form-modal.ts` (795 lines), `projects.service.ts` (786 lines), `debts.service.ts` (641 lines), `auth-pin.service.ts` (636 lines), and `scripts/set-env.js` (131 lines) as protected zones requiring regression tests before modification.
+- **SDD Governance Limits (`.antigravity/rules.md`, `CONTEXT.md`):** Strict TypeScript (`noImplicitOverride`, `noImplicitReturns`, `noPropertyAccessFromIndexSignature`, `strict` in `tsconfig.app.json`) forbids `any` in new code; `CONTEXT.md` designates `tc.service.ts` (1,112 lines), `push-notification.service.ts` (919 lines), `expense-form-modal.ts` (795 lines), `projects.service.ts` (786 lines), `debts.service.ts` (641 lines), `supabase-auth.service.ts`, and `scripts/set-env.js` (131 lines) as protected zones requiring regression tests before modification.
 - **Build-Time Credential Baking:** Client builds embed `supabaseUrl`, `supabaseAnonKey`, and `firebase` keys into `src/environments/environment.ts` via `scripts/set-env.js` before bundling; native Capacitor builds require `environment.apiUrl` for `/api/*` calls.
 
 ## Anti-Patterns
@@ -279,10 +277,10 @@
 **Why it's wrong:** Ships test-detection code into production bundles and bypasses Angular's DI override mechanisms.
 **Do this instead:** Follow the Wave 2 pattern in `src/app/app.config.ts` and `fixed-expense-alerts.service.spec.ts` — inject abstract ports/providers (`InjectionToken`) and provide test doubles via `TestBed` in `.spec.ts` files.
 
-### Unused Router & Orphaned Shared Auth/Splash Components
+### Unused Router & Orphaned Legacy Splash Component
 
-**What happens:** `provideRouter(routes)` is configured in `src/app/app.config.ts:14` with an empty `routes = []` in `src/app/app.routes.ts` and no `<router-outlet>` in `src/app/app.html`; meanwhile `PinLock` (`src/app/shared/ui/pin-lock/pin-lock.ts`) and `SplashScreen` (`src/app/shared/ui/splash-screen/splash-screen.ts`) exist without being mounted in `App`.
-**Why it's wrong:** Adds dead configuration/bundle surface and creates confusion for contributors expecting Angular Router navigation or `PinLock` auth flow.
+**What happens:** `provideRouter(routes)` is configured in `src/app/app.config.ts:14` with an empty `routes = []` in `src/app/app.routes.ts` and no `<router-outlet>` in `src/app/app.html`; meanwhile `SplashScreen` (`src/app/shared/ui/splash-screen/splash-screen.ts`) exists without being mounted in `App`.
+**Why it's wrong:** Adds dead configuration/bundle surface and creates confusion for contributors expecting Angular Router navigation.
 **Do this instead:** Either remove unused router/legacy UI artifacts when retired or explicitly document and migrate `NavigationService` onto Angular Router if deep-link routing grows.
 
 ## Error Handling
@@ -305,7 +303,7 @@
 - Payload length bounds (`title <= 200`, `body <= 1000`) in `api/notify.js` and SSRF domain restriction (`*.supabase.co`) in `scripts/migrate-compartido.js` and `scripts/populate-dev.js`.
 
 **Authentication & Security:**
-- Device access lock via `AuthPinService` (salted SHA-256 via `crypto.subtle.digest`, 10-minute sliding session, 5-attempt / 30s lockout, `@capgo/capacitor-native-biometric` on Android).
+- Single-phase Supabase Auth email/password session (`SupabaseAuthService` + `AuthLogin`, no secondary PIN screen) with a strict 10-minute sliding inactivity token expiration (`SESSION_INACTIVITY_TIMEOUT_MS` persisted via `expenses_home_session_last_activity_v1`) across foreground, background tabs, Capacitor app state changes, and reloads, plus 5-attempt / 30s lockout (`MAX_LOGIN_ATTEMPTS`, `LOGIN_LOCKOUT_MS`).
 - Vercel CSP & security headers configured in `vercel.json` (`Content-Security-Policy`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`).
 - Note on DB RLS: `supabase/fix_rls_for_automation.sql` allows `anon` + `authenticated` access to core financial tables so Google Apps Script and device sessions work without requiring per-user Supabase Auth login; `api/notify.js` and `api/cron-reminder.js` require Bearer token validation in production.
 

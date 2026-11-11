@@ -1,7 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
 import { AuthLogin } from './auth-login';
-import { AuthPinService } from '../../../core/services/auth-pin.service';
 import { SupabaseAuthService } from '../../../core/services/supabase-auth.service';
 import { SupabaseService } from '../../../core/services/supabase.service';
 
@@ -15,7 +14,7 @@ describe('AuthLogin', () => {
     sessionStorage.clear();
     await TestBed.configureTestingModule({
       imports: [AuthLogin],
-      providers: [AuthPinService, SupabaseAuthService, SupabaseService],
+      providers: [SupabaseAuthService, SupabaseService],
     }).compileComponents();
 
     fixture = TestBed.createComponent(AuthLogin);
@@ -106,5 +105,21 @@ describe('AuthLogin', () => {
     expect(component['showPassword']()).toBe(false);
     component['toggleShowPassword']();
     expect(component['showPassword']()).toBe(true);
+  });
+
+  it('should display expired inactivity notice and lockout warning from SupabaseAuthService', () => {
+    supabaseAuth.expiredNotice.set('Tu sesión expiró por inactividad (10 minutos).');
+    supabaseAuth.isLockedOut.set(true);
+    supabaseAuth.lockoutRemainingSecs.set(25);
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Tu sesión expiró por inactividad (10 minutos).');
+    expect(text).toContain('Espera 25 segundos.');
+
+    const submitBtn = (fixture.nativeElement as HTMLElement).querySelector(
+      '.submit-btn'
+    ) as HTMLButtonElement | null;
+    expect(submitBtn?.disabled).toBe(true);
   });
 });

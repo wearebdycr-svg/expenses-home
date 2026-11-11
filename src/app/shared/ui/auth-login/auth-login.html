@@ -8,18 +8,18 @@
       <p class="auth-subtitle">Acceso seguro a las finanzas del hogar</p>
     </div>
 
-    @if (authPinService.expiredNotice()) {
+    @if (supabaseAuth.expiredNotice()) {
       <div class="auth-alert warning">
         <app-icon name="clock" [size]="18" />
-        <span>{{ authPinService.expiredNotice() }}</span>
+        <span>{{ supabaseAuth.expiredNotice() }}</span>
       </div>
     }
 
-    @if (authPinService.isLockedOut()) {
+    @if (supabaseAuth.isLockedOut()) {
       <div class="auth-alert error">
         <app-icon name="alert-circle" [size]="18" />
         <span>
-          Acceso bloqueado por seguridad. Espera {{ authPinService.lockoutRemainingSecs() }} segundos.
+          Acceso bloqueado por seguridad. Espera {{ supabaseAuth.lockoutRemainingSecs() }} segundos.
         </span>
       </div>
     }
@@ -83,7 +83,7 @@
       <button
         type="submit"
         class="submit-btn"
-        [disabled]="isLoading() || authPinService.isLockedOut()"
+        [disabled]="isLoading() || supabaseAuth.isLockedOut()"
       >
         @if (isLoading()) {
           <span class="spinner"></span>

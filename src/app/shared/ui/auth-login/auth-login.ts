@@ -7,7 +7,6 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AuthPinService } from '../../../core/services/auth-pin.service';
 import { SupabaseAuthService } from '../../../core/services/supabase-auth.service';
 import { Icon } from '../icon/icon';
 
@@ -20,7 +19,6 @@ import { Icon } from '../icon/icon';
   styleUrl: './auth-login.css',
 })
 export class AuthLogin {
-  protected readonly authPinService = inject(AuthPinService);
   protected readonly supabaseAuth = inject(SupabaseAuthService);
 
   authenticated = output<void>();
@@ -44,9 +42,9 @@ export class AuthLogin {
   }
 
   protected async onSubmit(): Promise<void> {
-    if (this.authPinService.isLockedOut()) {
+    if (this.supabaseAuth.isLockedOut()) {
       this.errorMessage.set(
-        `Acceso bloqueado por seguridad. Espera ${this.authPinService.lockoutRemainingSecs()} segundos.`
+        `Acceso bloqueado por seguridad. Espera ${this.supabaseAuth.lockoutRemainingSecs()} segundos.`
       );
       return;
     }

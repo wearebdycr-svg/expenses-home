@@ -8,12 +8,12 @@ import {
   isValidSidebarPage,
   type BackButtonActionResult,
 } from './navigation.service';
-import { AuthPinService } from './auth-pin.service';
+import { SupabaseAuthService } from './supabase-auth.service';
 import { TcService } from '../../features/tc-compartida/data/tc.service';
 
 describe('NavigationService', () => {
   let service: NavigationService;
-  let authPinService: AuthPinService;
+  let supabaseAuth: SupabaseAuthService;
   let tcService: TcService;
 
   beforeEach(() => {
@@ -26,11 +26,11 @@ describe('NavigationService', () => {
     });
 
     service = TestBed.inject(NavigationService);
-    authPinService = TestBed.inject(AuthPinService);
+    supabaseAuth = TestBed.inject(SupabaseAuthService);
     tcService = TestBed.inject(TcService);
 
-    // Por defecto desbloqueado
-    authPinService.isUnlocked.set(true);
+    // Por defecto autenticado
+    supabaseAuth.isAuthenticated.set(true);
   });
 
   afterEach(() => {
@@ -99,36 +99,14 @@ describe('NavigationService', () => {
   });
 
   describe('handleHardwareBackButton', () => {
-    it('debe llamar a exitApp y retornar exit_app_locked si la aplicación está bloqueada', () => {
-      authPinService.isUnlocked.set(false);
+    it('debe llamar a exitApp y retornar exit_app_unauthenticated si no hay sesión autenticada', () => {
+      supabaseAuth.isAuthenticated.set(false);
       const exitSpy = vi.spyOn(service, 'exitApp').mockImplementation(async () => {});
 
       const result: BackButtonActionResult = service.handleHardwareBackButton();
 
       expect(exitSpy).toHaveBeenCalled();
-      expect(result).toBe('exit_app_locked');
-    });
-
-    it('debe cerrar change-pin-modal y retornar pin_lock_modal_closed si la app está bloqueada pero el modal de PIN está abierto', () => {
-      authPinService.isUnlocked.set(false);
-      const exitSpy = vi.spyOn(service, 'exitApp').mockImplementation(async () => {});
-
-      const modalContainer = document.createElement('div');
-      modalContainer.className = 'change-pin-modal';
-      const closeBtn = document.createElement('button');
-      closeBtn.className = 'btn-close-modal';
-      const clickSpy = vi.spyOn(closeBtn, 'click');
-      modalContainer.appendChild(closeBtn);
-      document.body.appendChild(modalContainer);
-
-      try {
-        const result: BackButtonActionResult = service.handleHardwareBackButton();
-        expect(clickSpy).toHaveBeenCalled();
-        expect(exitSpy).not.toHaveBeenCalled();
-        expect(result).toBe('pin_lock_modal_closed');
-      } finally {
-        document.body.removeChild(modalContainer);
-      }
+      expect(result).toBe('exit_app_unauthenticated');
     });
 
     it('debe delegar a customModalCloser y retornar custom_modal_closed si está registrado y retorna true', () => {

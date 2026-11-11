@@ -44,8 +44,7 @@ expenses-home/
 │   └── app/
 │       ├── core/services/   # Servicios transversales singleton (providedIn: 'root')
 │       │   ├── supabase.service.ts          # Cliente Supabase (con mock transparente para tests)
-│       │   ├── supabase-auth.service.ts     # Manejo de sesión JWT de Supabase
-│       │   ├── auth-pin.service.ts          # Autenticación secundaria PIN / Biometría / SHA-256
+│       │   ├── supabase-auth.service.ts     # Sesión JWT Supabase Auth, timeout 10 min y lockout
 │       │   ├── push-notification.service.ts # Orquestación FCM, alertas y notificaciones locales
 │       │   ├── remote-config.service.ts     # Firebase Remote Config con fallback offline
 │       │   ├── daily-reminder.service.ts    # Control de recordatorios diarios en cliente
@@ -80,9 +79,9 @@ expenses-home/
 │       ┌───────────────────┴───────────────────┐         │
 │       ▼                                       ▼         │
 │ [Capa de Seguridad]                   [Vistas / Features]
-│  - SupabaseAuth (JWT)                  - Gastos / Resumen
-│  - AuthPinService                      - Deudas / TC / Proy
-│    (Biometría + SHA-256)               - Gastos Fijos
+│  - SupabaseAuthService                 - Gastos / Resumen
+│    (JWT Correo + Lockout               - Deudas / TC / Proy
+│     + Inactividad 10 min)              - Gastos Fijos
 │       │                                       │         │
 │       └───────────────────┬───────────────────┘         │
 │                           ▼                             │
@@ -110,9 +109,10 @@ expenses-home/
 3. **Estrategia Local-First + Cloud Realtime:**
    - Cada servicio de dominio (`expenses.service`, `tc.service`, `projects.service`, etc.) inicializa su estado desde `localStorage` para renderizado instantáneo sin pantallas en blanco.
    - Inmediatamente consulta la API de Supabase y suscribe un canal WebSocket (`realtime`) para sincronizar mutaciones concurrentes de otros dispositivos de la familia.
-4. **Seguridad en Dos Fases:**
-   - **Fase 1 (Red / Backend):** `SupabaseAuthService` valida las credenciales de Supabase.
-   - **Fase 2 (Dispositivo / Frontend):** `AuthPinService` bloquea la interfaz requiriendo biometría o PIN de 4 dígitos con expiración por inactividad a los 10 minutos (política bancaria).
+4. **Autenticación Única por Correo y Caducidad de Token a los 10 Minutos (Regla de Negocio):**
+   - **Acceso directo por correo (`SupabaseAuthService` + `<app-auth-login>`):** La aplicación solicita únicamente inicio de sesión con correo electrónico y contraseña contra Supabase Auth (sin pantalla intermedia de PIN ni botón de bloqueo manual).
+   - **Caducidad del token de sesión tras 10 minutos de inactividad (`SESSION_INACTIVITY_TIMEOUT_MS`):** Si transcurren 10 minutos continuos sin interacción activa del usuario (puntero, teclado, toque o scroll) —incluyendo tiempo con la pestaña oculta (`visibilitychange`), la app móvil minimizada (`appStateChange`) o tras recargar/reabrir la aplicación (`expenses_home_session_last_activity_v1`)—, la sesión se invalida en modo *fail-closed*, `getAccessToken()` bloquea la entrega del JWT, se ejecuta `signOut()` en Supabase y el usuario regresa a la pantalla de inicio de sesión por correo. Las renovaciones automáticas en segundo plano (`TOKEN_REFRESHED`) no extienden la ventana de inactividad.
+   - **Protección anti-fuerza bruta:** Tras 5 intentos fallidos consecutivos de inicio de sesión (`MAX_LOGIN_ATTEMPTS`), se bloquean nuevos intentos durante 30 segundos (`LOGIN_LOCKOUT_MS`).
 
 ---
 
@@ -146,7 +146,7 @@ Estas zonas contienen alta densidad de reglas de negocio, acoplamiento cruzado o
 | **`expense-form-modal.ts`**<br>`src/app/features/gastos/components/expense-form-modal/` | 795 | 🔴 **CRÍTICO** | **Punto de Unión de Toda la Aplicación:** Orquesta la creación de gastos normales, abonos a deudas, consumos con TC, gastos de proyectos y completado de gastos fijos. Inyecta 6 servicios simultáneos. |
 | **`projects.service.ts`**<br>`src/app/features/proyectos/data/projects.service.ts` | 786 | 🟠 **ALTO** | **Lógica Multimoneda y Eventos:** Gestiona presupuestos en USD/COP, conversión dinámica vía TRM, gastos de viaje/eventos y sincronización con tarjetas de crédito. |
 | **`debts.service.ts`**<br>`src/app/features/deudas/data/debts.service.ts` | 641 | 🟠 **ALTO** | **Matemática Financiera (Amortización Francesa):** Proyección a 36 meses, recálculo de intereses ante abonos extraordinarios (prepagos) y generación automática de cuotas como gastos. |
-| **`auth-pin.service.ts`**<br>`src/app/core/services/auth-pin.service.ts` | 636 | 🟠 **ALTO** | **Seguridad y Criptografía de Sesión:** Manejo de salts, hashes SHA-256 en Web Crypto API, bloqueo por 5 intentos fallidos, y puente nativo a huella/FaceID con Capacitor Biometrics. |
+| **`supabase-auth.service.ts`**<br>`src/app/core/services/supabase-auth.service.ts` | ~380 | 🟠 **ALTO** | **Seguridad de Sesión JWT e Inactividad:** Sesión única por correo Supabase Auth, caducidad estricta del token tras 10 minutos de inactividad (web, segundo plano, Capacitor y recargas), bloqueo anti-fuerza bruta de 5 intentos / 30s. |
 | **`scripts/set-env.js`** | 131 | 🟡 **MEDIO** | **Integridad DevOps / CI/CD:** Script que alimenta las variables de compilación de Angular en Vercel, GitLab CI y builds locales de APK. |
 
 ---

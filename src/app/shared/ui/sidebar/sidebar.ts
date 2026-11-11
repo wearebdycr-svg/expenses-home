@@ -26,7 +26,6 @@ interface SidebarPerson {
 export class Sidebar {
   currentPage = input<SidebarPageId>('gastos');
   navigate = output<SidebarPageId>();
-  lockApp = output<void>();
   signOutSupabase = output<void>();
   viewFixedExpenses = output<void>();
 
@@ -71,11 +70,6 @@ export class Sidebar {
 
   protected onViewFixedExpenses(): void {
     this.viewFixedExpenses.emit();
-    this.closeMobileMenu();
-  }
-
-  protected onLockApp(): void {
-    this.lockApp.emit();
     this.closeMobileMenu();
   }
 

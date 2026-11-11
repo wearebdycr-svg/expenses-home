@@ -7,7 +7,7 @@ import {
 } from '@angular/core';
 import { App as CapApp } from '@capacitor/app';
 import { TcService } from '../../features/tc-compartida/data/tc.service';
-import { AuthPinService } from './auth-pin.service';
+import { SupabaseAuthService } from './supabase-auth.service';
 import type { SidebarPageId } from '../../shared/ui/sidebar/sidebar';
 
 export const ACTIVE_PAGE_STORAGE_KEY: string = 'expenses_home_active_page';
@@ -53,8 +53,7 @@ export function getInitialPage(): SidebarPageId {
 export type BackButtonCustomHandler = () => boolean;
 
 export type BackButtonActionResult =
-  | 'pin_lock_modal_closed'
-  | 'exit_app_locked'
+  | 'exit_app_unauthenticated'
   | 'custom_modal_closed'
   | 'generic_modal_closed'
   | 'sidebar_closed'
@@ -75,7 +74,7 @@ export interface INavigationService {
 export class NavigationService implements INavigationService {
   private readonly destroyRef: DestroyRef | null = inject(DestroyRef, { optional: true });
   private readonly tcService: TcService = inject(TcService);
-  private readonly authPinService: AuthPinService = inject(AuthPinService);
+  private readonly supabaseAuth: SupabaseAuthService = inject(SupabaseAuthService);
 
   readonly currentPage: WritableSignal<SidebarPageId> = signal<SidebarPageId>(getInitialPage());
   private customModalCloser: BackButtonCustomHandler | null = null;
@@ -157,17 +156,10 @@ export class NavigationService implements INavigationService {
   }
 
   handleHardwareBackButton(): BackButtonActionResult {
-    // 1. Si la aplicación está bloqueada con PIN, salir de la aplicación o cerrar modal de PIN
-    if (!this.authPinService.isUnlocked()) {
-      const changePinCloseBtn: HTMLButtonElement | null = document.querySelector(
-        '.change-pin-modal .btn-close-modal, .change-pin-modal .btn-cancel',
-      );
-      if (changePinCloseBtn) {
-        changePinCloseBtn.click();
-        return 'pin_lock_modal_closed';
-      }
+    // 1. Si no hay sesión autenticada activa, salir de la aplicación
+    if (!this.supabaseAuth.isAuthenticated()) {
       void this.exitApp();
-      return 'exit_app_locked';
+      return 'exit_app_unauthenticated';
     }
 
     // 2. Si hay algún modal abierto específico gestionado por interceptor, cerrarlo

@@ -47,7 +47,7 @@
     - `public.fixed_expenses` - Recurring monthly bills with `dia_limite_mes` and `dias_anticipacion_alerta` (`supabase/deploy_fixed_expenses.sql`, `supabase/add_due_alert_columns_to_fixed_expenses.sql`, `src/app/features/gastos-fijos/data/fixed-expenses.service.ts`)
     - `public.category_budgets` - Shared category budget limits plus cron deduplication markers (`__cron_fixed_expenses__`, `__cron_reminder_7pm__`) (`src/app/core/services/remote-config.service.ts`, `api/cron-reminder.js`)
     - `public.fcm_tokens` - Registered FCM device tokens (`src/app/core/services/push-notification.service.ts`, `api/fcm-token.js`, `api/notify.js`, `api/cron-reminder.js`)
-    - `public.app_users` - Synced username/salted-SHA-256 credentials (`supabase/create_app_users.sql`, `src/app/core/services/auth-pin.service.ts`)
+    - `public.app_users` - Legacy user table (`supabase/create_app_users.sql`; active authentication uses Supabase Auth)
     - SQL View `public.v_monthly_summary` (`supabase/v_monthly_summary.sql`) - Server-side monthly aggregation queried by `src/app/features/resumen/data/resumen.service.ts`
   - Realtime (`postgres_changes`): Subscribed across `expenses`, `incomes`, `debts`, `tc_cards`, `tc_expenses`, `projects`, `project_expenses`, `fixed_expenses`, and `category_budgets`
   - Row Level Security (RLS): `supabase/fix_rls_for_automation.sql` and `supabase/fix_all_tables_rls_and_schemas.sql` enable permissive `FOR ALL TO anon, authenticated` policies (`app_access_*`) superseding earlier authenticated-only policies (`supabase/security_hardening_rls.sql`)
@@ -56,14 +56,13 @@
 - None (no object/blob storage integration; static assets live in `public/`)
 
 **Caching / Client Persistence:**
-- Browser/WebView `localStorage` used as offline-tolerant cache and state store in `AuthPinService`, `RemoteConfigService`, `PushNotificationService`, `FixedExpensesService`, `DebtsService`, `ProjectsService`, `TcService`, `TrmService`, `NavigationService`, and `DailyReminderService`
+- Browser/WebView `localStorage` used as offline-tolerant cache and session activity store in `SupabaseAuthService`, `RemoteConfigService`, `PushNotificationService`, `FixedExpensesService`, `DebtsService`, `ProjectsService`, `TcService`, `TrmService`, `NavigationService`, and `DailyReminderService`
 
 ## Authentication & Identity
 
-**App Session & Biometrics:**
-- Custom credential & biometric lock (`src/app/core/services/auth-pin.service.ts`, UI in `src/app/shared/ui/auth-login/auth-login.ts`, legacy keypad in `src/app/shared/ui/pin-lock/pin-lock.ts`)
-  - Hashes passwords with Web Crypto `SHA-256` + per-user random salt, seeds default family profiles (`charlie`, `benny`, `admin`) locally, syncs new registrations to `public.app_users`, enforces 10-minute inactivity timeout (`INACTIVITY_TIMEOUT_MS`), and locks out for 30s after 5 failed attempts
-  - Native biometric verification on Android via `@capgo/capacitor-native-biometric` (`NativeBiometric.isAvailable`, `NativeBiometric.verifyIdentity`)
+**Supabase Auth Session & Inactivity Policy:**
+- Single-phase email & password login via Supabase Auth (`src/app/core/services/supabase-auth.service.ts`, UI in `src/app/shared/ui/auth-login/auth-login.ts`); secondary PIN keypad (`pin-lock`) removed
+  - Enforces a strict 10-minute sliding inactivity token/session expiration (`SESSION_INACTIVITY_TIMEOUT_MS`), including background tab/Capacitor minimization and page reloads (`expenses_home_session_last_activity_v1`), failing closed and calling `signOut()` upon expiry, plus 30s lockout after 5 failed attempts (`MAX_LOGIN_ATTEMPTS`, `LOGIN_LOCKOUT_MS`)
 
 **Supabase Auth & API Authorization:**
 - `SupabaseAuthService` (`src/app/core/services/supabase-auth.service.ts`) wraps `supabase.client.auth` (`getSession`, `onAuthStateChange`, `signInWithPassword`, `signUp`, `signOut`) and is injected in `src/app/app.ts` for sign-out; `PushNotificationService.dispatchPushNotification` checks `getSession()` for a user JWT before falling back to `environment.supabaseAnonKey`
