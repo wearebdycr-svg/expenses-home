@@ -1,5 +1,16 @@
 apply plugin: 'com.android.application'
 
+def releaseStoreFilePath = project.findProperty('RELEASE_STORE_FILE') ?: System.getenv('RELEASE_STORE_FILE')
+def releaseStorePassword = project.findProperty('RELEASE_STORE_PASSWORD') ?: System.getenv('RELEASE_STORE_PASSWORD')
+def releaseKeyAlias = project.findProperty('RELEASE_KEY_ALIAS') ?: System.getenv('RELEASE_KEY_ALIAS')
+def releaseKeyPassword = project.findProperty('RELEASE_KEY_PASSWORD') ?: System.getenv('RELEASE_KEY_PASSWORD')
+def hasReleaseSigning = [
+    releaseStoreFilePath,
+    releaseStorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword
+].every { it != null && !it.toString().trim().isEmpty() } && file(releaseStoreFilePath).exists()
+
 android {
     namespace = "co.wearebdycr.expenseshome"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -18,17 +29,6 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
-    def releaseStoreFilePath = project.findProperty('RELEASE_STORE_FILE') ?: System.getenv('RELEASE_STORE_FILE')
-    def releaseStorePassword = project.findProperty('RELEASE_STORE_PASSWORD') ?: System.getenv('RELEASE_STORE_PASSWORD')
-    def releaseKeyAlias = project.findProperty('RELEASE_KEY_ALIAS') ?: System.getenv('RELEASE_KEY_ALIAS')
-    def releaseKeyPassword = project.findProperty('RELEASE_KEY_PASSWORD') ?: System.getenv('RELEASE_KEY_PASSWORD')
-    def hasReleaseSigning = Boolean.valueOf(
-        releaseStoreFilePath &&
-        file(releaseStoreFilePath).exists() &&
-        releaseStorePassword &&
-        releaseKeyAlias &&
-        releaseKeyPassword
-    )
 
     signingConfigs {
         release {
