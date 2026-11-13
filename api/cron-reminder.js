@@ -122,6 +122,10 @@ function calcularVencimientoCron(diaLimite, diasAnticipacion, año, mes, diaRef)
   const timestampRefUtc = Date.UTC(año, mes - 1, diaRef, 12, 0, 0);
   const diasRestantes = Math.round((timestampLimiteUtc - timestampRefUtc) / 86400000);
 
+  if (!Number.isFinite(diasRestantes)) {
+    return { diaEfectivo, fechaLimiteCalculada, diasRestantes: 0, estado: 'al_dia', requiereNotificacion: false };
+  }
+
   let estado = 'al_dia';
   let requiereNotificacion = false;
 
@@ -411,12 +415,12 @@ export default async function handler(req, res) {
       if (!isForce) {
         try {
           const { data: lastFixedCron } = await supabase
-            .from('category_budgets')
-            .select('amount, updated_at')
-            .eq('category', '__cron_fixed_expenses__')
+            .from('cron_executions')
+            .select('last_run_date, updated_at')
+            .eq('job_name', 'fixed_expenses')
             .maybeSingle();
 
-          if (lastFixedCron && Number(lastFixedCron.amount) === todayColombiaNum) {
+          if (lastFixedCron && Number(lastFixedCron.last_run_date) === todayColombiaNum) {
             alreadyRunFixedToday = true;
             fixedExpensesReport.skipped = true;
             fixedExpensesReport.reason = `Las alertas de gastos fijos ya fueron evaluadas y despachadas hoy (${todayColombiaIso}).`;
@@ -455,6 +459,9 @@ export default async function handler(req, res) {
 
             for (const fe of activeFixedExpenses) {
               const fixedNameNorm = (fe.name || '').trim().toLowerCase();
+              if (!fixedNameNorm) {
+                continue; // Omitir registros sin nombre válido
+              }
 
               // Determinar si ya fue pagado este mes
               const isPaid = safeMonthExpenses.some((e) => {
@@ -474,8 +481,10 @@ export default async function handler(req, res) {
                 continue;
               }
 
-              const diaLimite = Number(fe.dia_limite_mes ?? fe.due_day ?? 1);
-              const diasAnticipacion = Number(fe.dias_anticipacion_alerta ?? 3);
+              const rawDia = Number(fe.dia_limite_mes ?? fe.due_day ?? 1);
+              const diaLimite = Number.isInteger(rawDia) && rawDia >= 1 && rawDia <= 31 ? rawDia : 1;
+              const rawAnticipacion = Number(fe.dias_anticipacion_alerta ?? 3);
+              const diasAnticipacion = Number.isInteger(rawAnticipacion) && rawAnticipacion >= 0 ? rawAnticipacion : 3;
               const calculo = calcularVencimientoCron(
                 diaLimite,
                 diasAnticipacion,
@@ -544,15 +553,25 @@ export default async function handler(req, res) {
 
             // Registrar deduplicación si se evaluó y procesó el lote
             if (fixedExpensesReport.deliveredAlerts > 0) {
-              await supabase.from('category_budgets').upsert(
+              const { error: upsertErr } = await supabase.from('cron_executions').upsert(
                 {
-                  category: '__cron_fixed_expenses__',
-                  amount: todayColombiaNum,
+                  job_name: 'fixed_expenses',
+                  last_run_date: todayColombiaNum,
+                  last_run_at: new Date().toISOString(),
+                  metadata: {
+                    deliveredAlerts: fixedExpensesReport.deliveredAlerts,
+                    evaluated: fixedExpensesReport.evaluated,
+                    isoDate: todayColombiaIso,
+                  },
                   updated_at: new Date().toISOString(),
                 },
-                { onConflict: 'category' }
+                { onConflict: 'job_name' }
               );
-              console.log(`[Cron Gastos Fijos] Alertas del día ${todayColombiaIso} registradas para deduplicación.`);
+              if (upsertErr) {
+                console.warn('[Cron Gastos Fijos] Fallo persistiendo deduplicación en cron_executions:', upsertErr.message);
+              } else {
+                console.log(`[Cron Gastos Fijos] Alertas del día ${todayColombiaIso} registradas para deduplicación en cron_executions.`);
+              }
             }
           }
         } catch (feErr) {
@@ -578,12 +597,12 @@ export default async function handler(req, res) {
       if (!isForce && supabase) {
         try {
           const { data: lastCronLog } = await supabase
-            .from('category_budgets')
-            .select('amount, updated_at')
-            .eq('category', '__cron_reminder_7pm__')
+            .from('cron_executions')
+            .select('last_run_date, updated_at')
+            .eq('job_name', 'daily_reminder_7pm')
             .maybeSingle();
 
-          if (lastCronLog && Number(lastCronLog.amount) === todayColombiaNum) {
+          if (lastCronLog && Number(lastCronLog.last_run_date) === todayColombiaNum) {
             console.log(`[Cron Reminder] Omitido: El recordatorio de hoy (${todayColombiaIso}) ya fue enviado previamente.`);
             alreadySentDaily = true;
             dailyReminderReport.skipped = true;
@@ -641,15 +660,24 @@ export default async function handler(req, res) {
 
         if (sent > 0 && supabase) {
           try {
-            await supabase.from('category_budgets').upsert(
+            const { error: logErr } = await supabase.from('cron_executions').upsert(
               {
-                category: '__cron_reminder_7pm__',
-                amount: todayColombiaNum,
+                job_name: 'daily_reminder_7pm',
+                last_run_date: todayColombiaNum,
+                last_run_at: new Date().toISOString(),
+                metadata: {
+                  deliveredCount: sent,
+                  isoDate: todayColombiaIso,
+                },
                 updated_at: new Date().toISOString(),
               },
-              { onConflict: 'category' }
+              { onConflict: 'job_name' }
             );
-            console.log(`[Cron FCM] Recordatorio del día ${todayColombiaIso} registrado para deduplicación.`);
+            if (logErr) {
+              console.warn('[Cron FCM] Error registrando deduplicación en cron_executions:', logErr.message);
+            } else {
+              console.log(`[Cron FCM] Recordatorio del día ${todayColombiaIso} registrado para deduplicación en cron_executions.`);
+            }
           } catch (logErr) {
             console.warn('[Cron FCM] Error registrando deduplicación:', logErr.message);
           }

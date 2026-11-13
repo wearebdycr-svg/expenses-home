@@ -89,12 +89,17 @@ export class RemoteConfigService {
     };
 
     const customs = this.customBudgets();
-    const merged = { ...base };
+    const merged: Record<string, number> = { ...base };
     for (const [cat, amt] of Object.entries(customs)) {
+      if (cat.startsWith('__cron_')) {
+        continue;
+      }
+      const lower = cat.trim().toLowerCase();
+      const existingKey = Object.keys(merged).find((k) => k.trim().toLowerCase() === lower) || cat;
       if (amt > 0) {
-        merged[cat] = amt;
+        merged[existingKey] = amt;
       } else if (amt === 0) {
-        delete merged[cat];
+        delete merged[existingKey];
       }
     }
     return merged;
@@ -111,7 +116,7 @@ export class RemoteConfigService {
    * o null si no tiene un tope predefinido.
    */
   getBudgetForCategory(category: string): number | null {
-    if (!category) return null;
+    if (!category || category.startsWith('__cron_')) return null;
     const map = this.budgetsByCategory();
     if (category in map) {
       return map[category];
@@ -129,11 +134,13 @@ export class RemoteConfigService {
    * Asigna o elimina el tope presupuestal de una categoría
    * Si amount es null o <= 0, se remueve el tope.
    */
-  async setCategoryBudget(category: string, amount: number | null): Promise<void> {
+  async setCategoryBudget(category: string, amount: number | null, forceInTest = false): Promise<void> {
     const cleanCat = category.trim();
+    if (cleanCat.startsWith('__cron_')) return;
+
     const current = { ...this.customBudgets() };
     if (amount === null || amount <= 0) {
-      current[cleanCat] = 0; // 0 indica explícitamente sin tope
+      delete current[cleanCat]; // 0 o null elimina la clave para evitar resurrección zombi
     } else {
       current[cleanCat] = Math.round(amount);
     }
@@ -142,7 +149,7 @@ export class RemoteConfigService {
     this.saveCustomBudgetsToStorage(current);
 
     // Sincronizar en base de datos Supabase
-    await this.syncBudgetToDb(cleanCat, amount && amount > 0 ? Math.round(amount) : 0);
+    await this.syncBudgetToDb(cleanCat, amount && amount > 0 ? Math.round(amount) : 0, forceInTest);
   }
 
   private loadCustomBudgetsFromStorage(): Record<string, number> {
@@ -151,7 +158,15 @@ export class RemoteConfigService {
       const stored = localStorage.getItem(STORAGE_CUSTOM_BUDGETS_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (parsed && typeof parsed === 'object') return parsed;
+        if (parsed && typeof parsed === 'object') {
+          const sanitized: Record<string, number> = {};
+          for (const [key, val] of Object.entries(parsed)) {
+            if (typeof key === 'string' && !key.startsWith('__cron_') && typeof val === 'number' && val > 0) {
+              sanitized[key] = val;
+            }
+          }
+          return sanitized;
+        }
       }
     } catch (e) {
       console.warn('Error leyendo topes de localStorage:', e);
@@ -168,9 +183,9 @@ export class RemoteConfigService {
     }
   }
 
-  async loadBudgetsFromDb(): Promise<void> {
-    const proc = (globalThis as any).process;
-    if (proc?.env?.['NODE_ENV'] === 'test' || proc?.env?.['VITEST']) {
+  async loadBudgetsFromDb(forceInTest = false): Promise<void> {
+    const proc = (globalThis as unknown as { process?: { env?: Record<string, string | undefined> } }).process;
+    if (!forceInTest && (proc?.env?.['NODE_ENV'] === 'test' || proc?.env?.['VITEST'])) {
       return;
     }
 
@@ -180,16 +195,19 @@ export class RemoteConfigService {
         .select('*');
 
       if (error) {
-        // Si la tabla no existe en la base de datos aún, continuamos con localStorage
+        // Si la tabla no existe en la base de datos aún o hay error de red, continuamos con localStorage
         return;
       }
 
-      if (data && Array.isArray(data) && data.length > 0) {
-        const local = this.loadCustomBudgetsFromStorage();
-        const map: Record<string, number> = { ...local };
+      if (data && Array.isArray(data)) {
+        // La base de datos es la fuente de verdad.
+        // Construimos el mapa exclusivamente con las filas válidas (no sentinelas __cron_ y monto > 0)
+        const map: Record<string, number> = {};
         for (const row of data) {
-          if (row.category) {
-            map[String(row.category)] = Number(row.amount);
+          const cat = row.category ? String(row.category).trim() : '';
+          const amt = Number(row.amount);
+          if (cat && !cat.startsWith('__cron_') && !isNaN(amt) && amt > 0) {
+            map[cat] = Math.round(amt);
           }
         }
         this.customBudgets.set(map);
@@ -200,9 +218,9 @@ export class RemoteConfigService {
     }
   }
 
-  private async syncBudgetToDb(category: string, amount: number): Promise<void> {
-    const proc = (globalThis as any).process;
-    if (proc?.env?.['NODE_ENV'] === 'test' || proc?.env?.['VITEST']) {
+  private async syncBudgetToDb(category: string, amount: number, forceInTest = false): Promise<void> {
+    const proc = (globalThis as unknown as { process?: { env?: Record<string, string | undefined> } }).process;
+    if (!forceInTest && (proc?.env?.['NODE_ENV'] === 'test' || proc?.env?.['VITEST'])) {
       return;
     }
 
@@ -234,7 +252,7 @@ export class RemoteConfigService {
   }
 
   private setupRealtime(): void {
-    const proc = (globalThis as any).process;
+    const proc = (globalThis as unknown as { process?: { env?: Record<string, string | undefined> } }).process;
     if (proc?.env?.['NODE_ENV'] === 'test' || proc?.env?.['VITEST']) {
       return;
     }
@@ -261,6 +279,13 @@ export class RemoteConfigService {
    */
   async initRemoteConfig(): Promise<void> {
     if (typeof window === 'undefined') {
+      return;
+    }
+
+    const proc = (globalThis as unknown as { process?: { env?: Record<string, string | undefined> } }).process;
+    if (proc?.env?.['NODE_ENV'] === 'test' || proc?.env?.['VITEST']) {
+      this.applyConfigValues(DEFAULT_REMOTE_CONFIG);
+      this.isLoaded.set(true);
       return;
     }
 

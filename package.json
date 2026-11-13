@@ -17,6 +17,8 @@
     "test": "node scripts/set-env.js && ng test",
     "pretest:ci": "node scripts/set-env.js",
     "test:ci": "node scripts/set-env.js && ng test --watch=false",
+    "test:api": "node --test api/*.test.mjs",
+    "typecheck": "tsc --noEmit",
     "lint": "ng lint",
     "lint:fix": "ng lint --fix",
     "audit": "npm audit --audit-level=high",
